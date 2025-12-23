@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Hejka</h1>
+
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit">BŁAGAM KLIKNIJ WE MNIE</button>
+    </form>
+
+    {% if clicked %}
+      <p>YIPIEE!!!</p>
+    {% endif %}
+  </body>
+</html>
