@@ -4,15 +4,17 @@
 <div class="page">
   <div class="hero hero--wide">
     <div class="panel panel--wide">
+
       <div class="panel__top">
-        <p class="panel__title"></p>
-        <span class="panel__pill"></span>
+        <p class="panel__title">Gra 4×4</p>
+        <span class="panel__pill">Panel</span>
       </div>
-<div class="panel__top" style="justify-content:center; margin-bottom: 10px;">
-  <span class="panel__pill">
-    Zalogowany jako: {{ request.user.username }}
-  </span>
-</div>
+
+      <div class="panel__top" style="justify-content:center; margin-bottom: 10px;">
+        <span class="panel__pill">
+          Zalogowany jako: {{ request.user.username }}
+        </span>
+      </div>
 
       <form>
         <table class="grid-table">
@@ -20,24 +22,25 @@
           <tr>
             {% for c in cols %}
             <td>
-              <textarea
-                class="grid-cell"
-                data-cell="cell_{{ r }}_{{ c }}"
-                rows="4"
-                placeholder="Wpisz zdanie..."
-              ></textarea>
+              <div class="cell-wrapper">
+                <textarea
+                  class="grid-cell grid-cell--with-select"
+                  data-cell="cell_{{ r }}_{{ c }}"
+                  rows="4"
+                  placeholder="Wpisz zdanie..."
+                ></textarea>
 
-              <!-- dropdown POD KAŻDYM POLEM -->
-              <select
-                class="user-select cell-user"
-                data-cell="cell_{{ r }}_{{ c }}"
-              >
-                <option value="" selected>Przypisz użytkownika…</option>
-                <option value="test">test</option>
-                <option value="test2">test2</option>
-                <option value="bigman">bigman</option>
-                <option value="twojstary">twojstary</option>
-              </select>
+                <select
+                  class="cell-user cell-user--inside"
+                  data-cell="cell_{{ r }}_{{ c }}"
+                >
+                  <option value="" selected>Przypisz użytkownika…</option>
+                  <option value="test">test</option>
+                  <option value="test2">test2</option>
+                  <option value="bigman">bigman</option>
+                  <option value="twojstary">twojstary</option>
+                </select>
+              </div>
             </td>
             {% endfor %}
           </tr>
@@ -50,6 +53,7 @@
 
         <p class="fineprint">Każdy użytkownik może być przypisany tylko do jednego pola.</p>
       </form>
+
     </div>
   </div>
 </div>
@@ -57,37 +61,57 @@
 <script>
   const selects = document.querySelectorAll(".cell-user");
 
-  // mapowanie: user -> cell_id
+  // user -> cellId
   const assigned = {};
+
+  // helper: wyłącz/odblokuj opcje userów we wszystkich selectach
+  function syncDisabledOptions() {
+    const takenUsers = new Set(Object.keys(assigned));
+
+    selects.forEach(sel => {
+      const current = sel.value;
+
+      [...sel.options].forEach(opt => {
+        if (!opt.value) return; // placeholder
+        // user jest zajęty gdzie indziej -> disabled
+        opt.disabled = takenUsers.has(opt.value) && opt.value !== current;
+      });
+    });
+  }
 
   selects.forEach(select => {
     select.addEventListener("change", () => {
       const cellId = select.dataset.cell;
-      const user = select.value;
+      const newUser = select.value;
 
-      if (!user) return;
+      // znajdź, czy ta komórka miała wcześniej usera
+      const prevUser = Object.keys(assigned).find(u => assigned[u] === cellId);
 
-      // jeśli user był przypisany gdzie indziej → cofamy poprzedni wybór
-      if (assigned[user] && assigned[user] !== cellId) {
+      // usuń stare przypisanie dla tej komórki
+      if (prevUser) delete assigned[prevUser];
+
+      // jeśli wybrano pustą opcję -> tylko sync
+      if (!newUser) {
+        syncDisabledOptions();
+        return;
+      }
+
+      // jeśli ten user był przypisany gdzie indziej -> wyczyść tamten select
+      if (assigned[newUser] && assigned[newUser] !== cellId) {
         const prevSelect = document.querySelector(
-          `.cell-user[data-cell="${assigned[user]}"]`
+          `.cell-user[data-cell="${assigned[newUser]}"]`
         );
         if (prevSelect) prevSelect.value = "";
       }
 
-      assigned[user] = cellId;
-
-      // zablokuj usera w innych selectach
-      selects.forEach(s => {
-        if (s !== select) {
-          const opt = s.querySelector(`option[value="${CSS.escape(user)}"]`);
-          if (opt) opt.disabled = true;
-        }
-      });
+      assigned[newUser] = cellId;
+      syncDisabledOptions();
     });
   });
 
-  // (opcjonalnie) testowy zapis
+  // startowa synchronizacja (na wypadek, gdybyś kiedyś wypełniał wartości)
+  syncDisabledOptions();
+
   document.getElementById("save-btn").addEventListener("click", () => {
     alert("Zapis (na razie testowy) ✅");
   });

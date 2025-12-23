@@ -305,3 +305,164 @@ body::after{
 .cell-user{
   margin-top: 8px;
 }
+/* wrapper jednego pola */
+.cell-wrapper{
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden; /* łączy textarea + select wizualnie */
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+}
+
+/* textarea – górna część */
+.grid-cell--with-select{
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  resize: none;
+  min-height: 90px;
+}
+
+/* select – dolna część pola */
+.cell-user--inside{
+  border: none;
+  border-top: 1px solid rgba(255,255,255,.10);
+  border-radius: 0;
+  background: rgba(0,0,0,.18);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: rgba(234,240,255,.85);
+}
+
+/* focus całego komponentu */
+.cell-wrapper:focus-within{
+  border-color: rgba(76,125,255,.55);
+  box-shadow: 0 0 0 3px rgba(76,125,255,.18);
+}
+/* ===== GRID: ładniejsze komórki + dropdown "w środku" ===== */
+
+/* mniejsze odstępy, bardziej równo */
+.grid-table{
+  border-spacing: 14px;
+}
+
+/* w komórce tabeli niech nie dodaje dziwnych marginesów */
+.grid-table td{
+  padding: 0;
+  vertical-align: top;
+}
+
+/* komponent: textarea + select w jednej obudowie */
+.cell-wrapper{
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  box-shadow: 0 10px 28px rgba(0,0,0,.35);
+}
+
+/* textarea w środku – miękciej i czytelniej */
+.grid-cell--with-select{
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 14px 14px 12px;
+  min-height: 96px;
+  color: rgba(234,240,255,.92);
+  resize: none;
+  outline: none;
+}
+
+.grid-cell--with-select::placeholder{
+  color: rgba(234,240,255,.38);
+}
+
+/* pasek dolny dla selecta (część tego samego pola) */
+.cell-user--inside{
+  width: 100%;
+  border: 0;
+  border-top: 1px solid rgba(255,255,255,.10);
+  border-radius: 0;
+  padding: 10px 40px 10px 14px;
+  font-size: 13px;
+  color: rgba(234,240,255,.86);
+
+  /* odsystemowienie selecta */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  background:
+    radial-gradient(500px 120px at 10% 20%, rgba(76,125,255,.14), transparent 60%),
+    rgba(0,0,0,.18);
+}
+
+/* własna strzałka dropdown (bez HTML zmian) */
+.cell-wrapper{
+  position: relative;
+}
+
+.cell-wrapper::after{
+  content: "▾";
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  font-size: 14px;
+  color: rgba(234,240,255,.55);
+  pointer-events: none;
+}
+
+/* focus całego komponentu */
+.cell-wrapper:focus-within{
+  border-color: rgba(76,125,255,.55);
+  box-shadow: 0 0 0 3px rgba(76,125,255,.18), 0 12px 34px rgba(0,0,0,.45);
+}
+
+/* usuń marginesy które psuły układ */
+.cell-user{ margin-top: 0 !important; }
+.user-select{ border-radius: 0 !important; } /* bo select jest w obudowie */
+
+
+.form{
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.field{
+  display: grid;
+  gap: 6px;
+}
+
+.field__input{
+  width: 100%;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(234,240,255,.92);
+  padding: 12px 14px;
+  border-radius: 14px;
+  outline: none;
+  font-size: 15px;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.field__input::placeholder{
+  color: rgba(234,240,255,.45);
+}
+
+.field__input:focus{
+  border-color: rgba(76,125,255,.65);
+  box-shadow: 0 0 0 4px rgba(76,125,255,.18);
+  background: rgba(255,255,255,.08);
+}
+
+.form__error{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 90, 90, .25);
+  background: rgba(255, 90, 90, .10);
+  color: rgba(234,240,255,.92);
+  font-size: 14px;
+}
