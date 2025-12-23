@@ -18,7 +18,4 @@ def home(request):
 
 
 def game(request):
-    return render(request, "game.html", {
-        "rows": range(4),
-        "cols": range(4),
-    })
+    return render(request, "game.html", {"rows": range(4), "cols": range(4)})
