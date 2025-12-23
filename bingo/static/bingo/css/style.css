@@ -1,0 +1,33 @@
+/* reset + sensowna baza */
+body {
+  margin: 0;
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  font-family: system-ui, sans-serif;
+}
+
+/* h1 wycentrowane */
+h1 {
+  margin-bottom: 20px;
+}
+
+/* button */
+button {
+  background-color: #1e90ff;
+  color: white;
+
+  border: none;
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #187bcd;
+}
