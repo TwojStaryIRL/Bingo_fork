@@ -1,33 +1,113 @@
-/* reset + sensowna baza */
+/* Forced "dark mode" – stałe kolory */
+:root {
+  color-scheme: dark;
+  --bg: #0b0f19;
+  --card: #121a2a;
+  --text: #e7ecf5;
+  --muted: #a7b1c2;
+  --primary: #1e90ff;
+  --primary-hover: #187bcd;
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  height: 100vh;
+  min-height: 100vh;
 
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
 
-  font-family: system-ui, sans-serif;
+  background: radial-gradient(900px 500px at 20% 20%, rgba(30, 144, 255, 0.16), transparent 60%),
+              radial-gradient(700px 400px at 80% 10%, rgba(255, 255, 255, 0.06), transparent 60%),
+              var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-/* h1 wycentrowane */
-h1 {
-  margin-bottom: 20px;
+.hero {
+  width: min(720px, 92vw);
+  padding: 24px;
 }
 
-/* button */
-button {
-  background-color: #1e90ff;
+.hero__header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.brand {
+  margin: 0 0 10px 0;
+  font-size: clamp(46px, 7vw, 72px);
+  letter-spacing: 0.5px;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card {
+  background: rgba(18, 26, 42, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 22px;
+  backdrop-filter: blur(6px);
+}
+
+.card__title {
+  margin: 0 0 14px 0;
+  font-size: 18px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 6px 0 14px 0;
+}
+
+/* działa i na <a> i na <button> */
+.btn, button {
+  appearance: none;
+  background: var(--primary);
   color: white;
 
-  border: none;
-  padding: 14px 24px;
+  border: 0;
+  padding: 12px 18px;
   font-size: 16px;
-  border-radius: 8px;
+  border-radius: 10px;
+
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
 }
 
-button:hover {
-  background-color: #187bcd;
+.btn:hover, button:hover { background: var(--primary-hover); }
+.btn:active, button:active { transform: translateY(1px); }
+
+.btn--ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
 }

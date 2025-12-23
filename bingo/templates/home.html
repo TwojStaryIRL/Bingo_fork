@@ -1,7 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Logowanie</h1>
-  
+  <main class="hero">
+    <header class="hero__header">
+      <h1 class="brand">Bingo</h1>
+      <p class="tagline">Prosty generator plansz. Wersja dev.</p>
+    </header>
+
+    <section class="card">
+      <h2 class="card__title">Start</h2>
+
+      <div class="actions">
+        <a class="btn" id="login-btn" href="/accounts/login/">Zaloguj</a>
+        <a class="btn btn--ghost" href="/register/">Zarejestruj</a>
+      </div>
+
+      <p class="hint">
+        Na razie tylko UI. Logika i baza później.
+      </p>
+    </section>
+  </main>
 {% endblock %}
-<!-- dodany guzik na strone logowania przesunalem endblock bo by nie zaczytalo-->
+
