@@ -1,12 +1,33 @@
 {% extends "base.html" %}
-{% load static %}
-
 
 {% block content %}
-<img src="{% static 'bingo/images/2sigmy.jpg' %}" alt="Zdjęcie" width="670">
-  <h1>Logowanie</h1>
-<img src="{% static 'bingo/images/monkey.gif' %}" alt="Zdjęcie" width="400">
+<main class="page">
+  <section class="hero">
+    <div class="glow glow--a"></div>
+    <div class="glow glow--b"></div>
+
+    <header class="hero__header">
+      <div class="logo" aria-hidden="true">B</div>
+      <h1 class="title">Bingo</h1>
+    </header>
+
+    <div class="panel">
+      <div class="panel__top">
+        <h2 class="panel__title">Start</h2>
+        <span class="panel__pill">DEV</span>
+      </div>
+
+      <div class="actions">
+        <a class="btn btn--primary" id="login-btn" href="/accounts/login/">
+          Zaloguj
+        </a>
+        <a class="btn btn--secondary" id="register-btn" href="/register/">
+          Zarejestruj
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</main>
 {% endblock %}
-<!-- dodany guzik na strone logowania przesunalem endblock bo by nie zaczytalo-->
-
-

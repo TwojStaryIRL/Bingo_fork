@@ -1,14 +1,22 @@
 document.addEventListener("DOMContentLoaded", () => {
-  
-  
-  const btn = document.getElementById("alert-btn");
+  const toast = document.getElementById("toast");
+  const login = document.getElementById("login-btn");
+  const register = document.getElementById("register-btn");
 
-  if (!btn) {
-    console.warn("Button not found");
-    return;
+  const showToast = (msg) => {
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add("toast--show");
+    window.clearTimeout(window.__toastTimer);
+    window.__toastTimer = window.setTimeout(() => {
+      toast.classList.remove("toast--show");
+    }, 1400);
+  };
+
+  if (login) {
+    login.addEventListener("click", () => showToast("Przenoszę do logowania…"));
   }
-
-  btn.addEventListener("click", () => {
-    alert("KSYPRO TO GRZECZNY CHŁOPIEC I JEGO DZIEWCZYNA MA 12 LAT");
-  });
-  });
+  if (register) {
+    register.addEventListener("click", () => showToast("Rejestracja: dodamy później 🙂"));
+  }
+});
