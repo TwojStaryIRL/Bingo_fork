@@ -207,3 +207,45 @@ body{
   opacity: 1;
   transform: translateX(-50%) translateY(-4px);
 }
+body::before,
+body::after{
+  content: "";
+  position: fixed;
+  top: 0;
+  width: 520px;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+
+  background-image: url("../images/2sigmy.jpg");
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+  background-position: center top;
+
+  opacity: 0.35;
+  filter: blur(0.2px);
+}
+/* LEWA STRONA */
+body::before{
+  left: -0px;          /* częściowo poza ekranem */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 35%,
+    black 70%,
+    transparent 100%
+  );
+}
+
+/* PRAWA STRONA */
+body::after{
+  right: -0px;
+  transform: scaleX(-1); /* lustrzane odbicie */
+  mask-image: linear-gradient(
+    to left,
+    transparent 0%,
+    black 35%,
+    black 70%,
+    transparent 100%
+  );
+}
