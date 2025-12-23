@@ -15,7 +15,4 @@ def home(request):
     
     return render(request, "home.html", {"clicked": clicked}) # tutaj też trzeba dodać żeby zwracało ten clicked i wtedy działa popup
 def game(request):
-    return render(request, "game.html", {
-        "rows": range(4),
-        "cols": range(4),
-    })
+    return render(request, "game.html", {"rows": range(4), "cols": range(4)})
