@@ -8,7 +8,7 @@
       <div class="panel__top">
         <span class="panel__pill">Losowanie Bingo</span>
       </div>
-
+    <dif class="raffle-stage-is-in">
       <div class="raffle-board">
         <div class="raffle-grid">
           {% for row in grid %}
@@ -22,7 +22,7 @@
           {% endfor %}
         </div>
       </div>
-
+    </div>
       <div class="actions" style="margin-top: 16px;">
         <a class="btn btn--primary" href="{% url 'raffle' %}">Losuj ponownie</a>
       </div>
@@ -30,5 +30,63 @@
     </div>
   </div>
 </div>
+<script>
+(function(){
+  // CSRF z cookie (standard Django)
+  function getCookie(name) {
+    const v = `; ${document.cookie}`;
+    const parts = v.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  const tiles = document.querySelectorAll(".raffle-tile");
+
+  // nadaj index 0..8 (kolejność DOM)
+  tiles.forEach((tile, i) => tile.dataset.index = String(i));
+
+  tiles.forEach(tile => {
+    tile.addEventListener("click", async () => {
+      // 🔒 max 1 reroll (frontend)
+      if (tile.dataset.locked === "1") return;
+      if (tile.dataset.busy === "1") return;
+
+      tile.dataset.busy = "1";
+      tile.classList.add("is-loading");
+
+      const form = new FormData();
+      form.append("index", tile.dataset.index);
+
+      try {
+        const res = await fetch("{% url 'raffle_reroll' %}", {
+          method: "POST",
+          headers: {"X-CSRFToken": csrftoken},
+          body: form
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          console.warn(data.error || "Reroll failed");
+          return;
+        }
+
+        // 🔁 podmień tekst
+        const textEl = tile.querySelector(".raffle-text");
+        if (textEl) textEl.textContent = data.text;
+
+        // 🔒 po 1 rerollu blokujemy kafelek
+        tile.dataset.locked = "1";
+        tile.classList.add("is-locked");
+
+      } catch(e) {
+        console.error(e);
+      } finally {
+        tile.dataset.busy = "0";
+        tile.classList.remove("is-loading");
+      }
+    });
+  });
+})();
+</script>
 
 {% endblock %}

@@ -705,3 +705,31 @@ body::after{
   -webkit-line-clamp: 6;               /* max 6 linijek w kafelku */
   -webkit-box-orient: vertical;
 }
+/* === animacja wejścia planszy === */
+.raffle-stage{
+  display: grid;
+  place-items: center;
+  transform: translateY(70px);
+  opacity: 0;
+  transition: transform 520ms cubic-bezier(.2,.9,.2,1),
+              opacity 520ms ease;
+}
+.raffle-stage.is-in{
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* === stany kafelka === */
+.raffle-tile{
+  cursor: pointer;
+}
+
+.raffle-tile.is-loading{
+  pointer-events: none;
+  opacity: .65;
+}
+
+.raffle-tile.is-locked{
+  opacity: .78;
+  cursor: default;
+}
