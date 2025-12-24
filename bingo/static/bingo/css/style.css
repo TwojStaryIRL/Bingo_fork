@@ -485,3 +485,66 @@ body::after{
 .btn--danger:hover{
   background: rgba(255, 45, 45, .96);
 }
+
+
+
+/* === CZARNY DROPDOWN === */
+
+.cd{
+  position: relative;
+}
+
+.cd__button{
+  width: 100%;
+  background:
+    radial-gradient(500px 120px at 10% 20%, rgba(76,125,255,.14), transparent 60%),
+    rgba(0,0,0,.22);
+  border: 0;
+  border-top: 1px solid rgba(255,255,255,.10);
+  padding: 10px 40px 10px 14px;
+  color: rgba(234,240,255,.88);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cd__button::after{
+  content: "▾";
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  color: rgba(234,240,255,.55);
+}
+
+.cd__list{
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  background: rgba(8,10,20,.98);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 30;
+  display: none;
+}
+
+.cd--open .cd__list{
+  display: block;
+}
+
+.cd__option{
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cd__option:hover{
+  background: rgba(255,255,255,.08);
+}
+
+.cd__option--muted{
+  color: rgba(234,240,255,.45);
+}
