@@ -1,5 +1,5 @@
 # Bingo
-Koty som super
+
 ![hippo](https://media1.tenor.com/m/0s1Jr6y0KuIAAAAd/kot-uran.gif)
 ![hippo](https://media1.tenor.com/m/0s1Jr6y0KuIAAAAd/kot-uran.gif)
 ![hippo](https://media1.tenor.com/m/0s1Jr6y0KuIAAAAd/kot-uran.gif)
