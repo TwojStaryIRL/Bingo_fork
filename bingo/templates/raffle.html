@@ -1,5 +1,65 @@
 {% extends "base.html" %}
+<h>Losowanie Bingo</h>
 {% block content %}
-<h1>Losowanie</h1>
-<p>placeholder</p>
+
+<div class="page">
+  <div class="hero hero--wide">
+    <div class="panel panel--wide">
+
+      <div class="panel__top">
+        <span class="panel__pill">
+          Losowanie dla: {{ request.user.username }}
+        </span>
+
+        <a class="btn btn--secondary" href="{% url 'game' %}">Wróć</a>
+      </div>
+
+      <h1 style="margin: 6px 0 14px;">Losowanie</h1>
+
+      <table class="grid-table">
+        {% for row in grid %}
+        <tr>
+          {% for cell in row %}
+          <td>
+            <div class="cell-wrapper">
+              <div class="grid-cell grid-cell--with-select" style="min-height: 96px; white-space: pre-wrap;">
+                {% if cell %}
+                  {{ cell.text }}
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+
+              <div class="cell-user cell-user--inside" style="display:flex; align-items:center;">
+                {% if cell %}
+                  {% if cell.assigned_user %}
+                    Przypisany: 
+                    {% if cell.assigned_user.username %}
+                      {{ cell.assigned_user.username }}
+                    {% else %}
+                      {{ cell.assigned_user }}
+                    {% endif %}
+                  {% else %}
+                    Przypisany: —
+                  {% endif %}
+                {% else %}
+                  Brak w puli
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+
+      <div class="actions" style="margin-top: 14px;">
+        <a class="btn btn--primary" href="{% url 'raffle' %}">Losuj ponownie</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
 {% endblock %}
