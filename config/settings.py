@@ -37,8 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'bingo',
-    'bingo.apps.BingoConfig',
+    'bingo',
+    # 'bingo.apps.BingoConfig',
 ]
 
 MIDDLEWARE = [
