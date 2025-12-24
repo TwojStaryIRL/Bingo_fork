@@ -219,8 +219,13 @@
     // klik w listę nie zamyka przez document click
     list.addEventListener("click", (e) => e.stopPropagation());
 
-    wrapper.appendChild(btn);
-    wrapper.appendChild(list);
+    const anchor = document.createElement("div");
+    anchor.className = "cd__anchor";
+
+    anchor.appendChild(btn);
+    anchor.appendChild(list);
+    wrapper.appendChild(anchor);
+
     syncFromSelect();
   }
 

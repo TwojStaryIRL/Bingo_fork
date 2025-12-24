@@ -490,20 +490,25 @@ body::after{
    CUSTOM DROPDOWN (JS)
    ========================= */
 
-/* wrapper po enhancingu dostaje .cd */
+/* wrapper ulepszony przez JS */
 .cd.cell-wrapper{
-  position: relative;
-  overflow: visible !important;     /* nie tnij listy */
+  overflow: visible !important;   /* inaczej dropdown jest przycięty */
 }
 
-/* usuń historyczną strzałkę z wrappera, bo button ma własną */
+/* wyłącz historyczną strzałkę wrappera (bo strzałka ma być na przycisku) */
 .cd.cell-wrapper::after{
   content: none !important;
 }
 
-/* przycisk zamiast natywnego selecta */
+/* kotwica tylko dla button+list (żeby dropdown liczył 100% od przycisku, nie od textarea) */
+.cd__anchor{
+  position: relative;
+}
+
+/* przycisk (zastępuje select) */
 .cd__button{
   width: 100%;
+  position: relative;             /* klucz: strzałka trzyma się przycisku */
   border: 0;
   border-top: 1px solid rgba(255,255,255,.10);
   padding: 10px 40px 10px 14px;
@@ -521,7 +526,7 @@ body::after{
   outline: none;
 }
 
-/* strzałka na buttonie */
+/* strzałka NA przycisku */
 .cd__button::after{
   content: "▾";
   position: absolute;
@@ -533,11 +538,11 @@ body::after{
   pointer-events: none;
 }
 
-/* lista opcji POD przyciskiem + animacja */
+/* lista: równo z przyciskiem (zero wcięć), pod nim */
 .cd__list{
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 0;
+  right: 0;
   top: calc(100% + 6px);
 
   background: #05060b;
@@ -549,8 +554,9 @@ body::after{
   overflow-y: auto;
   z-index: 999;
 
+  /* animacja */
   opacity: 0;
-  transform: translateY(-6px) scale(0.98);
+  transform: translateY(-6px) scale(0.985);
   pointer-events: none;
   transition: opacity 140ms ease, transform 140ms ease;
 }
