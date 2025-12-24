@@ -9,11 +9,7 @@
         <span class="panel__pill">
           Zalogowany jako: {{ request.user.username }}
         </span>
-        <div class="panel__top">
-          <span class="panel__pill">
-            Zalogowany jako: {{ request.user.username }}
-          </span>
-        </div>
+
 
         <form method="post" action="{% url 'logout' %}" class="logout-form">
           {% csrf_token %}
