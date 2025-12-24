@@ -7,6 +7,9 @@ from django.shortcuts import render
 from django.contrib.auth.views import LoginView, get_user_model
 from django.views.decorators.http import require_POST
 from .models import BingoBoard
+import random
+from collections import Counter
+
 
 
 class LandingLoginView(LoginView):
@@ -62,6 +65,75 @@ def save_board(request):
     )
 
     return JsonResponse({"ok": True})
+@login_required
+def raffle_view(request):
+    user = request.user
 
-def raffle(request):
-    return render(request, "raffle.html")
+    # bierzemy wszystkie boardy innych użytkowników
+    boards = (
+        BingoBoard.objects
+        .exclude(user=user)
+        .select_related("user")
+    )
+
+    pool = []
+    # zbieramy wszystkie komórki z JSON-ów
+    for b in boards:
+        data = b.grid or {}
+        cells = data.get("grid") or []
+        for c in cells:
+            text = (c.get("text") or "").strip()
+            assigned_user = c.get("assigned_user")  # u Ciebie to string z selecta
+            cell_id = c.get("cell")
+
+            # pomijamy puste
+            if not text:
+                continue
+
+            # 1) nie możesz wylosować zadania z samym sobą
+            if assigned_user and assigned_user == user.username:
+                continue
+
+            # zapisujemy wraz z metadanymi do unikalności
+            pool.append({
+                "text": text,
+                "assigned_user": assigned_user,
+                "source_board_user": b.user.username,
+                "source_board_id": b.id,
+                "cell": cell_id,
+            })
+
+    random.shuffle(pool)
+
+    chosen = []
+    used = set()               # 4) unikalne elementy w tej iteracji
+    per_person = Counter()     # 2) max 2x ta sama osoba na 1 board
+
+    TARGET = 16
+
+    for item in pool:
+        if len(chosen) >= TARGET:
+            break
+
+        # unikalność elementu (ten sam kafelek z tego samego boarda nie może wejść drugi raz)
+        uniq = (item["source_board_id"], item["cell"])
+        if uniq in used:
+            continue
+
+        assigned = item["assigned_user"]
+        if assigned:
+            # 2) max 2 razy dana osoba
+            if per_person[assigned] >= 2:
+                continue
+
+        chosen.append(item)
+        used.add(uniq)
+        if assigned:
+            per_person[assigned] += 1
+
+    # jak pula za mała — dopełniamy pustymi
+    while len(chosen) < TARGET:
+        chosen.append(None)
+
+    grid = [chosen[i:i+4] for i in range(0, TARGET, 4)]
+    return render(request, "raffle.html", {"grid": grid})
