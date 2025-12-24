@@ -283,35 +283,46 @@
 
   loadSavedGrid();
 
-  function burstConfetti(count = 60){
-    const wrap = document.createElement("div");
-    wrap.className = "confetti";
-    document.body.appendChild(wrap);
+  function burstConfettiSide(count = 50){
+  const wrap = document.createElement("div");
+  wrap.className = "confetti";
+  document.body.appendChild(wrap);
 
-    const colors = ["#2AFF8C", "#00CDB4", "#FFFFFF", "#4C7DFF"];
+  const colors = ["#2AFF8C", "#00CDB4", "#FFFFFF", "#4C7DFF"];
 
-    for (let i = 0; i < count; i++){
-      const p = document.createElement("span");
-      p.className = "confetti__piece";
+  const startY = window.innerHeight * 0.75; // 3/4 ekranu od góry
 
-      const left = Math.random() * 100;
-      const dx   = (Math.random() * 2 - 1) * 20 + "vw";
-      const rot  = (Math.random() * 720 - 360) + "deg";
-      const dur  = Math.random() * 0.8 + 1.0;
-      const del  = Math.random() * 0.15;
+  for (let i = 0; i < count; i++){
+    const p = document.createElement("span");
+    p.className = "confetti__piece";
 
-      p.style.left = left + "vw";
-      p.style.background = colors[Math.floor(Math.random() * colors.length)];
-      p.style.setProperty("--dx", dx);
-      p.style.setProperty("--rot", rot);
-      p.style.animationDuration = dur + "s";
-      p.style.animationDelay = del + "s";
+    const fromLeft = Math.random() < 0.5;
 
-      wrap.appendChild(p);
-    }
+    // START
+    p.style.top  = startY + (Math.random() * 40 - 20) + "px";
+    p.style.left = fromLeft ? "-20px" : "calc(100vw + 20px)";
 
-    setTimeout(() => wrap.remove(), 2200);
+    // RUCH
+    const dx = fromLeft
+      ? (Math.random() * 40 + 30) + "vw"   // w prawo
+      : -(Math.random() * 40 + 30) + "vw"; // w lewo
+
+    const dy  = Math.random() * 120 + 60 + "px"; // lekko w dół
+    const rot = (Math.random() * 720 - 360) + "deg";
+    const dur = Math.random() * 0.6 + 0.8;
+
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.setProperty("--dx", dx);
+    p.style.setProperty("--dy", dy);
+    p.style.setProperty("--rot", rot);
+    p.style.animationDuration = dur + "s";
+
+    wrap.appendChild(p);
   }
+
+  setTimeout(() => wrap.remove(), 2500);
+}
+
 
 
 </script>
