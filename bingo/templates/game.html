@@ -32,10 +32,17 @@
                   placeholder="Wpisz zdanie..."
                 ></textarea>
 
+                {% comment %} bierzemy listę userów z backendu {% endcomment %}
                 <select
                   class="cell-user cell-user--inside"
                   data-cell="cell_{{ r }}_{{ c }}"
                 >
+                  <option value="" selected>Przypisz użytkownika…</option>
+                  {% for u in usernames %}
+                    <option value="{{ u }}">{{ u }}</option>
+                  {% endfor %}
+                </select>
+
                   <option value="" selected>Przypisz użytkownika…</option>
                   <option value="test">test</option>
                   <option value="test2">test2</option>
@@ -65,55 +72,48 @@
   </div>
 </div>
 
-{% comment %} <script>
-  // --- przypisywanie userów do pól (unikalność) ---
-  const selects = document.querySelectorAll(".cell-user");
-  const assigned = {}; // user -> cellId
+{% comment %} jeśli istnieje już zapisany template to go wrzucamy na stronkę, inaczej blank {% endcomment %}
+{{ saved_grid|json_script:"saved-grid" }}
 
-  function syncDisabledOptions() {
-    const takenUsers = new Set(Object.keys(assigned));
 
-    selects.forEach(sel => {
-      const current = sel.value;
-      [...sel.options].forEach(opt => {
-        if (!opt.value) return;
-        opt.disabled = takenUsers.has(opt.value) && opt.value !== current;
-      });
+<script>
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  function loadSavedGrid() {
+  const el = document.getElementById("saved-grid");
+  if (!el) return;
+
+  let saved = {};
+  try { saved = JSON.parse(el.textContent || "{}"); } catch (e) { return; }
+
+  const grid = saved.grid;
+  if (!Array.isArray(grid)) return;
+
+  const byCell = new Map();
+  grid.forEach(item => {
+    if (item && item.cell) byCell.set(item.cell, item);
+  });
+
+  // wczytywanie listy
+  const wrappers = document.querySelectorAll(".cell-wrapper");
+    wrappers.forEach(w => {
+      const textarea = w.querySelector("textarea");
+      const select = w.querySelector("select");
+      const cellId = textarea?.dataset?.cell;
+      const item = cellId ? byCell.get(cellId) : null;
+      if (!item) return;
+
+      textarea.value = item.text || "";
+      select.value = item.assigned_user || "";
     });
   }
 
-  selects.forEach(select => {
-    select.addEventListener("change", () => {
-      const cellId = select.dataset.cell;
-      const newUser = select.value;
-
-      const prevUser = Object.keys(assigned).find(u => assigned[u] === cellId);
-      if (prevUser) delete assigned[prevUser];
-
-      if (!newUser) {
-        syncDisabledOptions();
-        return;
-      }
-
-      if (assigned[newUser] && assigned[newUser] !== cellId) {
-        const prevSelect = document.querySelector(`.cell-user[data-cell="${assigned[newUser]}"]`);
-        if (prevSelect) prevSelect.value = "";
-      }
-
-      assigned[newUser] = cellId;
-      syncDisabledOptions();
-    });
-  });
-
-  syncDisabledOptions();
-
-  // --- testowy zapis ---
-  document.getElementById("save-btn").addEventListener("click", () => {
-    alert("Zapis (na razie testowy) ✅");
-  });
-
-  // --- eksport JSON do konsoli ---
-  document.getElementById("export-json-btn").addEventListener("click", () => {
+  // Event listener dla przycisku 
+  document.getElementById("save-btn").addEventListener("click", async () => {
     const author = "{{ request.user.username }}";
     const timestamp = new Date().toISOString();
 
@@ -129,38 +129,7 @@
         text: (textarea?.value || "").trim(),
         assigned_user: (select?.value || "") || null
       });
-    });
 
-    const result = { author, timestamp, grid };
-
-    console.log("📦 GRID EXPORT JSON:");
-    console.log(JSON.stringify(result, null, 2));
-    alert("JSON wypluty w Console ✅");
-  });
-</script> {% endcomment %}
-
-<script>
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  }
-
-  document.getElementById("save-btn").addEventListener("click", async () => {
-    const author = "{{ request.user.username }}";
-    const timestamp = new Date().toISOString();
-
-    const wrappers = document.querySelectorAll(".cell-wrapper");
-    const grid = [];
-
-    wrappers.forEach(w => {
-      const textarea = w.querySelector("textarea");
-      const select = w.querySelector("select");
-
-      grid.push({
-        text: (textarea?.value || "").trim(),
-        assigned_user: (select?.value || "") || null
-      });
     });
 
     // jeśli potem dodasz input na mail:
@@ -181,6 +150,9 @@
     if (resp.ok) alert("Zapisano ✅");
     else alert("Błąd zapisu ❌");
   });
+
+  loadSavedGrid();
+
 </script>
 
 {% endblock %}
