@@ -113,6 +113,29 @@
     });
   }
 
+
+  let toastTimer = null;
+
+  function showToast(message, type="success") {
+    const el = document.getElementById("toast");
+    if (!el) return;
+
+    el.textContent = message;
+    el.classList.remove("toast--success", "toast--error", "toast--show");
+    el.classList.add(type === "error" ? "toast--error" : "toast--success");
+
+    // reset timera
+    if (toastTimer) clearTimeout(toastTimer);
+
+    // pokaż
+    requestAnimationFrame(() => el.classList.add("toast--show"));
+
+    // schowaj po chwili
+    toastTimer = setTimeout(() => {
+      el.classList.remove("toast--show");
+    }, 2200);
+  }
+
   // Event listener dla przycisku 
   document.getElementById("save-btn").addEventListener("click", async () => {
     const author = "{{ request.user.username }}";
@@ -157,29 +180,6 @@
 
 
   });
-
-  let toastTimer = null;
-
-function showToast(message, type="success") {
-  const el = document.getElementById("toast");
-  if (!el) return;
-
-  el.textContent = message;
-  el.classList.remove("toast--success", "toast--error", "toast--show");
-  el.classList.add(type === "error" ? "toast--error" : "toast--success");
-
-  // reset timera
-  if (toastTimer) clearTimeout(toastTimer);
-
-  // pokaż
-  requestAnimationFrame(() => el.classList.add("toast--show"));
-
-  // schowaj po chwili
-  toastTimer = setTimeout(() => {
-    el.classList.remove("toast--show");
-  }, 2200);
-}
-
 
   //czarny dropdown
   (function enhanceDropdowns(){
