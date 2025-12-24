@@ -148,8 +148,14 @@
       body: JSON.stringify(payload),
     });
 
-    if (resp.ok) alert("Zapisano ✅");
-    else alert("Błąd zapisu ❌");
+    if (resp.ok) {
+      showToast("Zapisano ✅", "success");
+    } else {
+      const txt = await resp.text();
+      showToast("Błąd zapisu ❌ " + (txt || ""), "error");
+    }
+
+
   });
 
   let toastTimer = null;
