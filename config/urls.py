@@ -30,6 +30,6 @@ urlpatterns = [
     path("game/", game, name="game"), 
     path("accounts/", include("django.contrib.auth.urls")), 
     path("game/save/", save_board, name="save_board"),
-    path("raffle/", raffle, name="raffle"),path("raffle", )
+    path("raffle/", raffle, name="raffle"),
 ]
 
