@@ -548,3 +548,18 @@ body::after{
 .cd__option--muted{
   color: rgba(234,240,255,.45);
 }
+
+.cd__list{
+  background: #05060b !important;
+  color: rgba(234,240,255,.92) !important;
+}
+
+.cd__option{
+  background: transparent !important;
+  color: rgba(234,240,255,.92) !important;
+}
+.cd__option:hover{
+  background: rgba(255,255,255,.08) !important;
+}
+
+.cd.cell-wrapper::after{ content: none !important; }

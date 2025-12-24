@@ -151,21 +151,37 @@
   });
   //czarny dropdown
   function enhanceDropdowns(){
-    const selects = document.querySelectorAll('select[data-enhance="dropdown"]');
+    const selects = document.querySelectorAll('select.cell-user--inside');
 
     selects.forEach(select => {
-      select.style.display = "none";
+      // 1) wyłącz natywny select: nieklikalny i poza ekranem
+      select.setAttribute("aria-hidden", "true");
+      select.tabIndex = -1;
+      select.style.position = "absolute";
+      select.style.left = "-99999px";
+      select.style.top = "0";
+      select.style.width = "1px";
+      select.style.height = "1px";
+      select.style.opacity = "0";
+      select.style.pointerEvents = "none";
 
       const wrapper = select.closest(".cell-wrapper");
       wrapper.classList.add("cd");
 
+      // nie twórz drugi raz jeśli już jest
+      if (wrapper.querySelector(".cd__button")) return;
+
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "cd__button";
-      btn.textContent = select.options[select.selectedIndex]?.text || "—";
 
       const list = document.createElement("div");
       list.className = "cd__list";
+
+      function syncFromSelect(){
+        const opt = select.options[select.selectedIndex];
+        btn.textContent = opt ? opt.text : "—";
+      }
 
       [...select.options].forEach(opt => {
         const div = document.createElement("div");
@@ -173,16 +189,18 @@
         if (!opt.value) div.classList.add("cd__option--muted");
         div.textContent = opt.text;
 
-        div.addEventListener("click", () => {
+        div.addEventListener("click", (e) => {
+          e.stopPropagation();
           select.value = opt.value;
-          btn.textContent = opt.text;
+          syncFromSelect();
           wrapper.classList.remove("cd--open");
         });
 
         list.appendChild(div);
       });
 
-      btn.addEventListener("click", e => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         document.querySelectorAll(".cd--open").forEach(el => el.classList.remove("cd--open"));
         wrapper.classList.toggle("cd--open");
@@ -190,6 +208,7 @@
 
       wrapper.appendChild(btn);
       wrapper.appendChild(list);
+      syncFromSelect();
     });
 
     document.addEventListener("click", () => {
