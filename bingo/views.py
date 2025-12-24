@@ -69,36 +69,37 @@ def save_board(request):
 def raffle_view(request):
     user = request.user
 
-    # bierzemy wszystkie boardy innych użytkowników
-    boards = (
-        BingoBoard.objects
-        .exclude(user=user)
-        .select_related("user")
-    )
+    boards = BingoBoard.objects.exclude(user=user).select_related("user")
 
     pool = []
-    # zbieramy wszystkie komórki z JSON-ów
+
     for b in boards:
-        data = b.grid or {}
-        cells = data.get("grid") or []
+        data = b.grid
+        if isinstance(data, dict):
+            cells = data.get("grid") or []
+        elif isinstance(data, list):
+            cells = data
+        else:
+            cells = []
+
         for c in cells:
+            if not isinstance(c, dict):
+                continue
+
             text = (c.get("text") or "").strip()
-            assigned_user = c.get("assigned_user")  # u Ciebie to string z selecta
+            assigned_user = (c.get("assigned_user") or "").strip()
             cell_id = c.get("cell")
 
-            # pomijamy puste
             if not text:
                 continue
 
-            # 1) nie możesz wylosować zadania z samym sobą
+            # 1) nie losuj siebie
             if assigned_user and assigned_user == user.username:
                 continue
 
-            # zapisujemy wraz z metadanymi do unikalności
             pool.append({
                 "text": text,
                 "assigned_user": assigned_user,
-                "source_board_user": b.user.username,
                 "source_board_id": b.id,
                 "cell": cell_id,
             })
@@ -106,8 +107,8 @@ def raffle_view(request):
     random.shuffle(pool)
 
     chosen = []
-    used = set()               # 4) unikalne elementy w tej iteracji
-    per_person = Counter()     # 2) max 2x ta sama osoba na 1 board
+    used = set()
+    per_person = Counter()
 
     TARGET = 16
 
@@ -115,23 +116,20 @@ def raffle_view(request):
         if len(chosen) >= TARGET:
             break
 
-        # unikalność elementu (ten sam kafelek z tego samego boarda nie może wejść drugi raz)
-        uniq = (item["source_board_id"], item["cell"])
+        uniq = (item["source_board_id"], item.get("cell"), item["text"])
         if uniq in used:
             continue
 
         assigned = item["assigned_user"]
-        if assigned:
-            # 2) max 2 razy dana osoba
-            if per_person[assigned] >= 2:
-                continue
+
+        if assigned and per_person[assigned] >= 2:
+            continue
 
         chosen.append(item)
         used.add(uniq)
         if assigned:
             per_person[assigned] += 1
 
-    # jak pula za mała — dopełniamy pustymi
     while len(chosen) < TARGET:
         chosen.append(None)
 
