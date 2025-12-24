@@ -290,7 +290,7 @@
 
   const colors = ["#2AFF8C", "#00CDB4", "#FFFFFF", "#4C7DFF"];
 
-  const startY = window.innerHeight * 0.75; // 3/4 ekranu od góry
+  const startY = window.innerHeight * 0.25; // <<< KLUCZ: 3/4 od dołu
 
   for (let i = 0; i < count; i++){
     const p = document.createElement("span");
@@ -302,12 +302,12 @@
     p.style.top  = startY + (Math.random() * 40 - 20) + "px";
     p.style.left = fromLeft ? "-20px" : "calc(100vw + 20px)";
 
-    // RUCH
+    // RUCH (do środka + lekko w dół)
     const dx = fromLeft
-      ? (Math.random() * 40 + 30) + "vw"   // w prawo
-      : -(Math.random() * 40 + 30) + "vw"; // w lewo
+      ? (Math.random() * 40 + 30) + "vw"
+      : -(Math.random() * 40 + 30) + "vw";
 
-    const dy  = Math.random() * 120 + 60 + "px"; // lekko w dół
+    const dy  = Math.random() * 120 + 60 + "px";
     const rot = (Math.random() * 720 - 360) + "deg";
     const dur = Math.random() * 0.6 + 0.8;
 
@@ -322,6 +322,7 @@
 
   setTimeout(() => wrap.remove(), 1800);
 }
+
 
 
 
