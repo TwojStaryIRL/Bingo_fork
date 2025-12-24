@@ -1,11 +1,23 @@
+"""
+URL configuration for config project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/6.0/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
-
 from bingo.views import LandingLoginView
 from bingo.views import game # tu import nazwy z patha z appki (komentarz do pierwszego żebyśmy wiedzieli jak uzywać potem usunąć)
-from bingo.views import FirstPasswordChangeView
-
 
 urlpatterns = [
     # path("", home,name='home'),
@@ -14,9 +26,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("game/", game, name="game"), 
     path("accounts/", include("django.contrib.auth.urls")), # dodane game page które ma nazwę game (komentarz do pierwszego żebyśmy wiedzieli jak uzywać potem usunąć)
-     path("accounts/password_change/", FirstPasswordChangeView.as_view(), name="password_change"),
-    path("accounts/password_change/done/", auth_views.PasswordChangeDoneView.as_view(), name="password_change_done"),
-
-
 ]
 
