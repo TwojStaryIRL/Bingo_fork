@@ -38,6 +38,7 @@
                   data-cell="cell_{{ r }}_{{ c }}"
                   data-enhance="dropdown"
                 >
+                <option value="" selected></option>
                   {% for u in usernames %}
                     <option value="{{ u }}">{{ u }}</option>
                   {% endfor %}
@@ -183,13 +184,6 @@
 
     const list = document.createElement("div");
     list.className = "cd__list";
-
-    const DEFAULT_USER = "Event";
-
-    if (!select.value) {
-      const hasDefault = [...select.options].some(o => o.value === DEFAULT_USER);
-      if (hasDefault) select.value = DEFAULT_USER;
-    }
 
 
     function syncFromSelect(){
