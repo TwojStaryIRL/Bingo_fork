@@ -185,43 +185,40 @@ body{
   line-height: 1.5;
 }
 
-/* === TOAST: kompaktowy, content-based === */
 .toast{
-  position: sticky;
-  top: 12px;
-  margin: 0 auto 12px;
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px) scale(.96);
 
-  display: inline-flex;          /* <<< KLUCZ */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
 
-  width: fit-content;            /* <<< dopasowanie do tekstu */
+  width: fit-content;
   max-width: 92vw;
 
   padding: 10px 18px;
-  border-radius: 999px;          /* pill look */
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: .02em;
   white-space: nowrap;
 
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-8px) scale(.96);
   transition: opacity 160ms ease, transform 160ms ease;
 
-  z-index: 20;
+  z-index: 9999;
 }
 
-/* widoczny */
 .toast--show{
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateX(-50%) translateY(0) scale(1);
   pointer-events: auto;
 }
 
-/* SUCCESS */
+
 .toast--success{
   background: linear-gradient(135deg, #2aff8c, #00cdb4);
   color: #ffffff;
@@ -231,7 +228,6 @@ body{
     0 0 22px rgba(0, 205, 180, .35);
 }
 
-/* ERROR (zostawiasz jak było lub) */
 .toast--error{
   background: linear-gradient(135deg, #ff5a5a, #e03b5c);
   color: #ffffff;
@@ -622,3 +618,31 @@ body::after{
 .cd__option--muted{
   color: rgba(234,240,255,.45);
 }
+
+/* === CONFETTI === */
+
+.confetti{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 19; /* POD toastem, NAD resztą */
+}
+
+.confetti__piece{
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 14px;
+  border-radius: 3px;
+  opacity: .95;
+  animation: confetti-fall linear forwards;
+}
+
+@keyframes confetti-fall{
+  to{
+    transform: translate3d(var(--dx), 120vh, 0) rotate(var(--rot));
+    opacity: 1;
+  }
+}
+

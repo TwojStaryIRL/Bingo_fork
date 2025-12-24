@@ -176,6 +176,7 @@
 
     if (resp.ok) {
       showToast("UDAŁO SIĘ YIPIEE!!!", "success");
+      burstConfetti(70);
     } else {
       const txt = await resp.text();
       showToast("Are you serious right meow :(" + (txt || ""), "error");
@@ -281,6 +282,37 @@
 
 
   loadSavedGrid();
+
+  function burstConfetti(count = 60){
+    const wrap = document.createElement("div");
+    wrap.className = "confetti";
+    document.body.appendChild(wrap);
+
+    const colors = ["#2AFF8C", "#00CDB4", "#FFFFFF", "#4C7DFF"];
+
+    for (let i = 0; i < count; i++){
+      const p = document.createElement("span");
+      p.className = "confetti__piece";
+
+      const left = Math.random() * 100;
+      const dx   = (Math.random() * 2 - 1) * 20 + "vw";
+      const rot  = (Math.random() * 720 - 360) + "deg";
+      const dur  = Math.random() * 0.8 + 1.0;
+      const del  = Math.random() * 0.15;
+
+      p.style.left = left + "vw";
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.setProperty("--dx", dx);
+      p.style.setProperty("--rot", rot);
+      p.style.animationDuration = dur + "s";
+      p.style.animationDelay = del + "s";
+
+      wrap.appendChild(p);
+    }
+
+    setTimeout(() => wrap.remove(), 2200);
+  }
+
 
 </script>
 
