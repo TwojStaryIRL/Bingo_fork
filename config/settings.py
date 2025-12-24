@@ -19,7 +19,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')#'django-insecure-wb6615*u^e2l-uepu!ecr
 DEBUG = False
 ALLOWED_HOSTS = ['*']
 
-
+DISABLE_COLLECTSTATIC = 1
 # import os
 
 # SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-secret-key")
