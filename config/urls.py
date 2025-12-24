@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from bingo.views import LandingLoginView
-from bingo.views import home, game # tu import nazwy z patha z appki (komentarz do pierwszego żebyśmy wiedzieli jak uzywać potem usunąć)
+from bingo.views import game # tu import nazwy z patha z appki (komentarz do pierwszego żebyśmy wiedzieli jak uzywać potem usunąć)
 
 urlpatterns = [
     # path("", home,name='home'),
