@@ -40,12 +40,6 @@ def game(request):
     # return render(request, "game.html", {"rows": range(4), "cols": range(4)})
 
 
-
-
-
-
-
-
 #!SECTION - zapis do bay danych - jako user + email + json z tą tabelką 4x4
 @login_required
 @require_POST
@@ -68,3 +62,6 @@ def save_board(request):
     )
 
     return JsonResponse({"ok": True})
+
+def raffle(request):
+    return render(request, "raffle.html")

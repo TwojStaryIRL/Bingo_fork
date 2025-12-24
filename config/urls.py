@@ -17,18 +17,19 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from bingo.views import LandingLoginView
-from bingo.views import game # tu import nazwy z patha z appki (komentarz do pierwszego żebyśmy wiedzieli jak uzywać potem usunąć)
+from bingo.views import game 
 from bingo.views import save_board
-
+from bingo.views import raffle
 
 
 urlpatterns = [
-    # path("", home,name='home'),
+
     path("", LandingLoginView.as_view(), name="landing_login"),
     path("accounts/login/", LandingLoginView.as_view(), name="login"),
     path('admin/', admin.site.urls),
     path("game/", game, name="game"), 
-    path("accounts/", include("django.contrib.auth.urls")), # dodane game page które ma nazwę game (komentarz do pierwszego żebyśmy wiedzieli jak uzywać potem usunąć)
+    path("accounts/", include("django.contrib.auth.urls")), 
     path("game/save/", save_board, name="save_board"),
+    path("raffle/", raffle, name="raffle"),path("raffle", )
 ]
 
