@@ -6,7 +6,7 @@
     function playAudio(
   id = "rerollSound",
   {
-    volume = 1.0,   // 0.0 – 1.0
+    volume = 1.0,
     reset = true,
     log = false
   } = {}
@@ -240,7 +240,7 @@
     if (resp.ok) {
       showToast?.("MAMY TO YIPIEE!!!", "success", 2200);
       burstConfetti(120);
-      playAudio("SaveSound", {volume: 0.15});
+      playAudio("SaveSound", {volume: 0.05});
     } else {
       const txt = await resp.text();
       showToast?.("Are you serious right meow :(" + (txt || ""), "error", 2600);
