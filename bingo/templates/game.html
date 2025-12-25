@@ -75,6 +75,8 @@
 {% comment %} jeśli istnieje już zapisany template to go wrzucamy na stronkę, inaczej blank {% endcomment %}
 {{ saved_grid|json_script:"saved-grid" }}
 {{ request.user.username|json_script:"current-user" }}
+{{ plugin_sfx|json_script:"plugin-sfx" }}
+
 
 {% endblock %}
 
@@ -85,7 +87,6 @@
   {% if plugin_path %}
 
     <script defer src="{% static plugin_path %}"></script>
-    {{ plugin_sfx|json_script:"plugin-sfx" }}
   {% endif %}
 
 {% endblock %}
