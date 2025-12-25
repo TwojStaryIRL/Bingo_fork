@@ -3,7 +3,36 @@
 
 
   // ===== SAVE SOUND (global, for everyone) =====
-    
+    function playAudio(
+  id = "rerollSound",
+  {
+    volume = 1.0,   // 0.0 – 1.0
+    reset = true,
+    log = false
+  } = {}
+) {
+  const audio = document.getElementById(id);
+
+  if (!audio) {
+    if (log) console.log(`[playAudio] no element #${id}`);
+    return false;
+  }
+
+  audio.volume = Math.max(0, Math.min(1, volume));
+  if (reset) audio.currentTime = 0;
+
+  const p = audio.play();
+  if (p && typeof p.then === "function") {
+    p.then(() => {
+      if (log) console.log(`[playAudio] OK #${id} vol=${audio.volume}`);
+    }).catch(err => {
+      if (log) console.error(`[playAudio] FAILED #${id}:`, err?.name, err?.message);
+    });
+  }
+
+  return true;
+}
+
 
     // END OF SOUND
 
@@ -211,24 +240,7 @@
     if (resp.ok) {
       showToast?.("UDAŁO SIĘ YIPIEE!!!", "success", 2200);
       burstConfetti(90);
-      // TO BE DELETED// TO BE DELETED// TO BE DELETED// TO BE DELETED
-      const audio = document.getElementById("rerollSound");
-        if (!audio) {
-          console.log("No audio element");
-          return;
-        }
-
-        audio.currentTime = 0;
-
-        const p = audio.play();
-        if (p && typeof p.then === "function") {
-          p.then(() => {
-            console.log("play() OK");
-          }).catch(err => {
-            console.error("play() BLOCKED/FAILED:", err?.name, err?.message, err);
-          });
-        }
-        // TO BE DELETED// TO BE DELETED// TO BE DELETED// TO BE DELETED
+      playAudio("SaveSound", {volume: 0.25});
     } else {
       const txt = await resp.text();
       showToast?.("Are you serious right meow :(" + (txt || ""), "error", 2600);
