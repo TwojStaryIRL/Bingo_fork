@@ -19,7 +19,7 @@ window.BingoUserPlugin.init = function (api) {
   };
 
   // ===== SPACEGLIDING TOGGLE =====
-  const MUSIC_URL = "/static/bingo/sfx/yippee.mp3"; // <- podmień ścieżkę
+  const MUSIC_URL = "/static/bingo/sfx/everything_black.mp3"; // <- podmień ścieżkę
   let spaceOn = false;
   
 
