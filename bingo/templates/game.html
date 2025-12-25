@@ -1,24 +1,7 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block content %}
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-<audio id="saveSound" preload="auto">
-  <source src="/static/bingo/sfx/yipiee-tbh.mp3" type="audio/mpeg">
-</audio>
-
-<script>
-  (function () {
-    const audio = document.getElementById("saveSound");
-    const btn = document.getElementById("save-btn");
-    if (!btn || !audio) return;
-
-    btn.addEventListener("click", () => {
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
-    });
-  })();
-</script>
 
 <div class="page">
   <div class="hero hero--wide">
@@ -91,7 +74,7 @@
 {% endblock %}
 
 {% block scripts %}
-  {% load static %}
+  
   <script defer src="{% static 'bingo/js/game.js' %}"></script>
 {% endblock %}
 
