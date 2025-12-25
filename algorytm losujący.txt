@@ -19,5 +19,10 @@ SIDENOTE {
         2) Userzy mogą losować(reroll system) 3 BingoBoardy i swobodnie się między nimi swapować
 
         2.1) Userzy mogą sufflować 2 razy każdy BingoBoard (permanent reroll) [gambling]
+        
+        PRZYCISK W FORMIE PNG Z LOLA ABY KAZDE POLE SIE ZAMIENILO 
+        3 REROLLE CALEJ PLANSZY Z WYLACZENIEM REROLOWANYCH REKORDOW
+        USUNAC MOJE WYPOCINY
+        ZMIANA PLANSZY NA 4X4
 
 }
