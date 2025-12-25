@@ -20,6 +20,7 @@ from bingo.views import LandingLoginView
 from bingo.views import game 
 from bingo.views import save_board
 from bingo.views import raffle
+from bingo.views import raffle_reroll
 
 
 urlpatterns = [
@@ -30,5 +31,6 @@ urlpatterns = [
     path("accounts/", include("django.contrib.auth.urls")), 
     path("game/save/", save_board, name="save_board"),
     path("raffle/", raffle, name="raffle"),
+    path("raffle/reroll/", raffle_reroll, name="raffle_reroll"),
 ]
 
