@@ -2,7 +2,6 @@
 {% load static %}
 {% block content %}
 
-
 <audio id="rerollSound" src="{% static 'bingo/sfx/reroll.mp3' %}" preload="auto"></audio>
 
 <div class="page">
@@ -17,7 +16,7 @@
         <button class="raffle-nav raffle-nav--left" type="button" aria-label="Poprzedni grid">‹</button>
         <button class="raffle-nav raffle-nav--right" type="button" aria-label="Następny grid">›</button>
 
-        <div class="raffle-stage is-in">
+        <div class="raffle-stage">
           {% for grid in grids %}
             <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}">
               <div class="raffle-grid">
@@ -51,6 +50,7 @@
     </div>
   </div>
 </div>
+
 <script>
 (function(){
   function getCookie(name) {
@@ -77,6 +77,7 @@
   let shufflesUsed = 0;  // max 3
 
   function applyClasses() {
+    if (!boards.length) return;
     boards.forEach((b, i) => {
       b.classList.remove("raffle-board--active","raffle-board--prev","raffle-board--next","raffle-board--hidden");
       if (i === active) b.classList.add("raffle-board--active");
@@ -96,90 +97,105 @@
     badgeReroll.classList.toggle("btn-badge--disabled", rerollLeft === 0);
     badgeShuffle.classList.toggle("btn-badge--disabled", shuffleLeft === 0);
 
-    btnReroll.disabled = rerollLeft === 0;
-    btnShuffle.disabled = shuffleLeft === 0;
+    btnReroll.disabled = (rerollLeft === 0);
+    btnShuffle.disabled = (shuffleLeft === 0);
   }
 
   function show(n){
+    if (!boards.length) return;
     active = (n + boards.length) % boards.length;
     applyClasses();
   }
 
-  left.addEventListener("click", () => show(active - 1));
-  right.addEventListener("click", () => show(active + 1));
+  if (left) left.addEventListener("click", () => show(active - 1));
+  if (right) right.addEventListener("click", () => show(active + 1));
 
   // INIT
   applyClasses();
   updateBadges();
 
-  // SHUFFLE (z limitem 3, liczonym na backendzie)
-  btnShuffle.addEventListener("click", async () => {
-    try {
-      const res = await fetch("{% url 'raffle_shuffle_use' %}", {
-        method: "POST",
-        headers: {"X-CSRFToken": csrftoken},
-      });
-      const data = await res.json();
-      if (!data.ok) return;
+  // SHUFFLE (limit 3 na backendzie)
+  if (btnShuffle) {
+    btnShuffle.addEventListener("click", async () => {
+      if (btnShuffle.disabled) return;
 
-      shufflesUsed = data.shuffles_used;
+      try {
+        const res = await fetch("{% url 'raffle_shuffle_use' %}", {
+          method: "POST",
+          headers: {"X-CSRFToken": csrftoken},
+        });
+        const data = await res.json();
+        if (!data.ok) return;
 
-      const board = boards[active];
-      const tiles = Array.from(board.querySelectorAll(".raffle-text"));
-      const texts = tiles.map(t => t.textContent);
+        shufflesUsed = data.shuffles_used;
 
-      for (let i = texts.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [texts[i], texts[j]] = [texts[j], texts[i]];
+        const board = boards[active];
+        const tiles = Array.from(board.querySelectorAll(".raffle-text"));
+        const texts = tiles.map(t => t.textContent);
+
+        for (let i = texts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [texts[i], texts[j]] = [texts[j], texts[i]];
+        }
+        tiles.forEach((t, i) => t.textContent = texts[i]);
+
+      } catch (e) {
+        console.error(e);
+      } finally {
+        updateBadges();
       }
-      tiles.forEach((t, i) => t.textContent = texts[i]);
-
-      updateBadges();
-    } catch (e) {
-      console.error(e);
-    }
-  });
+    });
+  }
 
   // REROLL całego grida (limit 3 globalnie)
-  btnReroll.addEventListener("click", async () => {
-    if (audio) audio.play().catch(()=>{});
+  if (btnReroll) {
+    btnReroll.addEventListener("click", async () => {
+      if (btnReroll.disabled) return;
 
-    const form = new FormData();
-    form.append("grid", String(active));
+      // dźwięk od początku
+      if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
 
-    btnReroll.disabled = true;
-    const board = boards[active];
-    const gridEl = board.querySelector(".raffle-grid");
-    gridEl?.classList.add("is-rerolling");
+      const form = new FormData();
+      form.append("grid", String(active));
 
-    try {
-      const res = await fetch("{% url 'raffle_reroll_all' %}", {
-        method: "POST",
-        headers: {"X-CSRFToken": csrftoken},
-        body: form
-      });
-      const data = await res.json();
-      if (!data.ok) return;
-
+      // łapiemy elementy przed try (żeby finally nie wywalił scope)
       const board = boards[active];
-      const tiles = Array.from(board.querySelectorAll(".raffle-text"));
-      data.cells.forEach((txt, i) => {
-        if (tiles[i]) tiles[i].textContent = txt;
-      });
+      const gridEl = board ? board.querySelector(".raffle-grid") : null;
 
-      rerollsUsed = data.rerolls_used || rerollsUsed;
-      updateBadges();
-    } catch (e) {
-      console.error(e);
-    }  finally {
-  setTimeout(() => gridEl?.classList.remove("is-rerolling"), 260);
-  updateBadges();
-    }
-      updateBadges();
-    }
-  });
+      // start animacji
+      if (gridEl) gridEl.classList.add("is-rerolling");
+
+      // blokada spam-click
+      btnReroll.disabled = true;
+
+      try {
+        const res = await fetch("{% url 'raffle_reroll_all' %}", {
+          method: "POST",
+          headers: {"X-CSRFToken": csrftoken},
+          body: form
+        });
+
+        const data = await res.json();
+        if (!data.ok) return;
+
+        const tiles = Array.from(board.querySelectorAll(".raffle-text"));
+        data.cells.forEach((txt, i) => {
+          if (tiles[i]) tiles[i].textContent = txt;
+        });
+
+        rerollsUsed = (typeof data.rerolls_used === "number") ? data.rerolls_used : rerollsUsed;
+
+      } catch (e) {
+        console.error(e);
+      } finally {
+        // stop animacji
+        setTimeout(() => { if (gridEl) gridEl.classList.remove("is-rerolling"); }, 260);
+        updateBadges();
+      }
+    });
+  }
 
 })();
 </script>
-{% endblock %}
 
+{% endblock %}
