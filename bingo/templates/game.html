@@ -79,7 +79,12 @@
 {% endblock %}
 
 {% block scripts %}
+
   <script defer src="{% static 'bingo/js/game.js' %}"></script>
+
+  {% if plugin_path %}
+    <script defer src="{% static plugin_path %}"></script>
+  {% endif %}
 
 {% endblock %}
 

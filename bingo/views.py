@@ -1,6 +1,8 @@
 # Create your views here.
 
 import json
+import re
+from django.contrib.staticfiles import finders
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -21,7 +23,7 @@ User = get_user_model()
 
 @login_required
 def game(request):
-    # 1) lista userów do dropdowna - bez staff i superuserów
+    # lista userów do dropdowna - bez staff i superuserów
     users = (
         User.objects
         .filter(is_active=True, is_staff=False, is_superuser=False)
@@ -29,16 +31,29 @@ def game(request):
         .values_list("username", flat=True)
     )
 
-    # 2) zapis planszy 
+    # zapis planszy 
     board = BingoBoard.objects.filter(user=request.user).first()
     saved_grid = board.grid if board else {}
 
-    # 3) render jak wcześniej
+    # plugin personalny dla danego usera, żeby nie ładować wszystkiego
+    plugin_path = None
+    username = request.user.username or ""
+
+    # tylko bezpieczne znaki na nazwę pliku
+    if re.match(r"^[a-zA-Z0-9_-]+$", username):
+        candidate = f"bingo/js/plugins/{username}.js"
+        if finders.find(candidate):
+            plugin_path = candidate
+
+
+
+    # render jak wcześniej
     return render(request, "game.html", {
         "rows": range(4),   # albo to co masz obecnie
         "cols": range(4),
         "usernames": list(users),
         "saved_grid": saved_grid,
+        "plugin_path": plugin_path,
     })
     # old code
     # return render(request, "game.html", {"rows": range(4), "cols": range(4)})
