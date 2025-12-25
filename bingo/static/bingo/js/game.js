@@ -3,9 +3,29 @@
 
 
   // ===== SAVE SOUND (global, for everyone) =====
-    const saveAudio = new Audio(window.SAVE_SOUND_URL);
-saveAudio.preload = "auto";
-saveAudio.volume = 0.25;
+    const SAVE_SOUND_VOLUME = 0.25;   // 0.0 - 1.0
+    const SAVE_SOUND_COOLDOWN = 2500; // ms
+
+    let lastSaveSoundAt = 0;
+
+    function playSaveSound(){
+      const el = document.getElementById("saveSound");
+      if (!el) return;
+
+      // ścisz
+      el.volume = SAVE_SOUND_VOLUME;
+
+      // cooldown
+      const now = Date.now();
+      if (now - lastSaveSoundAt < SAVE_SOUND_COOLDOWN) return;
+      lastSaveSoundAt = now;
+
+      // restart i graj
+      el.pause();
+      el.currentTime = 0;
+      el.play().catch(() => {});
+    }
+
 
     // END OF SOUND
 
