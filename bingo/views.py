@@ -2,24 +2,19 @@
 
 import json
 import re
-from django.contrib.staticfiles import finders
-from django.templatetags.static import static
 
-from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
+from django.contrib.staticfiles import finders
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_POST
+from django.urls import reverse
 
 from .user_plugins import get_user_plugin
 from .models import BingoBoard
 from .raffle_algorithm import generate_initial_state,reroll_one_grid,consume_shuffle
-
-
-
-import random
-from collections import Counter
 
 
 
@@ -104,7 +99,17 @@ def raffle(request):
         request.session[k] = v
     request.session.modified = True
 
-    return render(request, "raffle.html", {"grids": grids_2d})
+    raffle_config = {
+        "endpoints": {
+            "shuffle": reverse("raffle_shuffle_use"),
+            "reroll": reverse("raffle_reroll_all"),
+        },
+        "limits": {"shuffle": 3, "reroll": 3},
+        "gridSize": 4,
+        "audio": {"rerollId": "rerollSound"},
+    }
+
+    return render(request, "raffle.html", {"grids": grids_2d, "raffle_config": raffle_config})
 
 
 @login_required
