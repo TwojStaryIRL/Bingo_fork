@@ -112,9 +112,7 @@ def _counts_without_index(items, skip_index):
     return cnt
 
 
-@login_required
 def _extract_pool_for_user(current_user):
-    """Pula z wszystkich BingoBoardów poza current_user. Usuwa puste. Wyklucza assigned_user == current_user."""
     boards = BingoBoard.objects.exclude(user=current_user).select_related("user")
 
     pool = []
@@ -139,7 +137,7 @@ def _extract_pool_for_user(current_user):
             if not text:
                 continue
 
-            # 1) nie losuj siebie
+            # Nie losuj siebie
             if assigned_user and assigned_user == current_user.username:
                 continue
 
@@ -155,16 +153,15 @@ def _extract_pool_for_user(current_user):
 
 
 def _uniq(item):
-    """Unikalny klucz elementu (musi być hashowalny)."""
     return (item["source_board_id"], item.get("cell"), item["text"])
 
 
 def _build_grid(pool, used_global, target=16):
     """
-    Buduje grid target pól:
-    - brak duplikatów w gridzie
-    - max 2 na osobę w gridzie
-    - globalnie nie używa niczego, co jest w used_global
+    4x4 = 16 pól.
+    - globalnie nie powtarzamy NIC, co już było w tym losowaniu (na wszystkich gridach i rerollach)
+    - lokalnie brak duplikatów
+    - max 2 na osobę w obrębie grida
     """
     chosen = []
     used_local = set()
@@ -204,20 +201,18 @@ def raffle(request):
     user = request.user
     pool = _extract_pool_for_user(user)
 
-    # GLOBAL used: wszystko co już kiedykolwiek pokazaliśmy w tym losowaniu (na start: puste)
     used_global = set()
 
     grids = []
     for _ in range(3):
         items, used_local = _build_grid(pool, used_global, target=16)
         grids.append(items)
-        # dodaj to co weszło do global used, żeby 3 gridy na starcie były różne
         used_global |= used_local
 
-    # zapis do sesji (ważne: tuple -> list dla JSON serializer)
+    # ✅ tuple -> list (żeby sesja nie robiła 500)
     request.session["raffle_grids"] = grids
-    request.session["raffle_used_global"] = [list(x) for x in used_global]  # ✅
-    request.session["raffle_rerolls_used"] = 0  # ✅ max 3 dla całej strony
+    request.session["raffle_used_global"] = [list(x) for x in used_global]
+    request.session["raffle_rerolls_used"] = 0
     request.session.modified = True
 
     grids_2d = [_grid_to_2d(g, size=4) for g in grids]
@@ -228,9 +223,9 @@ def raffle(request):
 @require_POST
 def raffle_reroll_all(request):
     """
-    REROLL całego grida (active grid):
-    - max 3 rerolle łącznie dla wszystkich gridów
-    - wyklucza WSZYSTKO co kiedykolwiek wypadło wcześniej (globalnie)
+    Reroll CAŁEGO aktywnego grida:
+    - max 3 rerolle łącznie (na wszystkie gridy)
+    - nie wraca nic, co kiedykolwiek padło w tym losowaniu (global ban)
     """
     user = request.user
 
@@ -253,14 +248,12 @@ def raffle_reroll_all(request):
     if not isinstance(rerolls_used, int):
         rerolls_used = 0
 
-    # LIMIT 3 łącznie
     if rerolls_used >= 3:
-        return JsonResponse({"ok": False, "error": "Limit rerolli osiągnięty (3/3)."}, status=403)
+        return JsonResponse({"ok": False, "error": "Limit rerolli 3/3."}, status=403)
 
     used_global = set(tuple(x) for x in used_raw)
 
-    # Dodaj aktualnie widoczne pola (ze wszystkich 3 gridów) do used_global,
-    # żeby nigdy nie wróciły w tym losowaniu.
+    # dodaj aktualnie widoczne wartości do used_global (żeby nigdy nie wróciły)
     for g in grids:
         for it in g:
             if it:
@@ -268,9 +261,7 @@ def raffle_reroll_all(request):
 
     pool = _extract_pool_for_user(user)
 
-    # zbuduj nowy grid dla grid_idx
     new_items, used_local = _build_grid(pool, used_global, target=16)
-    # po zbudowaniu dodaj to co weszło
     used_global |= used_local
 
     grids[grid_idx] = new_items
@@ -281,14 +272,9 @@ def raffle_reroll_all(request):
     request.session["raffle_rerolls_used"] = rerolls_used
     request.session.modified = True
 
-    # zwracamy nowy grid jako 16 tekstów (frontend poukłada)
-    payload = []
-    for it in new_items:
-        payload.append(it["text"] if it else "—")
-
     return JsonResponse({
         "ok": True,
         "grid": grid_idx,
         "rerolls_used": rerolls_used,
-        "cells": payload,  # length 16
+        "cells": [it["text"] if it else "—" for it in new_items],  # 16
     })

@@ -75,13 +75,12 @@
   right.addEventListener("click", () => show(active + 1));
   show(0);
 
-  // SHUFFLE: miesza teksty w aktualnym gridzie (frontend-only)
+  // SHUFFLE: miesza teksty w aktywnym gridzie (frontend-only)
   btnShuffle.addEventListener("click", () => {
     const board = boards[active];
     const tiles = Array.from(board.querySelectorAll(".raffle-text"));
     const texts = tiles.map(t => t.textContent);
 
-    // Fisher–Yates
     for (let i = texts.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [texts[i], texts[j]] = [texts[j], texts[i]];
@@ -89,9 +88,8 @@
     tiles.forEach((t, i) => t.textContent = texts[i]);
   });
 
-  // REROLL: podmienia CAŁY grid (POST)
+  // REROLL: podmienia CAŁY aktywny grid (POST)
   btnReroll.addEventListener("click", async () => {
-    // dźwięk na klik (autoplay-safe)
     if (audio) audio.play().catch(() => {});
 
     btnReroll.disabled = true;
@@ -118,7 +116,6 @@
         return;
       }
 
-      // podmień 16 pól w aktywnym gridzie
       const board = boards[active];
       const tiles = Array.from(board.querySelectorAll(".raffle-text"));
       data.cells.forEach((txt, i) => {
@@ -128,9 +125,7 @@
       usedRerolls = data.rerolls_used || usedRerolls;
       counter.textContent = `Rerolle: ${usedRerolls}/3`;
 
-      if (usedRerolls >= 3) {
-        btnReroll.disabled = true;
-      }
+      if (usedRerolls >= 3) btnReroll.disabled = true;
 
     } catch (e) {
       console.error(e);
