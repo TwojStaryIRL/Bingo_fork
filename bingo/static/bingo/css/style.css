@@ -234,9 +234,6 @@ body{
 }
 
 
-
-
-
 body::before,
 body::after{
   content: "";
@@ -679,30 +676,20 @@ body::after{
   position: relative;
   width: min(760px, 92vw);
   margin: 10px auto 0;
-  overflow: visible; /* ok */
+  overflow: hidden; /* ok */
 }
 
-.raffle-stage{
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;  /* ✅ trzyma stały rozmiar (4x4 kwadraty => całość kwadratowa) */
-  overflow: hidden;      /* ✅ nie pozwala “uciekać” preview i rozwalać layoutu */
+.raffle-stage{      /* ⬅️ ZAMIANA */
+  overflow: hidden;
+  aspect-ratio: unset;      /* ✅ nie pozwala “uciekać” preview i rozwalać layoutu */
 }
-
-/* Plansze nakładamy na siebie i przesuwamy transformami */
-.raffle-board--set{
-  position: absolute;
-  inset: 0;
-  transition: transform 240ms ease, opacity 240ms ease, filter 240ms ease;
-  will-change: transform;
-}
-
 .raffle-board--active{
   /* zostaje absolute jak reszta */
   opacity: 1;
   filter: blur(0);
   transform: translateX(0) scale(1);
   z-index: 3;
+  position: relative;
 }
 
 /* podgląd poprzedniej i następnej */
@@ -790,8 +777,8 @@ body::after{
 .raffle-board--set{
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  transition: transform 240ms ease, opacity 240ms ease, filter 240ms ease;
-  will-change: transform;
+  display: grid; 
+}
+.raffle-board--active{
+  position: relative;    /* ⬅️ tylko aktywna plansza „trzyma” wysokość */
 }
