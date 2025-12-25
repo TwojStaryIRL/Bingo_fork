@@ -21,22 +21,6 @@ window.BingoUserPlugin.init = function (api) {
   // ===== SPACEGLIDING TOGGLE =====
   const MUSIC_URL = "/static/bingo/sfx/everything_black.mp3"; 
   let spaceOn = false;
-  const style = document.createElement("style");
-    style.textContent = `
-      body.spaceglide{
-        background-image: url("/static/bingo/images/spacegliding.gif");
-        background-repeat: repeat;
-        background-size: 200px 200px;
-      }
-
-      body.spaceglide .panel{
-        background: rgba(0,0,0,0.85) !important;
-        border-color: rgba(255,255,255,0.12) !important;
-      }
-    `;
-    document.head.appendChild(style);
-
-  
 
   const music = new Audio(MUSIC_URL);
   music.loop = true;
@@ -73,7 +57,7 @@ window.BingoUserPlugin.init = function (api) {
   // ===== STYLE: ŚRODEK EKRANU =====
   wrap.style.position = "fixed";
   wrap.style.left = "50%";
-  wrap.style.top = "50%";
+  wrap.style.top = "90%";
   wrap.style.transform = "translate(-50%, -50%)";
   wrap.style.zIndex = "99999";
   wrap.style.pointerEvents = "none";
