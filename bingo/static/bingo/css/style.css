@@ -35,10 +35,8 @@ body{
 body.spaceglide{
   background-image: url("/static/bingo/images/spacegliding.gif");
   background-repeat: repeat;          
-  background-size: 220px 220px;  
-  background-position: center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+  background-size: auto;  
+  
 }
 
 /* przyciemnij UI żeby było czytelne */
