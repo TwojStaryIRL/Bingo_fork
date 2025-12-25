@@ -98,59 +98,6 @@ def _extract_pool_for_user(current_user):
             })
     random.shuffle(pool)
     return pool
-def _uniq(item):
-    return (item["source_board_id"], item.get("cell"), item["text"])
-
-def _counts_without_index(items, skip_index):
-    cnt = Counter()
-    for i, it in enumerate(items):
-        if i == skip_index or not it:
-            continue
-        a = (it.get("assigned_user") or "").strip()
-        if a:
-            cnt[a] += 1
-    return cnt
-
-
-def _extract_pool_for_user(current_user):
-    boards = BingoBoard.objects.exclude(user=current_user).select_related("user")
-
-    pool = []
-    for b in boards:
-        data = b.grid
-
-        if isinstance(data, dict):
-            cells = data.get("grid") or []
-        elif isinstance(data, list):
-            cells = data
-        else:
-            cells = []
-
-        for c in cells:
-            if not isinstance(c, dict):
-                continue
-
-            text = (c.get("text") or "").strip()
-            assigned_user = (c.get("assigned_user") or "").strip()
-            cell_id = c.get("cell")
-
-            if not text:
-                continue
-
-            # Nie losuj siebie
-            if assigned_user and assigned_user == current_user.username:
-                continue
-
-            pool.append({
-                "text": text,
-                "assigned_user": assigned_user,
-                "source_board_id": b.id,
-                "cell": cell_id,
-            })
-
-    random.shuffle(pool)
-    return pool
-
 
 def _uniq(item):
     return (item["source_board_id"], item.get("cell"), item["text"])
@@ -201,17 +148,16 @@ def raffle(request):
     user = request.user
     pool = _extract_pool_for_user(user)
 
-    used_global = set()
+    used_sets = [set(), set(), set()]
 
     grids = []
-    for _ in range(3):
-        items, used_local = _build_grid(pool, used_global, target=16)
+    for i in range(3):
+        items, used_local = _build_grid(pool, used_sets[i], target=16)
         grids.append(items)
-        used_global |= used_local
+        used_sets[i] |= used_local
 
-    # ✅ tuple -> list (żeby sesja nie robiła 500)
     request.session["raffle_grids"] = grids
-    request.session["raffle_used_global"] = [list(x) for x in used_global]
+    request.session["raffle_used_sets"] = [[list(x) for x in s] for s in used_sets]
     request.session["raffle_rerolls_used"] = 0
     request.session["raffle_shuffles_used"] = 0
     request.session.modified = True
@@ -224,11 +170,6 @@ def raffle(request):
 @login_required
 @require_POST
 def raffle_reroll_all(request):
-    """
-    Reroll CAŁEGO aktywnego grida:
-    - max 3 rerolle łącznie (na wszystkie gridy)
-    - nie wraca nic, co kiedykolwiek padło w tym losowaniu (global ban)
-    """
     user = request.user
 
     try:
@@ -240,37 +181,35 @@ def raffle_reroll_all(request):
         return JsonResponse({"ok": False, "error": "Grid out of range"}, status=400)
 
     grids = request.session.get("raffle_grids")
-    used_raw = request.session.get("raffle_used_global")
+    used_sets_raw = request.session.get("raffle_used_sets")
     rerolls_used = request.session.get("raffle_rerolls_used", 0)
 
     if not isinstance(grids, list) or len(grids) != 3:
         return JsonResponse({"ok": False, "error": "Session expired. Refresh."}, status=409)
-    if not isinstance(used_raw, list):
-        used_raw = []
+
+    if not isinstance(used_sets_raw, list) or len(used_sets_raw) != 3:
+        used_sets_raw = [[], [], []]
+
     if not isinstance(rerolls_used, int):
         rerolls_used = 0
 
     if rerolls_used >= 3:
         return JsonResponse({"ok": False, "error": "Limit rerolli 3/3."}, status=403)
 
-    used_global = set(tuple(x) for x in used_raw)
-
-    # dodaj aktualnie widoczne wartości do used_global (żeby nigdy nie wróciły)
-    for g in grids:
-        for it in g:
-            if it:
-                used_global.add(_uniq(it))
+    used_current = set(tuple(x) for x in used_sets_raw[grid_idx])
 
     pool = _extract_pool_for_user(user)
 
-    new_items, used_local = _build_grid(pool, used_global, target=16)
-    used_global |= used_local
+    new_items, used_local = _build_grid(pool, used_current, target=16)
+    used_current |= used_local
 
     grids[grid_idx] = new_items
     rerolls_used += 1
 
+    used_sets_raw[grid_idx] = [list(x) for x in used_current]
+    request.session["raffle_used_sets"] = used_sets_raw
+
     request.session["raffle_grids"] = grids
-    request.session["raffle_used_global"] = [list(x) for x in used_global]  # ✅ tuple->list
     request.session["raffle_rerolls_used"] = rerolls_used
     request.session.modified = True
 
@@ -278,8 +217,9 @@ def raffle_reroll_all(request):
         "ok": True,
         "grid": grid_idx,
         "rerolls_used": rerolls_used,
-        "cells": [it["text"] if it else "—" for it in new_items],  # 16
+        "cells": [it["text"] if it else "—" for it in new_items],
     })
+
 @login_required
 @require_POST
 def raffle_shuffle_use(request):
