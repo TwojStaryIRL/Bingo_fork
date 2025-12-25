@@ -2,144 +2,152 @@ window.BingoUserPlugin = window.BingoUserPlugin || {};
 
 window.BingoUserPlugin.init = function (api) {
   const pick = (arr) => (Array.isArray(arr) && arr.length ? arr[(Math.random() * arr.length) | 0] : null);
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  // ===== KONFIG (łatwo stroisz) =====
   const CFG = {
-    vanishAnimMs: 1000,          // fade→gray
-    floatLifeMs: 6000,           // ile siedzi poza tabelą
-    tickEveryMs: 3500,           // co ile próbujemy wywołać zniknięcie
-    chancePerTick: 0.55,         // szansa na prank w danym ticku
-    maxFloating: 3,              // max kafelków poza tabelą jednocześnie
+    maxFloating: 6,
+    vanishAnimMs: 1000,      // 1s fade→gray w tabeli / na stronie
+    cloakMs: 6000,           // ile ma być "na niewidce" po zniknięciu
+    minGapMs: 30000,         // >= 30s przerwy między prankami
     sfxHideVol: 0.55,
     sfxRevealVol: 0.65,
-    // jeśli true, próbujemy nie wrzucać floating nad tabelkę (preferujemy poza grid)
-    preferOutsideGrid: true,
+
+    // side spawn:
+    sideMargin: 12,
+    sideBandWidth: 220,      // szerokość pasa po bokach (px)
+    topPad: 10,
+    bottomPad: 10,
   };
 
-  console.groupCollapsed("%c[Bingo Plugin] testinguser1 TwitchTiles init", "color:#2AFF8C;font-weight:bold");
-  console.log("sfx:", api.sfx);
-  console.groupEnd();
+  // tile -> tele (czyli już jest floating / poza tabelą)
+  const floating = new Map();
+  const cloaked = new Set(); // tile aktualnie "na niewidce" (żeby nie brać go drugi raz)
 
-  // ===== TRACKING =====
-  const activeTeleports = new Set(); // przechowujemy obiekty teleporta
+  let nextAllowedAt = 0;
+
+  function now() { return Date.now(); }
 
   function tileFromActiveElement() {
     const ae = document.activeElement;
     return ae?.closest?.(".cell-wrapper") || null;
   }
 
-  function floatingCount() {
-    return activeTeleports.size;
+  function allRealTiles() {
+    // placeholdery mają klasę .plugin-placeholder
+    return api.tiles.all().filter(t => !t.classList.contains("plugin-placeholder"));
   }
 
-  function gridRect() {
-    const t = document.querySelector(".grid-table");
-    return t ? t.getBoundingClientRect() : null;
-  }
-
-  function randomPos() {
-    const pad = 16;
-    return {
-      x: pad + Math.random() * (window.innerWidth - pad * 2),
-      y: pad + Math.random() * (window.innerHeight - pad * 2),
-    };
-  }
-
-  function randomPosPreferOutside() {
-    const g = gridRect();
-    if (!g) return randomPos();
-
-    // spróbuj kilka razy znaleźć punkt poza gridem
-    for (let i = 0; i < 18; i++) {
-      const p = randomPos();
-      const inside =
-        p.x >= g.left && p.x <= g.right &&
-        p.y >= g.top && p.y <= g.bottom;
-      if (!inside) return p;
-    }
-    // fallback
-    return randomPos();
-  }
-
-  function setFloatingPos(floatingEl) {
-    const p = CFG.preferOutsideGrid ? randomPosPreferOutside() : randomPos();
-    floatingEl.style.left = `${p.x}px`;
-    floatingEl.style.top = `${p.y}px`;
-  }
-
-  function safePickVictim() {
+  function pickVictim() {
     const focused = tileFromActiveElement();
-    // nie bierzemy aktywnego tile w focusie
-    const victim = api.tiles.pickRandom(focused);
-    return victim;
+    const tiles = allRealTiles().filter(t => t !== focused && !cloaked.has(t));
+    if (!tiles.length) return null;
+    return tiles[(Math.random() * tiles.length) | 0];
   }
 
-  function doVanishTeleportReturn() {
-    if (floatingCount() >= CFG.maxFloating) return;
+  function playHide() { api.playSfx(pick(api.sfx?.hide), { volume: CFG.sfxHideVol }); }
+  function playReveal() { api.playSfx(pick(api.sfx?.reveal), { volume: CFG.sfxRevealVol }); }
 
-    const victim = safePickVictim();
-    if (!victim) return;
+  function randomSidePos() {
+    const padX = CFG.sideMargin;
+    const band = CFG.sideBandWidth;
 
-    // 1) animacja fade→gray w miejscu
-    victim.classList.add("plugin-vanish");
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
-    // 2) hide SFX (losowy)
-    api.playSfx(pick(api.sfx?.hide), { volume: CFG.sfxHideVol });
+    const xLeft = padX + Math.random() * band;
+    const xRight = w - padX - band + Math.random() * band;
 
-    // 3) po animacji teleport do overlay
+    const x = (Math.random() < 0.5) ? xLeft : xRight;
+
+    const yMin = CFG.topPad;
+    const yMax = Math.max(yMin, h - CFG.bottomPad);
+    const y = yMin + Math.random() * (yMax - yMin);
+
+    return { x, y };
+  }
+
+  function placeFloating(tele) {
+    const p = randomSidePos();
+    tele.floating.style.left = `${p.x}px`;
+    tele.floating.style.top = `${p.y}px`;
+  }
+
+  function cloakElement(el, on) {
+    // "na niewidce": nie blokuje layoutu, nie klikalny, niewidoczny
+    if (on) {
+      el.style.opacity = "0";
+      el.style.pointerEvents = "none";
+    } else {
+      el.style.opacity = "";
+      el.style.pointerEvents = "";
+    }
+  }
+
+  function ensureTeleported(tile) {
+    if (floating.has(tile)) return floating.get(tile);
+
+    const tele = api.tiles.teleport(tile); // tworzy placeholder w tabeli, tile idzie do overlay
+    if (!tele) return null;
+
+    // ustawiamy pozycję od razu, ale ukryjemy go na czas cloaka
+    placeFloating(tele);
+    floating.set(tile, tele);
+    return tele;
+  }
+
+  function prankOnce() {
+    // twardy limiter: min 30s odstępu
+    if (now() < nextAllowedAt) return;
+    // limit: max 6 kafelków może być poza tabelą
+    if (floating.size >= CFG.maxFloating) return;
+
+    const tile = pickVictim();
+    if (!tile) return;
+
+    nextAllowedAt = now() + CFG.minGapMs;
+
+    // 1) fade→gray + hide sfx
+    tile.classList.add("plugin-vanish");
+    playHide();
+
+    // po 1s kończymy animację i wchodzimy w cloak
     api.ctx.setTimeoutSafe(() => {
-      victim.classList.remove("plugin-vanish");
+      tile.classList.remove("plugin-vanish");
 
-      const tele = api.tiles.teleport(victim);
+      // 2) teleport do overlay (jeśli jeszcze nie teleportowany)
+      const tele = ensureTeleported(tile);
       if (!tele) return;
 
-      activeTeleports.add(tele);
+      // 3) cloak 6s
+      cloaked.add(tile);
+      cloakElement(tile, true);
 
-      // pozycja floating (prefer outside grid)
-      setFloatingPos(tele.floating);
-
-      // 4) po floatLifeMs wraca do tabeli i reveal SFX
       api.ctx.setTimeoutSafe(() => {
-        // wybieramy target TD losowo (może być też ten sam co miał, jeśli null)
-        const targetTile = api.tiles.pickRandom(null);
-        const targetTd = targetTile ? targetTile.parentElement : null;
-
-        api.tiles.return(tele, targetTd);
-        activeTeleports.delete(tele);
-
-        api.playSfx(pick(api.sfx?.reveal), { volume: CFG.sfxRevealVol });
-      }, CFG.floatLifeMs);
+        // 4) pojawia się na boku (nowa pozycja), reveal sfx
+        placeFloating(tele);
+        cloakElement(tile, false);
+        playReveal();
+        cloaked.delete(tile);
+      }, CFG.cloakMs);
 
     }, CFG.vanishAnimMs);
   }
 
-  // ===== PĘTLA (periodycznie) =====
-  const loopId = api.ctx.setIntervalSafe(() => {
-    if (Math.random() > CFG.chancePerTick) return;
-    doVanishTeleportReturn();
-  }, CFG.tickEveryMs);
+  // Uruchamiaj automatycznie co sekundę, ale prank odpali max co 30s
+  api.ctx.setIntervalSafe(() => {
+    prankOnce();
+  }, 1000);
 
-  // ===== MANUAL DEBUG =====
-  // Ctrl+Alt+P -> natychmiast
+  // Debug hotkey: Ctrl+Alt+P wymusza (ignoruje gap? NIE — respektuje gap)
   api.ctx.on(document, "keydown", (e) => {
     if (e.ctrlKey && e.altKey && (e.key === "p" || e.key === "P")) {
-      doVanishTeleportReturn();
+      prankOnce();
     }
   });
 
-  // Podpięcie pod save (opcjonalne) — jeśli chcesz, odkomentuj:
-  // api.hooks.on("save:ok", () => doVanishTeleportReturn());
+  // Jeśli chcesz żeby to działo się tylko po save:
+  // api.hooks.on("save:ok", prankOnce);
 
-  // ===== CLEANUP =====
   return () => {
-    // jakby coś wisiało w overlay, spróbuj zwrócić
-    try {
-      activeTeleports.forEach((tele) => {
-        try { api.tiles.return(tele, null); } catch {}
-      });
-      activeTeleports.clear();
-    } catch {}
     api.ctx.destroy();
   };
 };
