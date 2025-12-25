@@ -59,7 +59,7 @@ function randomSidePos() {
   let x = (Math.random() < 0.5) ? xLeft : xRight;
 
   const yMin = CFG.topPad;
-  const yMax = Math.max(yMin, h - CFG.bottomPad);
+  const yMax = Math.max(yMin, h - CFG.bottomPad -40);
   let y = yMin + Math.random() * (yMax - yMin);
 
   // ===== CLAMP DO VIEWPORTU =====

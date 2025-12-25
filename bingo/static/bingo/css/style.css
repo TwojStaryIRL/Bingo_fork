@@ -761,7 +761,7 @@ body::after{
 #plugin-root{
   position: fixed;
   inset: 0;
-  /* z-index: 9999;  */
+  z-index: 9999; 
   pointer-events: none;
 }
 .plugin-floating{
