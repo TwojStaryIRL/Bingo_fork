@@ -784,11 +784,14 @@ body::after{
 }
 .btn-badge--disabled{
   opacity: .45;
+}
 
+/* ważne dla carousel – board MUSI mieć rozmiar */
 .raffle-board--set{
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-}
+  transition: transform 240ms ease, opacity 240ms ease, filter 240ms ease;
+  will-change: transform;
 }
