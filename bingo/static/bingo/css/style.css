@@ -55,6 +55,11 @@ body.spaceglide .grid-table{
 body.spaceglide .cell-wrapper{
   background: rgba(0,0,0,0.35) !important;
 }
+body.spaceglide .page,
+body.spaceglide .hero{
+  background: transparent !important;
+}
+
 
 /* opcjonalnie: tekst jaśniejszy */
 body.spaceglide .grid-cell,
