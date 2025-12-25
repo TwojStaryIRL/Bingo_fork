@@ -113,21 +113,71 @@ def _counts_without_index(items, skip_index):
 
 
 @login_required
-def raffle(request):
-    user = request.user
-    pool = _extract_pool_for_user(user)
+def _extract_pool_for_user(current_user):
+    """Pula z wszystkich BingoBoardów poza current_user. Usuwa puste. Wyklucza assigned_user == current_user."""
+    boards = BingoBoard.objects.exclude(user=current_user).select_related("user")
 
-    TARGET = 9  # 3x3
+    pool = []
+    for b in boards:
+        data = b.grid
+
+        if isinstance(data, dict):
+            cells = data.get("grid") or []
+        elif isinstance(data, list):
+            cells = data
+        else:
+            cells = []
+
+        for c in cells:
+            if not isinstance(c, dict):
+                continue
+
+            text = (c.get("text") or "").strip()
+            assigned_user = (c.get("assigned_user") or "").strip()
+            cell_id = c.get("cell")
+
+            if not text:
+                continue
+
+            # 1) nie losuj siebie
+            if assigned_user and assigned_user == current_user.username:
+                continue
+
+            pool.append({
+                "text": text,
+                "assigned_user": assigned_user,
+                "source_board_id": b.id,
+                "cell": cell_id,
+            })
+
+    random.shuffle(pool)
+    return pool
+
+
+def _uniq(item):
+    """Unikalny klucz elementu (musi być hashowalny)."""
+    return (item["source_board_id"], item.get("cell"), item["text"])
+
+
+def _build_grid(pool, used_global, target=16):
+    """
+    Buduje grid target pól:
+    - brak duplikatów w gridzie
+    - max 2 na osobę w gridzie
+    - globalnie nie używa niczego, co jest w used_global
+    """
     chosen = []
-    used_set = set()
+    used_local = set()
     counts = Counter()
 
     for item in pool:
-        if len(chosen) >= TARGET:
+        if len(chosen) >= target:
             break
 
         u = _uniq(item)
-        if u in used_set:
+        if u in used_global:
+            continue
+        if u in used_local:
             continue
 
         assigned = (item.get("assigned_user") or "").strip()
@@ -135,80 +185,110 @@ def raffle(request):
             continue
 
         chosen.append(item)
-        used_set.add(u)
+        used_local.add(u)
         if assigned:
             counts[assigned] += 1
 
-    while len(chosen) < TARGET:
+    while len(chosen) < target:
         chosen.append(None)
-    request.session["raffle_items"] = chosen
-    request.session["raffle_used"] = list(used_set)
-    request.session["raffle_rerolled"] = [False] * TARGET 
+
+    return chosen, used_local
+
+
+def _grid_to_2d(items, size=4):
+    return [items[i:i+size] for i in range(0, size*size, size)]
+
+
+@login_required
+def raffle(request):
+    user = request.user
+    pool = _extract_pool_for_user(user)
+
+    # GLOBAL used: wszystko co już kiedykolwiek pokazaliśmy w tym losowaniu (na start: puste)
+    used_global = set()
+
+    grids = []
+    for _ in range(3):
+        items, used_local = _build_grid(pool, used_global, target=16)
+        grids.append(items)
+        # dodaj to co weszło do global used, żeby 3 gridy na starcie były różne
+        used_global |= used_local
+
+    # zapis do sesji (ważne: tuple -> list dla JSON serializer)
+    request.session["raffle_grids"] = grids
+    request.session["raffle_used_global"] = [list(x) for x in used_global]  # ✅
+    request.session["raffle_rerolls_used"] = 0  # ✅ max 3 dla całej strony
     request.session.modified = True
 
-    grid = [chosen[i:i+3] for i in range(0, TARGET, 3)]
-    return render(request, "raffle.html", {"grid": grid})
+    grids_2d = [_grid_to_2d(g, size=4) for g in grids]
+    return render(request, "raffle.html", {"grids": grids_2d})
 
 
 @login_required
 @require_POST
-def raffle_reroll(request):
+def raffle_reroll_all(request):
+    """
+    REROLL całego grida (active grid):
+    - max 3 rerolle łącznie dla wszystkich gridów
+    - wyklucza WSZYSTKO co kiedykolwiek wypadło wcześniej (globalnie)
+    """
     user = request.user
 
     try:
-        index = int(request.POST.get("index", "-1"))
+        grid_idx = int(request.POST.get("grid", "-1"))
     except ValueError:
-        return JsonResponse({"ok": False, "error": "Bad index"}, status=400)
+        return JsonResponse({"ok": False, "error": "Bad grid index"}, status=400)
 
-    if index < 0 or index > 8:
-        return JsonResponse({"ok": False, "error": "Index out of range"}, status=400)
+    if grid_idx not in (0, 1, 2):
+        return JsonResponse({"ok": False, "error": "Grid out of range"}, status=400)
 
-    items = request.session.get("raffle_items")
-    used_list = request.session.get("raffle_used")
-    rerolled = request.session.get("raffle_rerolled")
+    grids = request.session.get("raffle_grids")
+    used_raw = request.session.get("raffle_used_global")
+    rerolls_used = request.session.get("raffle_rerolls_used", 0)
 
-    if not isinstance(items, list) or len(items) != 9:
-        return JsonResponse({"ok": False, "error": "Session expired. Refresh raffle."}, status=409)
-    if not isinstance(used_list, list):
-        used_list = []
-    if not isinstance(rerolled, list) or len(rerolled) != 9:
-        rerolled = [False] * 9
+    if not isinstance(grids, list) or len(grids) != 3:
+        return JsonResponse({"ok": False, "error": "Session expired. Refresh."}, status=409)
+    if not isinstance(used_raw, list):
+        used_raw = []
+    if not isinstance(rerolls_used, int):
+        rerolls_used = 0
 
-    if rerolled[index] is True:
-        return JsonResponse({"ok": False, "error": "This tile already rerolled."}, status=403)
+    # LIMIT 3 łącznie
+    if rerolls_used >= 3:
+        return JsonResponse({"ok": False, "error": "Limit rerolli osiągnięty (3/3)."}, status=403)
 
-    used_global = set(tuple(x) for x in used_list)
+    used_global = set(tuple(x) for x in used_raw)
 
-    for i, it in enumerate(items):
-        if i == index or not it:
-            continue
-        used_global.add(_uniq(it))
-
-    counts = _counts_without_index(items, index)
+    # Dodaj aktualnie widoczne pola (ze wszystkich 3 gridów) do used_global,
+    # żeby nigdy nie wróciły w tym losowaniu.
+    for g in grids:
+        for it in g:
+            if it:
+                used_global.add(_uniq(it))
 
     pool = _extract_pool_for_user(user)
 
-    new_item = None
-    for cand in pool:
-        u = _uniq(cand)
-        if u in used_global:
-            continue
-        assigned = (cand.get("assigned_user") or "").strip()
-        if assigned and counts[assigned] >= 2:
-            continue
-        new_item = cand
-        break
-    if not new_item:
-        return JsonResponse({"ok": False, "error": "No more available items."}, status=200)
-    items[index] = new_item
-    rerolled[index] = True
-    used_global.add(_uniq(new_item))
-    request.session["raffle_items"] = items
-    request.session["raffle_rerolled"] = rerolled
-    request.session["raffle_used"] = list(used_global)
+    # zbuduj nowy grid dla grid_idx
+    new_items, used_local = _build_grid(pool, used_global, target=16)
+    # po zbudowaniu dodaj to co weszło
+    used_global |= used_local
+
+    grids[grid_idx] = new_items
+    rerolls_used += 1
+
+    request.session["raffle_grids"] = grids
+    request.session["raffle_used_global"] = [list(x) for x in used_global]  # ✅ tuple->list
+    request.session["raffle_rerolls_used"] = rerolls_used
     request.session.modified = True
+
+    # zwracamy nowy grid jako 16 tekstów (frontend poukłada)
+    payload = []
+    for it in new_items:
+        payload.append(it["text"] if it else "—")
+
     return JsonResponse({
         "ok": True,
-        "index": index,
-        "text": new_item["text"],
+        "grid": grid_idx,
+        "rerolls_used": rerolls_used,
+        "cells": payload,  # length 16
     })

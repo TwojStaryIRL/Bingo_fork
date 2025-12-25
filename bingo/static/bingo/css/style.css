@@ -733,3 +733,35 @@ body::after{
   opacity: .78;
   cursor: default;
 }
+.raffle-shell{
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 12px;
+}
+
+.raffle-nav{
+  height: 44px;
+  width: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.12));
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.raffle-actions{
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.raffle-counter{
+  opacity: .85;
+  font-weight: 700;
+}

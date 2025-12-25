@@ -1,5 +1,8 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
+
+<audio id="rerollSound" src="{% static 'sounds/reroll.mp3' %}" preload="auto"></audio>
 
 <div class="page">
   <div class="hero hero--wide">
@@ -8,24 +11,35 @@
       <div class="panel__top">
         <span class="panel__pill">Losowanie Bingo</span>
       </div>
-      <div class="raffle-stage is-in">
-        <div class="raffle-board">
-          <div class="raffle-grid">
-            {% for row in grid %}
-              {% for cell in row %}
-                <div class="raffle-tile">
-                  <div class="raffle-text">
-                    {% if cell %}{{ cell.text }}{% else %}—{% endif %}
-                  </div>
-                </div>
-              {% endfor %}
-            {% endfor %}
-          </div>
+
+      <div class="raffle-shell">
+        <button class="raffle-nav raffle-nav--left" type="button" aria-label="Poprzedni grid">‹</button>
+
+        <div class="raffle-stage is-in">
+          {% for grid in grids %}
+            <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}" {% if forloop.counter0 != 0 %}hidden{% endif %}>
+              <div class="raffle-grid">
+                {% for row in grid %}
+                  {% for cell in row %}
+                    <div class="raffle-tile">
+                      <div class="raffle-text">
+                        {% if cell %}{{ cell.text }}{% else %}—{% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
         </div>
+
+        <button class="raffle-nav raffle-nav--right" type="button" aria-label="Następny grid">›</button>
       </div>
 
-      <div class="actions" style="margin-top: 16px;">
-        <a class="btn btn--primary" href="{% url 'raffle' %}">Losuj ponownie</a>
+      <div class="raffle-actions">
+        <button class="btn btn--primary" type="button" id="btnReroll">REROLL</button>
+        <button class="btn btn--secondary" type="button" id="btnShuffle">SHUFFLE</button>
+        <span class="raffle-counter" id="rerollCounter">Rerolle: 0/3</span>
       </div>
 
     </div>
@@ -41,51 +55,88 @@
   }
   const csrftoken = getCookie('csrftoken');
 
-  const tiles = document.querySelectorAll(".raffle-tile");
-  tiles.forEach((tile, i) => tile.dataset.index = String(i));
+  const boards = Array.from(document.querySelectorAll(".raffle-board--set"));
+  const left = document.querySelector(".raffle-nav--left");
+  const right = document.querySelector(".raffle-nav--right");
+  const btnReroll = document.getElementById("btnReroll");
+  const btnShuffle = document.getElementById("btnShuffle");
+  const counter = document.getElementById("rerollCounter");
+  const audio = document.getElementById("rerollSound");
 
-  tiles.forEach(tile => {
-    tile.addEventListener("click", async () => {
-      if (tile.dataset.locked === "1") return;
-      if (tile.dataset.busy === "1") return;
+  let active = 0;
+  let usedRerolls = 0;
 
-      tile.dataset.busy = "1";
-      tile.classList.add("is-loading");
+  function show(n){
+    active = (n + boards.length) % boards.length;
+    boards.forEach((b, i) => b.hidden = (i !== active));
+  }
 
-      const form = new FormData();
-      form.append("index", tile.dataset.index);
+  left.addEventListener("click", () => show(active - 1));
+  right.addEventListener("click", () => show(active + 1));
+  show(0);
 
-      try {
-        const res = await fetch("{% url 'raffle_reroll' %}", {
-          method: "POST",
-          headers: {"X-CSRFToken": csrftoken},
-          body: form
-        });
-        const contentType = res.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) {
-          console.warn("Non-JSON response:", res.status);
-          return;
-        }
+  // SHUFFLE: miesza teksty w aktualnym gridzie (frontend-only)
+  btnShuffle.addEventListener("click", () => {
+    const board = boards[active];
+    const tiles = Array.from(board.querySelectorAll(".raffle-text"));
+    const texts = tiles.map(t => t.textContent);
 
-        const data = await res.json();
-        if (!data.ok) {
-          console.warn(data.error || "Reroll failed");
-          return;
-        }
+    // Fisher–Yates
+    for (let i = texts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [texts[i], texts[j]] = [texts[j], texts[i]];
+    }
+    tiles.forEach((t, i) => t.textContent = texts[i]);
+  });
 
-        const textEl = tile.querySelector(".raffle-text");
-        if (textEl) textEl.textContent = data.text;
+  // REROLL: podmienia CAŁY grid (POST)
+  btnReroll.addEventListener("click", async () => {
+    // dźwięk na klik (autoplay-safe)
+    if (audio) audio.play().catch(() => {});
 
-        tile.dataset.locked = "1";
-        tile.classList.add("is-locked");
+    btnReroll.disabled = true;
 
-      } catch(e) {
-        console.error(e);
-      } finally {
-        tile.dataset.busy = "0";
-        tile.classList.remove("is-loading");
+    const form = new FormData();
+    form.append("grid", String(active));
+
+    try {
+      const res = await fetch("{% url 'raffle_reroll_all' %}", {
+        method: "POST",
+        headers: {"X-CSRFToken": csrftoken},
+        body: form
+      });
+
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        console.warn("Non-JSON response:", res.status);
+        return;
       }
-    });
+
+      const data = await res.json();
+      if (!data.ok) {
+        console.warn(data.error || "Reroll failed");
+        return;
+      }
+
+      // podmień 16 pól w aktywnym gridzie
+      const board = boards[active];
+      const tiles = Array.from(board.querySelectorAll(".raffle-text"));
+      data.cells.forEach((txt, i) => {
+        if (tiles[i]) tiles[i].textContent = txt;
+      });
+
+      usedRerolls = data.rerolls_used || usedRerolls;
+      counter.textContent = `Rerolle: ${usedRerolls}/3`;
+
+      if (usedRerolls >= 3) {
+        btnReroll.disabled = true;
+      }
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      if (usedRerolls < 3) btnReroll.disabled = false;
+    }
   });
 })();
 </script>
