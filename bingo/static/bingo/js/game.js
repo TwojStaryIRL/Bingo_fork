@@ -3,52 +3,7 @@
 
 
   // ===== SAVE SOUND (global, for everyone) =====
-    // ===== SOUND (for everyone) =====
-// const SAVE_SOUND_VOLUME = 0.25;   // 0.0 - 1.0
-// const SAVE_SOUND_COOLDOWN = 2500; // ms
-
-// let lastSaveSoundAt = 0;
-// let soundUnlocked = false;
-
-// function getSaveAudio(){
-//   return document.getElementById("saveSound");
-// }
-
-// // wywołaj NATYCHMIAST na klik (zanim await), żeby nie było blokady
-// function unlockSaveSoundOnce(){
-//   if (soundUnlocked) return;
-//   soundUnlocked = true;
-
-//   const a = getSaveAudio();
-//   if (!a) return;
-
-//   a.volume = SAVE_SOUND_VOLUME;
-//   a.muted = true;
-
-//   a.play().then(() => {
-//     a.pause();
-//     a.currentTime = 0;
-//     a.muted = false;
-//   }).catch(() => {
-//     a.muted = false;
-//   });
-// }
-
-// // wywołuj po sukcesie
-// function playSaveSound(){
-//   const a = getSaveAudio();
-//   if (!a) return;
-
-//   const now = Date.now();
-//   if (now - lastSaveSoundAt < SAVE_SOUND_COOLDOWN) return;
-//   lastSaveSoundAt = now;
-
-//   a.volume = SAVE_SOUND_VOLUME;
-//   a.pause();
-//   a.currentTime = 0;
-
-//   a.play().catch(() => {});
-// }
+    
 
     // END OF SOUND
 
