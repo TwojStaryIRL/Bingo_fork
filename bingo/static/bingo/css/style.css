@@ -34,7 +34,8 @@ body{
 /* Spaceglide: tło całej strony GIF */
 body.spaceglide{
   background-image: url("/static/bingo/images/spacegliding.gif");
-  background-size: cover;
+  background-repeat: repeat;          
+  background-size: 220px 220px;  
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
