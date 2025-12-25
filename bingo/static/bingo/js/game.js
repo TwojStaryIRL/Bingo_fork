@@ -238,8 +238,8 @@
     });
 
     if (resp.ok) {
-      showToast?.("UDAŁO SIĘ YIPIEE!!!", "success", 2200);
-      burstConfetti(90);
+      showToast?.("MAMY TO YIPIEE!!!", "success", 2200);
+      burstConfetti(120);
       playAudio("SaveSound", {volume: 0.25});
     } else {
       const txt = await resp.text();
