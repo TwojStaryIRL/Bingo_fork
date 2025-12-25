@@ -115,7 +115,7 @@ def _build_grid(pool, used_global, target=16):
     used_local = set()
     counts = Counter()
 
-    for item in pool:
+    for item in random.sample(pool, len(pool)):
         if len(chosen) >= target:
             break
 
@@ -147,25 +147,32 @@ def _grid_to_2d(items, size=4):
 @login_required
 def raffle(request):
     user = request.user
-    pool = _extract_pool_for_user(user)
 
-    used_sets = [set(), set(), set()]
+
+    base_pool = _extract_pool_for_user(user)
 
     grids = []
-    for i in range(3):
-        items, used_local = _build_grid(pool, used_sets[i], target=16)
+    used_sets = []
+
+    for _ in range(3):
+        pool = base_pool[:]          
+        random.shuffle(pool)         
+
+        used_local = set()           
+        items, used_local = _build_grid(pool, used_local, target=16)
+
         grids.append(items)
-        used_sets[i] |= used_local
+        used_sets.append([list(x) for x in used_local])
 
     request.session["raffle_grids"] = grids
-    request.session["raffle_used_sets"] = [[list(x) for x in s] for s in used_sets]
+    request.session["raffle_used_sets"] = used_sets
     request.session["raffle_rerolls_used"] = 0
     request.session["raffle_shuffles_used"] = 0
     request.session.modified = True
-    
 
     grids_2d = [_grid_to_2d(g, size=4) for g in grids]
     return render(request, "raffle.html", {"grids": grids_2d})
+
 
 
 @login_required
