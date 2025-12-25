@@ -1,9 +1,9 @@
-
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
 <audio id="saveSound" src="{% static 'bingo/sfx/yipiee-tbh.mp3' %}" preload="auto"></audio>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 
 <div class="page">
   <div class="hero hero--wide">
@@ -75,5 +75,8 @@
 
 {% endblock %}
 
+{% block scripts %}
 
+  <script defer src="{% static 'bingo/js/game.js' %}"></script>
+{% endblock %}
 
