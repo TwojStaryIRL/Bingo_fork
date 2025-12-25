@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
+
+
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <div class="page">
@@ -74,7 +76,6 @@
 {% endblock %}
 
 {% block scripts %}
-  
   <script defer src="{% static 'bingo/js/game.js' %}"></script>
 {% endblock %}
 

@@ -211,8 +211,7 @@
     if (resp.ok) {
       showToast?.("UDAŁO SIĘ YIPIEE!!!", "success", 2200);
       burstConfetti(90);
-      console.log("Trying to play sound", getSaveAudio()?.src);
-      playSaveSound();
+      console.log("Trying to play sound")
     } else {
       const txt = await resp.text();
       showToast?.("Are you serious right meow :(" + (txt || ""), "error", 2600);
