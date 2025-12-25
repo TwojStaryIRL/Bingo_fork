@@ -114,38 +114,109 @@
   applyClasses();
   updateBadges();
 
-  // SHUFFLE (limit 3 na backendzie)
-  if (btnShuffle) {
-    btnShuffle.addEventListener("click", async () => {
-      if (btnShuffle.disabled) return;
+  // SHUFFLE (z limitem 3, liczonym na backendzie) + animacja: do środka -> na nowe pozycje
+btnShuffle.addEventListener("click", async () => {
+  if (btnShuffle.disabled) return;
 
-      try {
-        const res = await fetch("{% url 'raffle_shuffle_use' %}", {
-          method: "POST",
-          headers: {"X-CSRFToken": csrftoken},
-        });
-        const data = await res.json();
-        if (!data.ok) return;
+  const board = boards[active];
+  const gridEl = board?.querySelector(".raffle-grid");
+  const tiles = Array.from(board.querySelectorAll(".raffle-tile"));
+  const textsEls = Array.from(board.querySelectorAll(".raffle-text"));
 
-        shufflesUsed = data.shuffles_used;
+  if (!gridEl || tiles.length !== 16) return;
 
-        const board = boards[active];
-        const tiles = Array.from(board.querySelectorAll(".raffle-text"));
-        const texts = tiles.map(t => t.textContent);
-
-        for (let i = texts.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [texts[i], texts[j]] = [texts[j], texts[i]];
-        }
-        tiles.forEach((t, i) => t.textContent = texts[i]);
-
-      } catch (e) {
-        console.error(e);
-      } finally {
-        updateBadges();
-      }
-    });
+  // helper: tasowanie tablicy (Fisher–Yates)
+  function shuffleArray(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
+
+  try {
+    // backend limit
+    const res = await fetch("{% url 'raffle_shuffle_use' %}", {
+      method: "POST",
+      headers: {"X-CSRFToken": csrftoken},
+    });
+    const data = await res.json();
+    if (!data.ok) return;
+
+    shufflesUsed = data.shuffles_used;
+    updateBadges();
+
+    // --- FAZA 0: przygotuj animację (zapisz pozycje) ---
+    const first = tiles.map(t => t.getBoundingClientRect());
+    const centerRect = gridEl.getBoundingClientRect();
+    const cx = centerRect.left + centerRect.width / 2;
+    const cy = centerRect.top + centerRect.height / 2;
+
+    gridEl.classList.add("is-shuffling");
+
+    // --- FAZA 1: wszyscy na środek ---
+    // (animujemy transform do środka siatki)
+    const toCenterAnims = tiles.map((tile, i) => {
+      const r = first[i];
+      const tx = cx - (r.left + r.width / 2);
+      const ty = cy - (r.top + r.height / 2);
+
+      return tile.animate(
+        [
+          { transform: "translate(0px, 0px) scale(1)" },
+          { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }
+        ],
+        { duration: 180, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
+      );
+    });
+
+    // poczekaj aż dojadą do środka
+    await Promise.allSettled(toCenterAnims.map(a => a.finished));
+
+    // --- FAZA 2: zmień treści (logika shuffle) ---
+    const texts = textsEls.map(t => t.textContent);
+    const shuffledTexts = shuffleArray(texts);
+    textsEls.forEach((t, i) => { t.textContent = shuffledTexts[i]; });
+
+    // teraz layout jest ten sam (grid), ale chcemy animować "powrót" na pola
+    // dlatego zdejmujemy animacje i robimy FLIP: center -> new positions
+    toCenterAnims.forEach(a => a.cancel());
+
+    // druga pozycja (po zmianie treści i reflow)
+    const last = tiles.map(t => t.getBoundingClientRect());
+
+    // --- FAZA 3: FLIP - zrób tak, by elementy startowały z "centerowej" pozycji, a kończyły na swoich komórkach ---
+    // Start: element "w środku" (jak było wizualnie), więc dodajemy mu offset = (center -> docelowa komórka)
+    const fromCenterToCellAnims = tiles.map((tile, i) => {
+      const r = last[i];
+      const tx = cx - (r.left + r.width / 2);
+      const ty = cy - (r.top + r.height / 2);
+
+      // startujemy z translate(tx,ty), kończymy na 0
+      return tile.animate(
+        [
+          { transform: `translate(${tx}px, ${ty}px) scale(0.92)` },
+          { transform: "translate(0px, 0px) scale(1)" }
+        ],
+        { duration: 260, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
+      );
+    });
+
+    await Promise.allSettled(fromCenterToCellAnims.map(a => a.finished));
+
+    // posprzątaj
+    fromCenterToCellAnims.forEach(a => a.cancel());
+    gridEl.classList.remove("is-shuffling");
+
+  } catch (e) {
+    console.error(e);
+    gridEl?.classList.remove("is-shuffling");
+  } finally {
+    updateBadges();
+  }
+});
+
 
   // REROLL całego grida (limit 3 globalnie)
   if (btnReroll) {

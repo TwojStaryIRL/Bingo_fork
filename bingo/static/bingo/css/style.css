@@ -859,3 +859,7 @@ body::after{
   .raffle-board--set{ transition: none !important; }
   .raffle-grid.is-rerolling{ animation: none !important; }
 }
+/* ===== SHUFFLE ANIMATION HELPERS ===== */
+.raffle-grid.is-shuffling .raffle-tile{
+  pointer-events: none;
+}
