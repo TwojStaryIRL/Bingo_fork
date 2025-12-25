@@ -14,6 +14,8 @@ from django.views.decorators.http import require_POST
 
 from .user_plugins import get_user_plugin
 from .models import BingoBoard
+from .raffle_algorithm import generate_initial_state,reroll_one_grid,consume_shuffle
+
 
 
 import random
@@ -94,178 +96,43 @@ def save_board(request):
     )
 
     return JsonResponse({"ok": True})
-def _extract_pool_for_user(current_user):
-    boards = BingoBoard.objects.exclude(user=current_user).select_related("user")
-
-    pool = []
-    for b in boards:
-        data = b.grid
-
-        if isinstance(data, dict):
-            cells = data.get("grid") or []
-        elif isinstance(data, list):
-            cells = data
-        else:
-            cells = []
-
-        for c in cells:
-            if not isinstance(c, dict):
-                continue
-
-            text = (c.get("text") or "").strip()
-            assigned_user = (c.get("assigned_user") or "").strip()
-            cell_id = c.get("cell")
-            if not text:
-                continue
-            if assigned_user and assigned_user == current_user.username:
-                continue
-            pool.append({
-                "text": text,
-                "assigned_user": assigned_user,
-                "source_board_id": b.id,
-                "cell": cell_id,
-            })
-    random.shuffle(pool)
-    return pool
-
-def _uniq(item):
-    return (item["source_board_id"], item.get("cell"), item["text"])
-
-
-def _build_grid(pool, used_global, target=16):
-    """
-    4x4 = 16 pól.
-    - globalnie nie powtarzamy NIC, co już było w tym losowaniu (na wszystkich gridach i rerollach)
-    - lokalnie brak duplikatów
-    - max 2 na osobę w obrębie grida
-    """
-    chosen = []
-    used_local = set()
-    counts = Counter()
-
-    for item in random.sample(pool, len(pool)):
-        if len(chosen) >= target:
-            break
-
-        u = _uniq(item)
-        if u in used_global:
-            continue
-        if u in used_local:
-            continue
-
-        assigned = (item.get("assigned_user") or "").strip()
-        if assigned and counts[assigned] >= 2:
-            continue
-
-        chosen.append(item)
-        used_local.add(u)
-        if assigned:
-            counts[assigned] += 1
-
-    while len(chosen) < target:
-        chosen.append(None)
-
-    return chosen, used_local
-
-
-def _grid_to_2d(items, size=4):
-    return [items[i:i+size] for i in range(0, size*size, size)]
-
-
 @login_required
 def raffle(request):
-    user = request.user
+    session_patch, grids_2d = generate_initial_state(request.user, grids_count=3, size=4)
 
-
-    base_pool = _extract_pool_for_user(user)
-
-    grids = []
-    used_sets = []
-
-    for _ in range(3):
-        pool = base_pool[:]          
-        random.shuffle(pool)         
-
-        used_local = set()           
-        items, used_local = _build_grid(pool, used_local, target=16)
-
-        grids.append(items)
-        used_sets.append([list(x) for x in used_local])
-
-    request.session["raffle_grids"] = grids
-    request.session["raffle_used_sets"] = used_sets
-    request.session["raffle_rerolls_used"] = 0
-    request.session["raffle_shuffles_used"] = 0
+    for k, v in session_patch.items():
+        request.session[k] = v
     request.session.modified = True
 
-    grids_2d = [_grid_to_2d(g, size=4) for g in grids]
     return render(request, "raffle.html", {"grids": grids_2d})
-
 
 
 @login_required
 @require_POST
 def raffle_reroll_all(request):
-    user = request.user
+    ok, status, payload, session_patch = reroll_one_grid(
+        current_user=request.user,
+        session_data=dict(request.session),
+        post_data=request.POST,
+        size=4,
+    )
 
-    try:
-        grid_idx = int(request.POST.get("grid", "-1"))
-    except ValueError:
-        return JsonResponse({"ok": False, "error": "Bad grid index"}, status=400)
+    if session_patch:
+        for k, v in session_patch.items():
+            request.session[k] = v
+        request.session.modified = True
 
-    if grid_idx not in (0, 1, 2):
-        return JsonResponse({"ok": False, "error": "Grid out of range"}, status=400)
+    return JsonResponse(payload, status=status)
 
-    grids = request.session.get("raffle_grids")
-    used_sets_raw = request.session.get("raffle_used_sets")
-    rerolls_used = request.session.get("raffle_rerolls_used", 0)
-
-    if not isinstance(grids, list) or len(grids) != 3:
-        return JsonResponse({"ok": False, "error": "Session expired. Refresh."}, status=409)
-
-    if not isinstance(used_sets_raw, list) or len(used_sets_raw) != 3:
-        used_sets_raw = [[], [], []]
-
-    if not isinstance(rerolls_used, int):
-        rerolls_used = 0
-
-    if rerolls_used >= 3:
-        return JsonResponse({"ok": False, "error": "Limit rerolli 3/3."}, status=403)
-
-    used_current = set(tuple(x) for x in used_sets_raw[grid_idx])
-
-    pool = _extract_pool_for_user(user)
-
-    new_items, used_local = _build_grid(pool, used_current, target=16)
-    used_current |= used_local
-
-    grids[grid_idx] = new_items
-    rerolls_used += 1
-
-    used_sets_raw[grid_idx] = [list(x) for x in used_current]
-    request.session["raffle_used_sets"] = used_sets_raw
-
-    request.session["raffle_grids"] = grids
-    request.session["raffle_rerolls_used"] = rerolls_used
-    request.session.modified = True
-
-    return JsonResponse({
-        "ok": True,
-        "grid": grid_idx,
-        "rerolls_used": rerolls_used,
-        "cells": [it["text"] if it else "—" for it in new_items],
-    })
 
 @login_required
 @require_POST
 def raffle_shuffle_use(request):
-    used = request.session.get("raffle_shuffles_used", 0)
-    if not isinstance(used, int):
-        used = 0
-    if used >= 3:
-        return JsonResponse({"ok": False, "error": "Limit shuffle 3/3."}, status=403)
+    ok, status, payload, session_patch = consume_shuffle(dict(request.session))
 
-    used += 1
-    request.session["raffle_shuffles_used"] = used
-    request.session.modified = True
-    return JsonResponse({"ok": True, "shuffles_used": used})
+    if session_patch:
+        for k, v in session_patch.items():
+            request.session[k] = v
+        request.session.modified = True
+
+    return JsonResponse(payload, status=status)
