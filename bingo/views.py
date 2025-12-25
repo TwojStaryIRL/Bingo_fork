@@ -3,13 +3,19 @@
 import json
 import re
 from django.contrib.staticfiles import finders
+from django.templatetags.static import static
+
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_POST
+
+from .user_plugins import get_user_plugin
 from .models import BingoBoard
+
+
 import random
 from collections import Counter
 
@@ -39,11 +45,17 @@ def game(request):
     plugin_path = None
     username = request.user.username or ""
 
-    # tylko bezpieczne znaki na nazwę pliku
+    # szukanie nazwy pliku po userze
     if re.match(r"^[a-zA-Z0-9_-]+$", username):
         candidate = f"bingo/js/plugins/{username}.js"
         if finders.find(candidate):
             plugin_path = candidate
+
+    #sfx load per user
+    plugin_cfg = get_user_plugin(request.user.username)
+    plugin_path = plugin_cfg.js_plugin if plugin_cfg else None
+    plugin_sfx = plugin_cfg.sfx if plugin_cfg else {}
+
 
 
 
@@ -54,6 +66,7 @@ def game(request):
         "usernames": list(users),
         "saved_grid": saved_grid,
         "plugin_path": plugin_path,
+        "plugin_sfx": plugin_sfx,
     })
     # old code
     # return render(request, "game.html", {"rows": range(4), "cols": range(4)})
