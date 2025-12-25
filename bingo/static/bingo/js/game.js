@@ -4,34 +4,34 @@
 
   // ===== SAVE SOUND (global, for everyone) =====
     function playAudio(
-  id = "rerollSound",
-  {
-    volume = 1.0,
-    reset = true,
-    log = false
-  } = {}
-) {
-  const audio = document.getElementById(id);
+      id = "rerollSound",
+      {
+        volume = 1.0,
+        reset = true,
+        log = false
+      } = {}
+    ) {
+      const audio = document.getElementById(id);
 
-  if (!audio) {
-    if (log) console.log(`[playAudio] no element #${id}`);
-    return false;
-  }
+      if (!audio) {
+        if (log) console.log(`[playAudio] no element #${id}`);
+        return false;
+      }
 
-  audio.volume = Math.max(0, Math.min(1, volume));
-  if (reset) audio.currentTime = 0;
+      audio.volume = Math.max(0, Math.min(1, volume));
+      if (reset) audio.currentTime = 0;
 
-  const p = audio.play();
-  if (p && typeof p.then === "function") {
-    p.then(() => {
-      if (log) console.log(`[playAudio] OK #${id} vol=${audio.volume}`);
-    }).catch(err => {
-      if (log) console.error(`[playAudio] FAILED #${id}:`, err?.name, err?.message);
-    });
-  }
+      const p = audio.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          if (log) console.log(`[playAudio] OK #${id} vol=${audio.volume}`);
+        }).catch(err => {
+          if (log) console.error(`[playAudio] FAILED #${id}:`, err?.name, err?.message);
+        });
+      }
 
-  return true;
-}
+      return true;
+    }
 
 
     // END OF SOUND
@@ -240,7 +240,7 @@
     if (resp.ok) {
       showToast?.("MAMY TO YIPIEE!!!", "success", 2200);
       burstConfetti(120);
-      playAudio("SaveSound", {volume: 0.03});
+      playAudio("SaveSound", {volume: 0.2});
     } else {
       const txt = await resp.text();
       showToast?.("Are you serious right meow :(" + (txt || ""), "error", 2600);
