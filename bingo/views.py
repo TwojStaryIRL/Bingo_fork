@@ -4,7 +4,8 @@ import json
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from django.contrib.auth.views import LoginView, get_user_model
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_POST
 from .models import BingoBoard
 import random
