@@ -4,7 +4,7 @@
     STORAGE_KEY: "bingo_kyspro_gate_v2",
 
     // co ile ma wracać paywall (ms)
-    PERIOD_MS: 5 * 60 * 1000, // 3 minuty
+    PERIOD_MS: 3 * 60 * 1000, // 3 minuty
 
     // minimalny odstęp od ostatniego zdjęcia paywalla (ms)
     MIN_COOLDOWN_MS: 15 * 1000,
@@ -30,8 +30,8 @@
     TITLE: "Weryfikacja dostępu",
     SUBTITLE: "Kim jesteś?",
     PLACEHOLDER: "wiesz doskonale co tutaj trzeba wpisać",
-    BUTTON: "Potwierdzam",
-    ERROR: "Niepoprawna fraza.",
+    BUTTON: "Potwierdzam - Adrian Gosek",
+    ERROR: "Tatuś jest bardzo zawiedziony",
     OK: "Grzeczny chłopiec",
   };
 
