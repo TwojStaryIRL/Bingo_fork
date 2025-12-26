@@ -148,7 +148,7 @@
   width: 34vw;         /* prawa część ekranu */
   max-width: 480px;    /* żeby nie zjadł pół strony na dużym monitorze */
   height: 92vh;        /* prawie full Y */
-  max-height: 1020px;
+  max-height: 1120px;
 
   object-fit: cover;   /* może przyciąć, ale będzie “na maksa” w Y */
   object-position: right bottom;
