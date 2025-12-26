@@ -28,6 +28,10 @@ def oniksu_func() -> UserPluginConfig:
     )
 
 
+
+
+
+
 USER_PLUGIN_REGISTRY = {
     "oniksu": oniksu_func,
     #

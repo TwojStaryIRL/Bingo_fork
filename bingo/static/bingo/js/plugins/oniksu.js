@@ -80,9 +80,9 @@ window.BingoUserPlugin.init = function (api) {
   // default OFF
   updateBtn();
 
-  // opcjonalnie: komenda w konsoli
-  window.testinguser1 = window.testinguser1 || {};
-  window.testinguser1.space = (on) => setSpace(on);
+//   // opcjonalnie: komenda w konsoli
+//   window.testinguser1 = window.testinguser1 || {};
+//   window.testinguser1.space = (on) => setSpace(on);
   // ===== END SPACEGLIDING =====
 
 
