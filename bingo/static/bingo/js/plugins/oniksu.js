@@ -7,7 +7,7 @@ window.BingoUserPlugin.init = function (api) {
     maxFloating: 6,
     vanishAnimMs: 1000,      // 1s fade→gray w tabeli / na stronie
     cloakMs: 7000,           // ile ma być "na niewidce" po zniknięciu
-    minGapMs: 45000,         // >= 45s przerwy między prankami
+    minGapMs: 45000,         // >= 45s miedzy tilesami znikającymi
     sfxHideVol: 0.35,
     sfxRevealVol: 0.35,
 
@@ -108,11 +108,20 @@ window.BingoUserPlugin.init = function (api) {
   }
 
   function pickVictim() {
-    const focused = tileFromActiveElement();
-    const tiles = allRealTiles().filter(t => t !== focused && !cloaked.has(t));
-    if (!tiles.length) return null;
-    return tiles[(Math.random() * tiles.length) | 0];
-  }
+  const focused = tileFromActiveElement();
+
+  const inTable = allRealTiles();
+  const alreadyFloating = Array.from(floating.keys());
+
+  // połącz i usuń duplikaty
+  const all = Array.from(new Set([...inTable, ...alreadyFloating]));
+
+  const candidates = all.filter(t => t && t !== focused && !cloaked.has(t));
+  if (!candidates.length) return null;
+
+  return candidates[(Math.random() * candidates.length) | 0];
+}
+
 
   function playHide() { api.playSfx(pick(api.sfx?.hide), { volume: CFG.sfxHideVol }); }
   function playReveal() { api.playSfx(pick(api.sfx?.reveal), { volume: CFG.sfxRevealVol }); }
@@ -182,7 +191,7 @@ function randomSidePos() {
     return tele;
   }
 
-  function prankOnce() {
+  function VanishOnce() {
     // twardy limiter: min 30s odstępu
     if (now() < nextAllowedAt) return;
     // limit: max 6 kafelków może być poza tabelą
@@ -220,20 +229,19 @@ function randomSidePos() {
     }, CFG.vanishAnimMs);
   }
 
-  // Uruchamiaj automatycznie co sekundę, ale prank odpali max co 30s
+  // Uruchamiaj automatycznie co sekundę, ale 
   api.ctx.setIntervalSafe(() => {
-    prankOnce();
+    VanishOnce();
   }, 1000);
 
   // Debug hotkey: Ctrl+Alt+P wymusza (ignoruje gap? NIE — respektuje gap)
   api.ctx.on(document, "keydown", (e) => {
     if (e.ctrlKey && e.altKey && (e.key === "p" || e.key === "P")) {
-      prankOnce();
+      VanishOnce();
     }
   });
 
-  // Jeśli chcesz żeby to działo się tylko po save:
-  // api.hooks.on("save:ok", prankOnce);
+
 
   return () => {
   try { style.remove(); } catch {}
