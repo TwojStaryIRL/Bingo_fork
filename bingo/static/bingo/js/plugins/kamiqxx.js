@@ -30,6 +30,7 @@
     BAD_IMGS: [
       "/static/bingo/images/kamiqxx/badboy.gif",
       "/static/bingo/images/kamiqxx/badboy2.jpg",
+      "/static/bingo/images/kamiqxx/badboy3.jpg",
     ],
 
   };
@@ -361,7 +362,11 @@
   cursor: pointer;
   font-size: 24px;
   color: #fff;
+
+  overflow: hidden;          
+  padding: 0;                
 }
+
 .kys-tile:hover{ outline: 1px solid rgba(255,255,255,.16); }
 .kys-tile--bad{ background: #441111; }
 
@@ -393,10 +398,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: inherit;
   display: block;
   pointer-events: none;
 }
+
 
 }
         `;
