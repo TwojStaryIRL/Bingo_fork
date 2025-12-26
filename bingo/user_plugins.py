@@ -51,51 +51,54 @@ def Drymastero103_func() -> UserPluginConfig:
 def kyspro_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/kyspro.js",
-        sfx={"bingo/sfx/kyspro/mommy_asmr.mp3"}
+        sfx={
+            "mommy_asmr": [
+                static("bingo/sfx/kyspro/mommy_asmr.mp3")
+            ]
+        }
     )
 
 def jull_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/jull.js",
         sfx={}
     )
 
 def stugsiana_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/stugsiana.js",
         sfx={}
     )
 
 def nataliagl131_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/nataliagl131.js",
         sfx={}
     )
 
 def Pesos_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/Pesos.js",
         sfx={}
     )
 
 def SabrinaSitOnMe_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/SabrinaSitOnMe.js",
         sfx={}
     )
 
 def kamiqxx_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/kamiqxx.js",
         sfx={}
     )
 
 def BigMan_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/kyspro.js",
+        js_plugin="bingo/js/plugins/BigMan.js",
         sfx={}
     )
-
 
 
 USER_PLUGIN_REGISTRY = {
