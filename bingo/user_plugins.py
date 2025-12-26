@@ -32,13 +32,18 @@ def oniksu_func() -> UserPluginConfig:
         }
     )
 
-
+def wanilka_func() -> UserPluginConfig:
+    return UserPluginConfig(
+        js_plugin="bingo/js/plugins/wanilka.js",
+        sfx={}
+    )
 
 
 
 
 USER_PLUGIN_REGISTRY = {
     "oniksu": oniksu_func,
+    "wanilka": wanilka_func,
     #
 }
 
