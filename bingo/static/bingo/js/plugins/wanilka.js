@@ -24,10 +24,10 @@
     SHAKE_MS: 1100,
 
     // czarna dziura: ile trwa wciąganie (ms)
-    HOLE_EAT_MS: 5000,
+    HOLE_EAT_MS: 3000,
 
     // po ilu ms od eksplozji podmienić stronę na kotki
-    SWITCH_TO_POSTAPO_MS: 2500,
+    SWITCH_TO_POSTAPO_MS: 700,
 
     // ile kafli GIF na ekranie (większa wartość = mniejsze kafle)
     POSTAPO_TILE: 250,
