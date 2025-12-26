@@ -38,12 +38,18 @@ def wanilka_func() -> UserPluginConfig:
         sfx={}
     )
 
+def Drymastero103_func() -> UserPluginConfig:
+    return UserPluginConfig(
+        js_plugin="bingo/js/plugins/Drymastero103.js",
+        sfx={} # jak robisz dla piotrka to tutaj dodajesz dźwięki, ogółem images dodawaj przez js-a a nie w html-u bo nam sie zaśmieci game
+    )
 
 
 
 USER_PLUGIN_REGISTRY = {
     "oniksu": oniksu_func,
     "wanilka": wanilka_func,
+    "Drymastero": Drymastero103_func,
     #
 }
 
