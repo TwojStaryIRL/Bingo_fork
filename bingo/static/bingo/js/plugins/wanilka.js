@@ -12,31 +12,28 @@
   // ====== konfiguracja (tu sobie kręcisz gałkami) ======
   const CFG = {
     // czas lotu od lewej do punktu eksplozji (ms)
-    FLIGHT_MS: 15000,
+    FLIGHT_MS: 20000,
 
     // gdzie ma nastąpić eksplozja (0..1)
     EXPLODE_AT_X: 0.90,
 
     // rozmiar samolotu (px)
-    PLANE_W: 220,
+    PLANE_W: 200,
 
     // intensywność wstrząsu
     SHAKE_MS: 650,
 
     // czarna dziura: ile trwa wciąganie (ms)
-    HOLE_EAT_MS: 2000,
+    HOLE_EAT_MS: 1000,
 
     // po ilu ms od eksplozji podmienić stronę na kotki
-    SWITCH_TO_POSTAPO_MS: 700,
+    SWITCH_TO_POSTAPO_MS: 300,
 
     // ile kafli GIF na ekranie (większa wartość = mniejsze kafle)
-    POSTAPO_TILE: 220,
+    POSTAPO_TILE: 200,
   };
 
-  // ====== assety (hardcode) ======
-  // Ustaw tu ścieżki, jeśli masz inne. Najczęściej będzie:
-  // /static/bingo/img/samolot.jpg
-  // /static/bingo/gif/postapo.gif
+  // ====== assety 
   const ASSETS = {
     plane: [
       "/static/bingo/images/wanilka/samolot.jpg",
@@ -47,14 +44,15 @@
   };
 
   function pickFirstWorkingUrl(urls) {
-    // bez fetchowania (CORS/HEAD różnie bywa); bierzemy pierwszą, a jak nie zadziała to onerror przeskoczy
+    // bez fetchowania 
     return urls[0];
   }
 
   whenReady(() => {
     window.BingoUserPlugin = {
       init(api) {
-        const { ctx } = api;
+        const { ctx, sfx } = api;
+
 
         const root = document.getElementById("plugin-root");
         if (!root) return;
@@ -180,6 +178,34 @@
           return ASSETS.postapo[postapoIdx] || pickFirstWorkingUrl(ASSETS.postapo);
         }
 
+        // ===== loop audio =====
+        let pokerLoop = null;
+
+        function startPokerFaceLoop() {
+          const url = (sfx && sfx.pokerface) ? String(sfx.pokerface) : "";
+          if (!url) return false;
+
+          // jeśli już gra, nie restartuj
+          if (pokerLoop && !pokerLoop.paused) return true;
+
+          try {
+            if (pokerLoop) {
+              pokerLoop.pause();
+              pokerLoop.currentTime = 0;
+            }
+          } catch {}
+
+          const a = new Audio(url);
+          a.loop = true;
+          a.volume = 0.30;   
+          a.currentTime = 0;
+
+          a.play().catch(() => {});
+          pokerLoop = a;
+          return true;
+        }
+
+
         function doFlash() {
           flash.classList.remove("is-on");
           void flash.offsetWidth;
@@ -208,6 +234,7 @@
 
           // zniknij samolot
           plane.style.opacity = "0";
+          startPokerFaceLoop();
         }
 
         function wipePageToPostapo() {
@@ -288,8 +315,22 @@
           ctx.setTimeoutSafe(() => wipePageToPostapo(), CFG.SWITCH_TO_POSTAPO_MS);
         }
 
-        // odpal raz po wejściu
-        ctx.setTimeoutSafe(() => run(), 650);
+        // odpal po kliknięciu
+        let triggered = false;
+
+        function triggerOnce() {
+          if (triggered) return;
+          triggered = true;
+          run();
+        }
+
+        // pierwszy klik / tap gdziekolwiek
+        ctx.on(window, "pointerdown", triggerOnce, { once: true });
+
+        // fallback: jak ktoś wróci focusem do karty
+        ctx.on(window, "focus", triggerOnce, { once: true });
+
+
 
         // i opcjonalnie: na klik save też
         const saveBtn = document.getElementById("save-btn");
@@ -300,6 +341,13 @@
         return () => {
           try { overlay.remove(); } catch {}
           try { style.remove(); } catch {}
+          try {
+                if (pokerLoop) {
+                  pokerLoop.pause();
+                  pokerLoop.currentTime = 0;
+                }
+              } catch {}
+
         };
       }
     };
