@@ -49,7 +49,7 @@ def Drymastero103_func() -> UserPluginConfig:
 USER_PLUGIN_REGISTRY = {
     "oniksu": oniksu_func,
     "wanilka": wanilka_func,
-    "Drymastero": Drymastero103_func,
+    "Drymastero103": Drymastero103_func,
     #
 }
 
