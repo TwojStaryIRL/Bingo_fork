@@ -34,6 +34,11 @@
       "/static/bingo/images/kamiqxx/badboy4.jpg",
     ],
 
+
+    TILE_SIZE: 150,     // było 92
+    SUDOKU_CELL: 78,    // było 50
+    MODAL_MAX_W: 980,   // większy modal
+
   };
 
   // ===== helpers =====
@@ -135,8 +140,10 @@
 
     const grid = document.createElement("div");
     grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(3, 92px)";
-    grid.style.gap = "10px";
+    grid.style.gridTemplateColumns = `repeat(3, ${CFG.TILE_SIZE}px)`;
+    grid.style.gap = "14px";
+    grid.style.maxWidth = "95vw";
+
     grid.style.justifyContent = "center";
     grid.style.marginTop = "14px";
 
@@ -316,76 +323,89 @@
   position: fixed; inset: 0;
   z-index: 2147483646;
   pointer-events: auto;
-  background: rgba(0,0,0,.78);
+  background: rgba(0,0,0,.82);
   backdrop-filter: blur(6px);
   display: grid;
   place-items: center;
-  padding: 22px;
+  padding: 16px;
 }
 
+/* większy modal */
 .kys-modal{
-  width: min(560px, 94vw);
-  border-radius: 18px;
+  width: min(${CFG.MODAL_MAX_W}px, 96vw);
+  max-height: 92vh;
+  overflow: auto;
+  border-radius: 22px;
   background: rgba(18,18,18,.96);
   border: 1px solid rgba(255,255,255,.10);
   box-shadow: 0 28px 90px rgba(0,0,0,.6);
-  padding: 18px 18px 16px;
+  padding: 22px 22px 18px;
   color: #fff;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-.kys-title{ font-size: 18px; font-weight: 700; margin: 0 0 6px; }
-.kys-sub{ font-size: 13px; opacity: .85; margin: 0 0 6px; line-height: 1.35; }
+.kys-title{ font-size: 22px; font-weight: 800; margin: 0 0 8px; }
+.kys-sub{ font-size: 15px; opacity: .88; margin: 0 0 10px; line-height: 1.35; }
 
-.kys-row{ display:flex; gap:10px; margin-top:12px; align-items:center; justify-content:center; }
+.kys-row{ display:flex; gap:12px; margin-top:14px; align-items:center; justify-content:center; }
 
 .kys-btn{
   border: 0;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-weight: 800;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 900;
   cursor: pointer;
   background: #ffffff;
   color: #111;
+  font-size: 16px;
 }
 
-.kys-msg{ font-size: 12px; opacity: .9; margin-top: 12px; min-height: 16px; text-align:center; }
+.kys-msg{ font-size: 14px; opacity: .95; margin-top: 14px; min-height: 18px; text-align:center; }
 .kys-msg.error{ color: #ffb4b4; }
 .kys-msg.ok{ color: #b9ffd4; }
 
-/* find-boy tiles */
+/* find-boy tiles — WIĘKSZE */
 .kys-tile{
-  width: 92px;
-  height: 92px;
-  border-radius: 14px;
+  width: ${CFG.TILE_SIZE}px;
+  height: ${CFG.TILE_SIZE}px;
+  border-radius: 18px;
   border: 0;
   background: #222;
   cursor: pointer;
-  font-size: 24px;
   color: #fff;
 
-  overflow: hidden;          
-  padding: 0;                
+  overflow: hidden;
+  padding: 10px;             /* odstęp = obraz nie dotyka krawędzi */
+  box-sizing: border-box;
 }
-
-.kys-tile:hover{ outline: 1px solid rgba(255,255,255,.16); }
+.kys-tile:hover{ outline: 2px solid rgba(255,255,255,.16); }
 .kys-tile--bad{ background: #441111; }
 
-/* sudoku */
+/* obrazki w kafelkach — CAŁE widoczne */
+.kys-tile img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+/* sudoku — WIĘKSZE komórki */
 .kys-sudoku{
   display: grid;
-  grid-template-columns: repeat(4, 50px);
-  gap: 0;
+  grid-template-columns: repeat(4, ${CFG.SUDOKU_CELL}px);
   justify-content: center;
   border: 1px solid rgba(255,255,255,.12);
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
 }
+
 .kys-cell{
-  width: 50px;
-  height: 50px;
+  width: ${CFG.SUDOKU_CELL}px;
+  height: ${CFG.SUDOKU_CELL}px;
   text-align: center;
-  font-size: 18px;
+  font-size: 28px;
+  font-weight: 800;
   color: #fff;
   background: rgba(255,255,255,.06);
   border: 0;
@@ -395,22 +415,6 @@
 .kys-cell--fixed{
   background: rgba(255,255,255,.12);
   opacity: .95;
-}
-
-/* obrazki w kafelkach */
-.kys-tile img{
-  width: 100%;
-  height: 100%;
-  object-fit: contain;      /* <<< CAŁY obraz widoczny, bez kadrowania */
-  display: block;
-  pointer-events: none;
-}
-
-/* opcjonalnie: żeby nie dotykało krawędzi kafelka */
-.kys-tile{
-  overflow: hidden;
-  padding: 6px;             /* <<< margines wewnętrzny */
-  box-sizing: border-box;
 }
 
 
