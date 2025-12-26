@@ -35,7 +35,11 @@ def oniksu_func() -> UserPluginConfig:
 def wanilka_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/wanilka.js",
-        sfx={}
+        sfx={
+            "pokerface": [ 
+                static("bingo/sfx/wanilka/pokerface.mp3")
+            ]
+        }
     )
 
 def Drymastero103_func() -> UserPluginConfig:
