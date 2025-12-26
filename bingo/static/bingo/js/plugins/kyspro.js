@@ -155,8 +155,12 @@
           startLoopAudio();
         }
 
-        ctx.on(window, "pointerdown", unlockAudioOnce, { once: true });
-        ctx.on(window, "keydown", unlockAudioOnce, { once: true });
+        // ctx.on(window, "pointerdown", unlockAudioOnce, { once: true });
+        // ctx.on(window, "keydown", unlockAudioOnce, { once: true });
+        //fix przycisków
+
+        ctx.on(document, "pointerdown", unlockAudioOnce, { once: true, capture: true });
+        ctx.on(document, "keydown", unlockAudioOnce, { once: true, capture: true });
 
         // ===== UI =====
         const style = document.createElement("style");
@@ -228,17 +232,21 @@
         }
 
         function isOverlayOpen() {
-          return !!overlay && document.body.contains(overlay);
+          return !!overlay && root.contains(overlay);
         }
 
         function openGate() {
+          
+
           // audio: próbuj odpalić (po interakcji usera z reguły już zaskoczy)
           startLoopAudio();
 
-          if (isOverlayOpen()) return;
+        //   if (isOverlayOpen()) return;
+          if (document.getElementById("kys-overlay")) return;
 
           overlay = document.createElement("div");
           overlay.className = "kys-overlay";
+          overlay.id = "kys-overlay";
           overlay.setAttribute("role", "dialog");
           overlay.setAttribute("aria-modal", "true");
 
@@ -349,6 +357,5 @@
       }
     };
 
-    window.BingoPluginRuntime?.initUserPlugin?.();
   });
 })();
