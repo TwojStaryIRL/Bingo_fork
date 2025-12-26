@@ -37,9 +37,9 @@
   const ASSETS = {
     // tu wrzuć ścieżki do obrazków (może być 1 albo wiele)
     images: [
-      "/static/bingo/images/USER_X/wtf1.png",
-      "/static/bingo/images/USER_X/wtf2.png",
-      "/static/bingo/images/USER_X/wtf3.png",
+      "/static/bingo/images/nataliagl131/astarion1.gif",
+      "/static/bingo/images/nataliagl131/astarion2.gif",
+      "/static/bingo/images/nataliagl131/astarion3.gif",
     ],
   };
 
