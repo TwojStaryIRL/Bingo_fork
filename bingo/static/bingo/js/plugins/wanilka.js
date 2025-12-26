@@ -21,13 +21,13 @@
     PLANE_W: 200,
 
     // intensywność wstrząsu
-    SHAKE_MS: 900,
+    SHAKE_MS: 1100,
 
     // czarna dziura: ile trwa wciąganie (ms)
-    HOLE_EAT_MS: 3000,
+    HOLE_EAT_MS: 5000,
 
     // po ilu ms od eksplozji podmienić stronę na kotki
-    SWITCH_TO_POSTAPO_MS: 700,
+    SWITCH_TO_POSTAPO_MS: 600,
 
     // ile kafli GIF na ekranie (większa wartość = mniejsze kafle)
     POSTAPO_TILE: 250,
@@ -160,6 +160,15 @@
 
   pointer-events: none; /* NIGDY nie blokuje klikania tabelki */
 }
+
+.plugin-overlay { z-index: 2147483600; } /* overlay nad stroną */
+
+.plugin-people { z-index: 2147483610; }  /* obrazek */
+.plugin-plane  { z-index: 2147483620; }  /* samolot ZAWSZE nad people */
+
+.plugin-flash,
+.plugin-hole,
+.plugin-destroy { z-index: 2147483630; } /* efekty nad wszystkim */
 
 
         `;
