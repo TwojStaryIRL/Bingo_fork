@@ -236,12 +236,10 @@
         }
 
         function openGate() {
-          
-
-          // audio: próbuj odpalić (po interakcji usera z reguły już zaskoczy)
+          // 
           startLoopAudio();
 
-        //   if (isOverlayOpen()) return;
+          // guard
           if (document.getElementById("kys-overlay")) return;
 
           overlay = document.createElement("div");
@@ -289,7 +287,7 @@
           overlay.appendChild(modal);
           root.appendChild(overlay);
 
-          // ważne: klik na overlay NIE ma przechodzić do strony
+          // klik na overlay NIE ma przechodzić do strony
           ctx.on(overlay, "pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); });
           ctx.on(overlay, "click", (e) => { e.preventDefault(); e.stopPropagation(); });
 
@@ -310,16 +308,20 @@
           ctx.on(btn, "click", submit);
           ctx.on(input, "keydown", (e) => { if (e.key === "Enter") submit(); });
 
+          setMsg(""); // reset msg 
           ctx.setTimeoutSafe(() => input.focus(), 60);
         }
 
+
         function closeGate() {
-          if (!overlay) return;
-          try { overlay.remove(); } catch {}
+          const el = document.getElementById("kys-overlay");
+          if (el) { try { el.remove(); } catch {} }
+
           overlay = null;
           input = null;
           msg = null;
         }
+
 
         function shouldShowNow() {
           const st = loadState();
