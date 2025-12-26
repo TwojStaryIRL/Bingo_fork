@@ -35,9 +35,9 @@
     ],
 
 
-    TILE_SIZE: 150,     // było 92
-    SUDOKU_CELL: 78,    // było 50
-    MODAL_MAX_W: 980,   // większy modal
+    TILE_SIZE: 220,     // było 92
+    SUDOKU_CELL: 100,    // było 50
+    MODAL_MAX_W: 1300,   // większy modal
 
   };
 
