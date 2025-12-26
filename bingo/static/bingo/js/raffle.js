@@ -230,7 +230,7 @@
 
       const tiles = Array.from(board.querySelectorAll(".raffle-text"));
 
-      await sleep(450); // do dostosowania dla testu
+      await sleep(967); // do dostosowania dla testu
 
       data.cells.forEach((txt, i) => {
         if (tiles[i]) tiles[i].textContent = txt;
