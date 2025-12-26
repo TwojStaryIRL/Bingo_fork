@@ -92,7 +92,7 @@ def save_board(request):
     )
 
     return JsonResponse({"ok": True})
-@login_required
+
 @login_required
 def raffle(request):
     state, _ = RaffleState.objects.get_or_create(user=request.user)
@@ -100,11 +100,17 @@ def raffle(request):
     payload = state.generated_board_payload or {}
     grids_2d = payload.get("grids_2d")
 
-    if not (isinstance(grids_2d, list) and grids_2d):
+    # dodatkowo: jeśli raffle_grids jest złe (np. 2D), też regeneruj
+    from .raffle_algorithm import normalize_grids
+
+    raffle_grids_ok = normalize_grids(payload.get("raffle_grids")) is not None
+
+    if not (isinstance(grids_2d, list) and grids_2d) or not raffle_grids_ok:
         session_patch, grids_2d = generate_initial_state(request.user, grids_count=3, size=4)
+
         state.generated_board_payload = {
-            **session_patch,      # raffle_grids, raffle_used_sets, raffle_rerolls_used, raffle_shuffles_used
-            "grids_2d": grids_2d, # do rendera w raffle.html
+            **session_patch,      # ✅ raffle_grids (flat), raffle_used_sets, raffle_rerolls_used, raffle_shuffles_used
+            "grids_2d": grids_2d, # ✅ do rendera w HTML
             "size": 4,
             "grids_count": 3,
         }
@@ -115,6 +121,7 @@ def raffle(request):
         "rerolls_left": state.rerolls_left,
         "shuffles_left": state.shuffles_left,
     })
+
 
 
 @login_required
@@ -170,7 +177,7 @@ def raffle_reroll_all(request):
         return JsonResponse(payload, status=status)
 
 
-@login_required
+login_required
 @require_POST
 def raffle_shuffle_use(request):
     with transaction.atomic():
@@ -184,32 +191,20 @@ def raffle_shuffle_use(request):
                 "shuffles_left": 0,
             }, status=429)
 
-        ok, status, payload, patch = consume_shuffle(state.generated_board_payload or {})
+        # sukces: odejmij limit w DB
+        state.shuffles_left = max(0, state.shuffles_left - 1)
 
-        if not isinstance(payload, dict):
-            payload = {"ok": False, "error": "Invalid server payload"}
-
-        if not ok:
-            payload.setdefault("ok", False)
-            payload.setdefault("rerolls_left", state.rerolls_left)
-            payload.setdefault("shuffles_left", state.shuffles_left)
-            return JsonResponse(payload, status=status)
-
-        state.shuffles_left -= 1
-
+        # (opcjonalnie) zapisz licznik techniczny do payloadu, jeśli chcesz go trzymać
         new_payload = dict(state.generated_board_payload or {})
-        if isinstance(patch, dict) and patch:
-            new_payload.update(patch)
-
-        grids = payload.get("grids")
-        if isinstance(grids, list) and grids:
-            new_payload["grids_2d"] = grids
+        used = int(new_payload.get("raffle_shuffles_used") or 0) + 1
+        new_payload["raffle_shuffles_used"] = used
 
         state.generated_board_payload = new_payload
         state.save(update_fields=["shuffles_left", "generated_board_payload", "updated_at"])
 
-        payload["ok"] = True
-        payload["rerolls_left"] = state.rerolls_left
-        payload["shuffles_left"] = state.shuffles_left
-
-        return JsonResponse(payload, status=status)
+        return JsonResponse({
+            "ok": True,
+            "shuffles_left": state.shuffles_left,
+            "rerolls_left": state.rerolls_left,
+            "shuffles_used": used,  # tylko informacyjnie
+        }, status=200)
