@@ -308,7 +308,7 @@
           const y = Math.max(60, Math.min(window.innerHeight - 160, window.innerHeight * (0.18 + Math.random() * 0.35)));
 
           const startX = -CFG.PLANE_W - 40;
-          const explodeX = targetX; // uderzamy w people
+          const explodeX = Math.floor(window.innerWidth * CFG.EXPLODE_AT_X);
           const endX = explodeX; // kończymy lot dokładnie w punkcie eksplozji
           const planeRot = 8 + Math.random() * 6;
 
@@ -361,7 +361,7 @@
           fly.cancel();
 
           // eksplozja przy 90%
-          const explodeY = targetY + 40; // lekki offset żeby wyglądało jak w hitbox
+          const explodeY = y - 18 + (CFG.PLANE_W * 0.12);
           explodeAt(explodeX, explodeY);
 
           // daj chwilę na “zjedzenie”
