@@ -15,10 +15,10 @@
     FLIGHT_MS: 60000,
 
     // gdzie ma nastąpić eksplozja (0..1)
-    EXPLODE_AT_X: 0.80,
+    EXPLODE_AT_X: 0.75,
 
     // rozmiar samolotu (px)
-    PLANE_W: 250,
+    PLANE_W: 200,
 
     // intensywność wstrząsu
     SHAKE_MS: 1100,
