@@ -19,7 +19,7 @@ window.BingoUserPlugin.init = function (api) {
   };
 
   // ===== SPACEGLIDING TOGGLE =====
-  const MUSIC_URL = "/static/bingo/sfx/everything_black.mp3"; 
+  const MUSIC_URL = "/static/bingo/sfx/oniksu/everything_black.mp3"; 
   let spaceOn = false;
 
   const music = new Audio(MUSIC_URL);

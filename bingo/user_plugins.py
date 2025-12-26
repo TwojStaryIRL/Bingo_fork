@@ -17,12 +17,17 @@ def oniksu_func() -> UserPluginConfig:
         js_plugin="bingo/js/plugins/oniksu.js",
         sfx={
             "hide": [
-                static("bingo/sfx/twitch_on_hide_1.mp3"),
-                static("bingo/sfx/twitch_on_hide_2.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_hide_1.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_hide_2.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_hide_3.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_hide_4.mp3"),
             ],
             "reveal": [
-                static("bingo/sfx/twitch_on_reveal_1.mp3"),
-                static("bingo/sfx/twitch_on_reveal_2.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_reveal_1.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_reveal_2.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_reveal_3.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_reveal_4.mp3"),
+                static("bingo/sfx/oniksu/twitch_on_reveal_5.mp3"),
             ],
         }
     )
