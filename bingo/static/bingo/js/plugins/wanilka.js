@@ -142,15 +142,17 @@
 
 .plugin-people{
   position: fixed;
-  width: 260px;
-  height: auto;
+  width: 50vw;
+  height: 100vh;          /* <<< cały pion */
+  object-fit: contain;    /* albo cover jeśli chcesz brutal */
   left: 0;
   top: 0;
   transform: translate(-9999px, -9999px);
   will-change: transform, opacity;
-  filter: drop-shadow(0 12px 22px rgba(0,0,0,.42));
+  filter: drop-shadow(0 20px 36px rgba(0,0,0,.6));
   opacity: 1;
 }
+
 
 
         `;
