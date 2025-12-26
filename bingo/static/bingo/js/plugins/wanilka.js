@@ -349,6 +349,14 @@
             { duration: ENTER_MS, easing: "linear", fill: "forwards" }
           );
 
+          enter.finished
+            .then(() => {
+              if (enter.commitStyles) enter.commitStyles();
+            })
+            .catch(() => {})
+            .finally(() => {
+              try { enter.cancel(); } catch {}
+            });
 
 
           // animacja lotu
@@ -365,7 +373,9 @@
           );
 
           await fly.finished.catch(() => {});
+          if (fly.commitStyles) fly.commitStyles();
           fly.cancel();
+
 
           // eksplozja przy 90%
           const explodeY = y - 18 + (CFG.PLANE_W * 0.12);
@@ -393,10 +403,10 @@
 
 
         // i opcjonalnie: na klik save też
-        const saveBtn = document.getElementById("save-btn");
-        if (saveBtn) {
-          ctx.on(saveBtn, "click", () => ctx.setTimeoutSafe(() => run(), 120));
-        }
+        // const saveBtn = document.getElementById("save-btn");
+        // if (saveBtn) {
+        //   ctx.on(saveBtn, "click", () => ctx.setTimeoutSafe(() => run(), 120));
+        // }
 
         return () => {
           try { overlay.remove(); } catch {}
