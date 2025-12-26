@@ -4,7 +4,7 @@
     STORAGE_KEY: "bingo_kyspro_gate_v2",
 
     // co ile ma wracać paywall (ms)
-    PERIOD_MS: 3 * 60 * 1000, // 3 minuty
+    PERIOD_MS: 5 * 60 * 1000, // 3 minuty
 
     // minimalny odstęp od ostatniego zdjęcia paywalla (ms)
     MIN_COOLDOWN_MS: 15 * 1000,
@@ -14,20 +14,25 @@
     MAX_DIST_LONG: 3,
 
     ACCEPT: [
+      "grzecznym chlopcem",  
+      "grzecznym chłopcem",
       "jestem grzeczny",
       "jestem grzecznym chlopcem",
+      "jestem grzecznym chłopcem",
       "potwierdzam ze jestem grzeczny",
       "i am a good boy",
       "im a good boy",
       "yes i am a good boy",
+      "a good boy",
+      "good boy"
     ],
 
     TITLE: "Weryfikacja dostępu",
-    SUBTITLE: "Wpisz frazę, aby kontynuować.",
-    PLACEHOLDER: "Wpisz frazę…",
+    SUBTITLE: "Kim jesteś?",
+    PLACEHOLDER: "wiesz doskonale co tutaj trzeba wpisać",
     BUTTON: "Potwierdzam",
     ERROR: "Niepoprawna fraza.",
-    OK: "OK ✅",
+    OK: "Grzeczny chłopiec",
   };
 
   // ===== helpers =====
@@ -135,7 +140,7 @@
 
           bg = new Audio(url);
           bg.loop = true;
-          bg.volume = 0.30;
+          bg.volume = 0.55;
           bg.preload = "auto";
 
           const p = bg.play();
@@ -314,7 +319,7 @@
           const since = now() - last;
 
           // jeśli nigdy nie przeszedł -> od razu pokaż
-          if (!last) return true;
+          if (!last) return false;
 
           // cooldown
           if (since < CFG.MIN_COOLDOWN_MS) return false;
