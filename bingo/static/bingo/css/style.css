@@ -31,12 +31,19 @@ body{
     linear-gradient(180deg, var(--bg), var(--bg2));
 }
 
+
 /* Spaceglide: tło całej strony GIF */
 body.spaceglide{
   background-image: url("/static/bingo/images/spacegliding.gif");
   background-repeat: repeat;          
   background-size: 200px 200px;
   
+}
+
+body.spaceglide::before,
+body.spaceglide::after{
+  content: none !important;
+  display: none !important;
 }
 
 /* przyciemnij UI żeby było czytelne */
