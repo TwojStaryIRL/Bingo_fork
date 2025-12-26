@@ -13,3 +13,34 @@ class BingoBoard(models.Model):
 
     def __str__(self):
         return f"BingoBoard({self.user.username})"
+
+
+
+class RaffleState(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="raffle_state"
+    )
+
+    # ile zostało rerolli/shuffli
+    rerolls_left = models.PositiveSmallIntegerField(default=3)
+    shuffles_left = models.PositiveSmallIntegerField(default=3)
+
+    # co user zapisał w game (snapshot konfiguracji)
+    saved_board_payload = models.JSONField(default=dict, blank=True)
+
+    # stan wygenerowany przez raffle (np. 3 gridy + used_sets + ewentualnie pick)
+    generated_board_payload = models.JSONField(default=dict, blank=True)
+
+    # PDF finalnego boarda
+    generated_board_pdf = models.FileField(
+        upload_to="bingo/generated/",
+        blank=True,
+        null=True
+    )
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"RaffleState({self.user.username})"
