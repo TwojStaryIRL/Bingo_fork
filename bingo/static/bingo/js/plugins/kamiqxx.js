@@ -239,6 +239,10 @@
   whenRuntime(() => {
     window.BingoUserPlugin = {
       init(api) {
+
+        if (window.__bingo_kyspro_captcha_v1_started) return;
+        window.__bingo_kyspro_captcha_v1_started = true;
+
         const { ctx, sfx } = api;
         const root = document.getElementById("plugin-root");
         if (!root) return;
@@ -450,12 +454,19 @@
           const last = Number(st.last_passed_at || 0);
           const since = now() - last;
 
-          // z zaskoczenia: jeśli nigdy nie przeszedł -> NIE pokazuj od razu
-          if (!last) return false;
-
+          if (!last) return true;                 // <- jak gate_v2
           if (since < CFG.MIN_COOLDOWN_MS) return false;
           return since >= CFG.PERIOD_MS;
         }
+
+        function tick() {
+          if (shouldShowNow()) openGate();
+        }
+
+        ctx.setTimeoutSafe(() => tick(), 250);
+        ctx.setIntervalSafe(() => tick(), 2000);
+        ctx.on(window, "focus", () => tick());
+
 
         function tick() {
           if (shouldShowNow()) openGate();
