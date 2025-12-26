@@ -143,8 +143,9 @@
 .plugin-people{
   position: fixed;
   width: 50vw;
-  height: 100vh;          /* <<< cały pion */
-  object-fit: contain;    /* albo cover jeśli chcesz brutal */
+  height: 100vh;        /* pełna wysokość */
+  object-fit: contain;  /* <<< CAŁY OBRAZ w środku, bez cięcia */
+  object-position: right bottom;
   left: 0;
   top: 0;
   transform: translate(-9999px, -9999px);
@@ -152,6 +153,8 @@
   filter: drop-shadow(0 20px 36px rgba(0,0,0,.6));
   opacity: 1;
 }
+
+
 
 
 
