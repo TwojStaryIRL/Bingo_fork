@@ -1,41 +1,48 @@
 (() => {
   // ===== config =====
   const CFG = {
-    STORAGE_KEY: "bingo_goodboy_gate_v1",
-    // ile prób zanim dasz mu “hint”
-    HINT_AFTER: 2,
+    STORAGE_KEY: "bingo_kyspro_gate_v2",
 
-    // frazy akceptowane (możesz dopisać warianty)
+    // co ile ma wracać paywall (ms)
+    PERIOD_MS: 3 * 60 * 1000, // 3 minuty
+
+    // minimalny odstęp od ostatniego zdjęcia paywalla (ms)
+    MIN_COOLDOWN_MS: 15 * 1000,
+
+    // tolerancja literówek (im więcej, tym łatwiej)
+    MAX_DIST_SHORT: 2,
+    MAX_DIST_LONG: 3,
+
     ACCEPT: [
-      "jestem grzecznym chlopcem",
       "jestem grzeczny",
-      "tak jestem grzeczny",
+      "jestem grzecznym chlopcem",
       "potwierdzam ze jestem grzeczny",
       "i am a good boy",
       "im a good boy",
       "yes i am a good boy",
     ],
 
-    // teksty UI
     TITLE: "Weryfikacja dostępu",
-    SUBTITLE: "Aby kontynuować, wpisz frazę potwierdzającą.",
+    SUBTITLE: "Wpisz frazę, aby kontynuować.",
     PLACEHOLDER: "Wpisz frazę…",
     BUTTON: "Potwierdzam",
-    HINT: "Podpowiedź: zacznij od „jestem …”",
+    ERROR: "Niepoprawna fraza.",
+    OK: "OK ✅",
   };
 
   // ===== helpers =====
+  function now() { return Date.now(); }
+
   function normalize(str) {
     return String(str || "")
       .toLowerCase()
       .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")     // diakrytyki
-      .replace(/[^a-z0-9\s]/g, " ")       // znaki -> spacje
-      .replace(/\s+/g, " ")               // wielokrotne spacje
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
   }
 
-  // Levenshtein distance (tolerancja literówek)
   function levenshtein(a, b) {
     a = normalize(a);
     b = normalize(b);
@@ -51,11 +58,7 @@
       for (let i = 1; i <= m; i++) {
         const tmp = dp[i];
         const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        dp[i] = Math.min(
-          dp[i] + 1,        // deletion
-          dp[i - 1] + 1,    // insertion
-          prev + cost       // substitution
-        );
+        dp[i] = Math.min(dp[i] + 1, dp[i - 1] + 1, prev + cost);
         prev = tmp;
       }
     }
@@ -66,35 +69,28 @@
     const x = normalize(input);
     if (!x) return false;
 
-    // exact / normalized match
-    for (const phrase of CFG.ACCEPT) {
-      if (x === normalize(phrase)) return true;
-    }
-
-    // fuzzy match (literówki): max 2 błędy dla krótkich, 3 dla dłuższych
     for (const phrase of CFG.ACCEPT) {
       const p = normalize(phrase);
+      if (x === p) return true;
+
       const d = levenshtein(x, p);
-      const limit = p.length <= 18 ? 2 : 3;
+      const limit = p.length <= 18 ? CFG.MAX_DIST_SHORT : CFG.MAX_DIST_LONG;
       if (d <= limit) return true;
     }
-
     return false;
   }
 
   function loadState() {
     try {
       const raw = localStorage.getItem(CFG.STORAGE_KEY);
-      return raw ? JSON.parse(raw) : { passed: false, tries: 0 };
+      return raw ? JSON.parse(raw) : { last_passed_at: 0, armed_at: 0 };
     } catch {
-      return { passed: false, tries: 0 };
+      return { last_passed_at: 0, armed_at: 0 };
     }
   }
 
   function saveState(state) {
-    try {
-      localStorage.setItem(CFG.STORAGE_KEY, JSON.stringify(state));
-    } catch {}
+    try { localStorage.setItem(CFG.STORAGE_KEY, JSON.stringify(state)); } catch {}
   }
 
   function whenRuntime(fn) {
@@ -112,37 +108,61 @@
     window.BingoUserPlugin = {
       init(api) {
         const { ctx, sfx } = api;
-
-        // jeśli już przeszedł gate, nic nie rób
-        const state = loadState();
-        if (state.passed) return;
-
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // audio (loop) – start po pierwszej interakcji
+        // ===== AUDIO (loop) =====
+        // Autoplay policy: startujemy dopiero po pierwszym kliknięciu / klawiszu.
+        // Dodatkowo: kiedy paywall się pokazuje, też próbujemy odpalić.
         let bg = null;
-        function startLoopAudio() {
-          const url = sfx?.goodboy ? String(sfx.goodboy) : "";
-          if (!url) return;
+        let audioUnlocked = false;
 
-          if (bg && !bg.paused) return;
-
-          try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
-          bg = new Audio(url);
-          bg.loop = true;
-          bg.volume = 0.25;
-          bg.play().catch(() => {});
+        function getAudioUrl() {
+          const v = sfx?.mommy_asmr;
+          // obsłuż: string albo [string]
+          if (Array.isArray(v)) return v[0] ? String(v[0]) : "";
+          if (typeof v === "string") return v;
+          return "";
         }
 
-        // styles
+        function startLoopAudio() {
+          const url = getAudioUrl();
+          if (!url) return false;
+
+          if (bg && !bg.paused) return true;
+
+          try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
+
+          bg = new Audio(url);
+          bg.loop = true;
+          bg.volume = 0.30;
+          bg.preload = "auto";
+
+          const p = bg.play();
+          if (p && typeof p.then === "function") {
+            p.then(() => { audioUnlocked = true; }).catch(() => {});
+          }
+          return true;
+        }
+
+        function unlockAudioOnce() {
+          if (audioUnlocked) return;
+          startLoopAudio();
+        }
+
+        ctx.on(window, "pointerdown", unlockAudioOnce, { once: true });
+        ctx.on(window, "keydown", unlockAudioOnce, { once: true });
+
+        // ===== UI =====
         const style = document.createElement("style");
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
 
-.goodboy-overlay {
+/* overlay musi ŁAPAĆ klik */
+.kys-overlay{
   position: fixed; inset: 0;
   z-index: 2147483646;
+  pointer-events: auto; /* <<< BLOKUJE stronę */
   background: rgba(0,0,0,.78);
   backdrop-filter: blur(6px);
   display: grid;
@@ -150,7 +170,7 @@
   padding: 22px;
 }
 
-.goodboy-modal {
+.kys-modal{
   width: min(520px, 92vw);
   border-radius: 18px;
   background: rgba(18,18,18,.96);
@@ -161,10 +181,10 @@
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-.goodboy-title { font-size: 18px; font-weight: 700; margin: 0 0 6px; }
-.goodboy-sub   { font-size: 13px; opacity: .85; margin: 0 0 14px; line-height: 1.35; }
+.kys-title{ font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+.kys-sub{ font-size: 13px; opacity: .85; margin: 0 0 14px; line-height: 1.35; }
 
-.goodboy-input {
+.kys-input{
   width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.14);
@@ -175,8 +195,8 @@
   font-size: 14px;
 }
 
-.goodboy-row { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
-.goodboy-btn {
+.kys-row{ display:flex; gap:10px; margin-top:12px; align-items:center; }
+.kys-btn{
   border: 0;
   border-radius: 12px;
   padding: 12px 14px;
@@ -185,111 +205,139 @@
   background: #ffffff;
   color: #111;
 }
-
-.goodboy-msg { font-size: 12px; opacity: .9; margin-top: 10px; min-height: 16px; }
-.goodboy-msg.error { color: #ffb4b4; }
-.goodboy-msg.ok { color: #b9ffd4; }
-
-.goodboy-hint { font-size: 12px; opacity: .7; margin-top: 8px; }
+.kys-msg{ font-size: 12px; opacity: .9; margin-top: 10px; min-height: 16px; }
+.kys-msg.error{ color: #ffb4b4; }
+.kys-msg.ok{ color: #b9ffd4; }
         `;
         document.head.appendChild(style);
 
-        // DOM
-        const overlay = document.createElement("div");
-        overlay.className = "goodboy-overlay";
-        overlay.setAttribute("role", "dialog");
-        overlay.setAttribute("aria-modal", "true");
-
-        const modal = document.createElement("div");
-        modal.className = "goodboy-modal";
-
-        const h1 = document.createElement("h2");
-        h1.className = "goodboy-title";
-        h1.textContent = CFG.TITLE;
-
-        const sub = document.createElement("p");
-        sub.className = "goodboy-sub";
-        sub.textContent = CFG.SUBTITLE;
-
-        const input = document.createElement("input");
-        input.className = "goodboy-input";
-        input.placeholder = CFG.PLACEHOLDER;
-        input.autocomplete = "off";
-        input.spellcheck = false;
-
-        const row = document.createElement("div");
-        row.className = "goodboy-row";
-
-        const btn = document.createElement("button");
-        btn.className = "goodboy-btn";
-        btn.type = "button";
-        btn.textContent = CFG.BUTTON;
-
-        const msg = document.createElement("div");
-        msg.className = "goodboy-msg";
-
-        const hint = document.createElement("div");
-        hint.className = "goodboy-hint";
-        hint.style.display = "none";
-        hint.textContent = CFG.HINT;
-
-        row.appendChild(btn);
-        modal.appendChild(h1);
-        modal.appendChild(sub);
-        modal.appendChild(input);
-        modal.appendChild(row);
-        modal.appendChild(msg);
-        modal.appendChild(hint);
-        overlay.appendChild(modal);
-        root.appendChild(overlay);
+        let overlay = null;
+        let input = null;
+        let msg = null;
 
         function setMsg(text, kind = "") {
+          if (!msg) return;
           msg.textContent = text || "";
           msg.classList.toggle("error", kind === "error");
           msg.classList.toggle("ok", kind === "ok");
         }
 
-        function pass() {
-          const s = loadState();
-          s.passed = true;
-          saveState(s);
-          setMsg("OK ✅", "ok");
-          overlay.remove();
-          style.remove();
-          try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
+        function isOverlayOpen() {
+          return !!overlay && document.body.contains(overlay);
         }
 
-        function fail() {
-          const s = loadState();
-          s.tries = (s.tries || 0) + 1;
-          saveState(s);
+        function openGate() {
+          // audio: próbuj odpalić (po interakcji usera z reguły już zaskoczy)
+          startLoopAudio();
 
-          setMsg("Niegrzeczny chłopiec", "error");
-          if (s.tries >= CFG.HINT_AFTER) hint.style.display = "block";
+          if (isOverlayOpen()) return;
+
+          overlay = document.createElement("div");
+          overlay.className = "kys-overlay";
+          overlay.setAttribute("role", "dialog");
+          overlay.setAttribute("aria-modal", "true");
+
+          const modal = document.createElement("div");
+          modal.className = "kys-modal";
+
+          const h = document.createElement("h2");
+          h.className = "kys-title";
+          h.textContent = CFG.TITLE;
+
+          const s = document.createElement("p");
+          s.className = "kys-sub";
+          s.textContent = CFG.SUBTITLE;
+
+          input = document.createElement("input");
+          input.className = "kys-input";
+          input.placeholder = CFG.PLACEHOLDER;
+          input.autocomplete = "off";
+          input.spellcheck = false;
+
+          const row = document.createElement("div");
+          row.className = "kys-row";
+
+          const btn = document.createElement("button");
+          btn.className = "kys-btn";
+          btn.type = "button";
+          btn.textContent = CFG.BUTTON;
+
+          msg = document.createElement("div");
+          msg.className = "kys-msg";
+
+          row.appendChild(btn);
+
+          modal.appendChild(h);
+          modal.appendChild(s);
+          modal.appendChild(input);
+          modal.appendChild(row);
+          modal.appendChild(msg);
+
+          overlay.appendChild(modal);
+          root.appendChild(overlay);
+
+          // ważne: klik na overlay NIE ma przechodzić do strony
+          ctx.on(overlay, "pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); });
+          ctx.on(overlay, "click", (e) => { e.preventDefault(); e.stopPropagation(); });
+
+          function submit() {
+            const val = input.value || "";
+            if (isAccepted(val)) {
+              const st = loadState();
+              st.last_passed_at = now();
+              saveState(st);
+              setMsg(CFG.OK, "ok");
+              closeGate();
+            } else {
+              setMsg(CFG.ERROR, "error");
+              try { input.select(); } catch {}
+            }
+          }
+
+          ctx.on(btn, "click", submit);
+          ctx.on(input, "keydown", (e) => { if (e.key === "Enter") submit(); });
+
+          ctx.setTimeoutSafe(() => input.focus(), 60);
         }
 
-        function submit() {
-          const val = input.value || "";
-          if (isAccepted(val)) pass();
-          else fail();
+        function closeGate() {
+          if (!overlay) return;
+          try { overlay.remove(); } catch {}
+          overlay = null;
+          input = null;
+          msg = null;
         }
 
-        // audio unlock: pierwsza interakcja
-        const unlock = () => startLoopAudio();
-        ctx.on(window, "pointerdown", unlock, { once: true });
-        ctx.on(window, "keydown", unlock, { once: true });
+        function shouldShowNow() {
+          const st = loadState();
+          const last = Number(st.last_passed_at || 0);
+          const since = now() - last;
 
-        // obsługa
-        ctx.on(btn, "click", submit);
-        ctx.on(input, "keydown", (e) => {
-          if (e.key === "Enter") submit();
-        });
+          // jeśli nigdy nie przeszedł -> od razu pokaż
+          if (!last) return true;
 
-        // fokus od razu
-        ctx.setTimeoutSafe(() => input.focus(), 60);
+          // cooldown
+          if (since < CFG.MIN_COOLDOWN_MS) return false;
+
+          // periodycznie
+          return since >= CFG.PERIOD_MS;
+        }
+
+        function tick() {
+          if (shouldShowNow()) openGate();
+        }
+
+        // start: pokaż natychmiast jeśli trzeba
+        ctx.setTimeoutSafe(() => tick(), 250);
+
+        // polling co 2s (tanie i stabilne)
+        ctx.setIntervalSafe(() => tick(), 2000);
+
+        // dodatkowo: jak wraca focus na kartę, to sprawdź
+        ctx.on(window, "focus", () => tick());
 
         return () => {
-          try { overlay.remove(); } catch {}
+          try { closeGate(); } catch {}
           try { style.remove(); } catch {}
           try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
         };
