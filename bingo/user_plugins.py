@@ -51,7 +51,7 @@ def Drymastero103_func() -> UserPluginConfig:
 def kyspro_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/kyspro.js",
-        sfx={}
+        sfx={"bingo/sfx/kyspro/mommy_asmr.mp3"}
     )
 
 def jull_func() -> UserPluginConfig:
