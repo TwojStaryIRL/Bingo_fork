@@ -31,6 +31,7 @@
       "/static/bingo/images/kamiqxx/badboy.gif",
       "/static/bingo/images/kamiqxx/badboy2.jpg",
       "/static/bingo/images/kamiqxx/badboy3.jpg",
+      "/static/bingo/images/kamiqxx/badboy4.jpg",
     ],
 
   };
@@ -390,17 +391,26 @@
   border: 0;
   outline: none;
 }
+
 .kys-cell--fixed{
   background: rgba(255,255,255,.12);
   opacity: .95;
+}
 
+/* obrazki w kafelkach */
 .kys-tile img{
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: inherit;
+  object-fit: contain;      /* <<< CAŁY obraz widoczny, bez kadrowania */
   display: block;
   pointer-events: none;
+}
+
+/* opcjonalnie: żeby nie dotykało krawędzi kafelka */
+.kys-tile{
+  overflow: hidden;
+  padding: 6px;             /* <<< margines wewnętrzny */
+  box-sizing: border-box;
 }
 
 
