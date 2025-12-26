@@ -36,6 +36,9 @@
     audio.currentTime = 0;
     audio.play().catch(() => {});
   }
+  function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
   // ===== Główna logika =====
   function initRafflePlugin() {
@@ -197,49 +200,58 @@
     }
 
     // REROLL (backend limit + podmiana tekstów)
-    if (btnReroll) {
-      btnReroll.addEventListener("click", async () => {
-        if (btnReroll.disabled) return;
+   if (btnReroll) {
+  btnReroll.addEventListener("click", async () => {
+    if (btnReroll.disabled) return;
 
-        playAudioById(audioRerollId);
+    playAudioById(audioRerollId);
 
-        const form = new FormData();
-        form.append("grid", String(active));
+    const form = new FormData();
+    form.append("grid", String(active));
 
-        const board = boards[active];
-        const gridEl = board ? board.querySelector(".raffle-grid") : null;
+    const board = boards[active];
+    const gridEl = board ? board.querySelector(".raffle-grid") : null;
 
-        if (gridEl) gridEl.classList.add("is-rerolling");
-        btnReroll.disabled = true;
+    if (gridEl) gridEl.classList.add("is-rerolling");
+    btnReroll.disabled = true;
 
-        try {
-          const res = await fetch(endpoints.reroll, {
-            method: "POST",
-            headers: { "X-CSRFToken": csrftoken },
-            body: form
-          });
-
-          const data = await res.json();
-          if (!data.ok) {
-            showToast?.(data.error || "Reroll blocked", "error", 2200);
-            return;
-          }
-
-          const tiles = Array.from(board.querySelectorAll(".raffle-text"));
-          data.cells.forEach((txt, i) => {
-            if (tiles[i]) tiles[i].textContent = txt;
-          });
-
-          rerollsUsed = (typeof data.rerolls_used === "number") ? data.rerolls_used : rerollsUsed;
-
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setTimeout(() => { if (gridEl) gridEl.classList.remove("is-rerolling"); }, 260);
-          updateBadges();
-        }
+    try {
+      const res = await fetch(endpoints.reroll, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken },
+        body: form
       });
+
+      const data = await res.json();
+      if (!data.ok) {
+        showToast?.(data.error || "Reroll blocked", "error", 2200);
+        return;
+      }
+
+      const tiles = Array.from(board.querySelectorAll(".raffle-text"));
+
+      await sleep(450); // do dostosowania dla testu
+
+      data.cells.forEach((txt, i) => {
+        if (tiles[i]) tiles[i].textContent = txt;
+      });
+
+      rerollsUsed = (typeof data.rerolls_used === "number")
+        ? data.rerolls_used
+        : rerollsUsed;
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTimeout(() => {
+        if (gridEl) gridEl.classList.remove("is-rerolling");
+      }, 260);
+
+      updateBadges();
     }
+  });
+}
+
 
     // WYBIERAM CIEBIE: JSON aktualnego grida z DOM
     if (btnPick) {
