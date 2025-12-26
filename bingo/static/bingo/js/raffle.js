@@ -1,19 +1,15 @@
 (() => {
-    
-  // ===== Helpers (w stylu game.jss) =====
+  // ===== Helpers (w stylu game.js) =====
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
     if (!el) return fallback;
     try { return JSON.parse(el.textContent || "null"); } catch { return fallback; }
   }
 
-  // Możesz korzystać z helperów globalnych jeśli istnieją (tak jak w game.jss) :contentReference[oaicite:2]{index=2}
   const { getCookie, showToast } = window.Bingo || {};
 
   function getCsrfToken() {
-    // preferuj wspólny helper, a jak go nie ma, fallback
     if (typeof getCookie === "function") return getCookie("csrftoken");
-
     const v = `; ${document.cookie}`;
     const parts = v.split(`; csrftoken=`);
     if (parts.length === 2) return parts.pop().split(";").shift();
@@ -36,9 +32,15 @@
     audio.currentTime = 0;
     audio.play().catch(() => {});
   }
+
   function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function toInt(x, fallback = 0) {
+    const n = Number(x);
+    return Number.isFinite(n) ? n : fallback;
+  }
 
   // ===== Główna logika =====
   function initRafflePlugin() {
@@ -49,8 +51,6 @@
     }
 
     const endpoints = cfg.endpoints || {};
-    const LIMIT_REROLL = (cfg.limits && cfg.limits.reroll) || 3;
-    const LIMIT_SHUFFLE = (cfg.limits && cfg.limits.shuffle) || 3;
     const size = cfg.gridSize || 4;
     const targetTiles = size * size;
 
@@ -70,13 +70,20 @@
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
 
     let active = 0;
-    let rerollsUsed = 0;
-    let shufflesUsed = 0;
+
+    // START: bierzemy "left" z DOM (czyli z DB przez template)
+    let rerollsLeft = toInt(badgeReroll?.textContent, 0);
+    let shufflesLeft = toInt(badgeShuffle?.textContent, 0);
 
     function applyClasses() {
       if (!boards.length) return;
       boards.forEach((b, i) => {
-        b.classList.remove("raffle-board--active", "raffle-board--prev", "raffle-board--next", "raffle-board--hidden");
+        b.classList.remove(
+          "raffle-board--active",
+          "raffle-board--prev",
+          "raffle-board--next",
+          "raffle-board--hidden"
+        );
         if (i === active) b.classList.add("raffle-board--active");
         else if (i === (active + boards.length - 1) % boards.length) b.classList.add("raffle-board--prev");
         else if (i === (active + 1) % boards.length) b.classList.add("raffle-board--next");
@@ -85,19 +92,26 @@
     }
 
     function updateBadges() {
-      const rerollLeft = Math.max(0, LIMIT_REROLL - rerollsUsed);
-      const shuffleLeft = Math.max(0, LIMIT_SHUFFLE - shufflesUsed);
+      const rl = Math.max(0, toInt(rerollsLeft, 0));
+      const sl = Math.max(0, toInt(shufflesLeft, 0));
 
       if (badgeReroll) {
-        badgeReroll.textContent = String(rerollLeft);
-        badgeReroll.classList.toggle("btn-badge--disabled", rerollLeft === 0);
+        badgeReroll.textContent = String(rl);
+        badgeReroll.classList.toggle("btn-badge--disabled", rl === 0);
       }
       if (badgeShuffle) {
-        badgeShuffle.textContent = String(shuffleLeft);
-        badgeShuffle.classList.toggle("btn-badge--disabled", shuffleLeft === 0);
+        badgeShuffle.textContent = String(sl);
+        badgeShuffle.classList.toggle("btn-badge--disabled", sl === 0);
       }
-      if (btnReroll) btnReroll.disabled = (rerollLeft === 0);
-      if (btnShuffle) btnShuffle.disabled = (shuffleLeft === 0);
+
+      if (btnReroll) btnReroll.disabled = (rl === 0);
+      if (btnShuffle) btnShuffle.disabled = (sl === 0);
+    }
+
+    function applyLeftFromResponse(data) {
+      if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
+      if (data && typeof data.shuffles_left === "number") shufflesLeft = data.shuffles_left;
+      updateBadges();
     }
 
     function show(n) {
@@ -114,7 +128,7 @@
     applyClasses();
     updateBadges();
 
-    // SHUFFLE (backend limit + animacja do środka i z powrotem)
+    // SHUFFLE (backend limit + animacja)
     if (btnShuffle) {
       btnShuffle.addEventListener("click", async () => {
         if (btnShuffle.disabled) return;
@@ -126,6 +140,9 @@
 
         if (!gridEl || tiles.length !== targetTiles) return;
 
+        // UI lock (żeby nie spamować klikami)
+        btnShuffle.disabled = true;
+
         try {
           const res = await fetch(endpoints.shuffle, {
             method: "POST",
@@ -133,13 +150,16 @@
           });
 
           const data = await res.json();
+
           if (!data.ok) {
             showToast?.(data.error || "Shuffle blocked", "error", 2200);
+            // nawet na błędzie spróbuj zaciągnąć left jeśli backend zwrócił
+            applyLeftFromResponse(data);
             return;
           }
 
-          shufflesUsed = data.shuffles_used;
-          updateBadges();
+          // Ustaw left z backendu
+          applyLeftFromResponse(data);
 
           const first = tiles.map(t => t.getBoundingClientRect());
           const centerRect = gridEl.getBoundingClientRect();
@@ -164,7 +184,7 @@
 
           await Promise.allSettled(toCenterAnims.map(a => a.finished));
 
-          // Faza 2: przetasuj teksty
+          // Faza 2: przetasuj teksty (frontend)
           const texts = textsEls.map(t => t.textContent);
           const shuffledTexts = shuffleArray(texts);
           textsEls.forEach((t, i) => { t.textContent = shuffledTexts[i]; });
@@ -193,65 +213,70 @@
         } catch (e) {
           console.error(e);
           gridEl?.classList.remove("is-shuffling");
+          showToast?.("Błąd shuffle (network)", "error", 2200);
         } finally {
-          updateBadges();
+          updateBadges(); // odblokuje wg aktualnych left
         }
       });
     }
 
     // REROLL (backend limit + podmiana tekstów)
-   if (btnReroll) {
-  btnReroll.addEventListener("click", async () => {
-    if (btnReroll.disabled) return;
+    if (btnReroll) {
+      btnReroll.addEventListener("click", async () => {
+        if (btnReroll.disabled) return;
 
-    playAudioById(audioRerollId);
+        playAudioById(audioRerollId);
 
-    const form = new FormData();
-    form.append("grid", String(active));
+        const form = new FormData();
+        form.append("grid", String(active));
 
-    const board = boards[active];
-    const gridEl = board ? board.querySelector(".raffle-grid") : null;
+        const board = boards[active];
+        const gridEl = board ? board.querySelector(".raffle-grid") : null;
 
-    if (gridEl) gridEl.classList.add("is-rerolling");
-    btnReroll.disabled = true;
+        if (gridEl) gridEl.classList.add("is-rerolling");
+        btnReroll.disabled = true;
 
-    try {
-      const res = await fetch(endpoints.reroll, {
-        method: "POST",
-        headers: { "X-CSRFToken": csrftoken },
-        body: form
+        try {
+          const res = await fetch(endpoints.reroll, {
+            method: "POST",
+            headers: { "X-CSRFToken": csrftoken },
+            body: form
+          });
+
+          const data = await res.json();
+
+          if (!data.ok) {
+            showToast?.(data.error || "Reroll blocked", "error", 2200);
+            applyLeftFromResponse(data);
+            return;
+          }
+
+          // Ustaw left z backendu
+          applyLeftFromResponse(data);
+
+          const tiles = Array.from(board.querySelectorAll(".raffle-text"));
+
+          await sleep(1367); // do dostosowania
+
+          // backend powinien zwracać data.cells (lista 16)
+          if (Array.isArray(data.cells)) {
+            data.cells.forEach((txt, i) => {
+              if (tiles[i]) tiles[i].textContent = txt;
+            });
+          }
+
+        } catch (e) {
+          console.error(e);
+          showToast?.("Błąd reroll (network)", "error", 2200);
+        } finally {
+          setTimeout(() => {
+            if (gridEl) gridEl.classList.remove("is-rerolling");
+          }, 260);
+
+          updateBadges();
+        }
       });
-
-      const data = await res.json();
-      if (!data.ok) {
-        showToast?.(data.error || "Reroll blocked", "error", 2200);
-        return;
-      }
-
-      const tiles = Array.from(board.querySelectorAll(".raffle-text"));
-
-      await sleep(1367); // do dostosowania dla testu
-
-      data.cells.forEach((txt, i) => {
-        if (tiles[i]) tiles[i].textContent = txt;
-      });
-
-      rerollsUsed = (typeof data.rerolls_used === "number")
-        ? data.rerolls_used
-        : rerollsUsed;
-
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTimeout(() => {
-        if (gridEl) gridEl.classList.remove("is-rerolling");
-      }, 260);
-
-      updateBadges();
     }
-  });
-}
-
 
     // WYBIERAM CIEBIE: JSON aktualnego grida z DOM
     if (btnPick) {
@@ -281,10 +306,9 @@
     }
   }
 
-    if (document.readyState === "loading") {
+  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initRafflePlugin);
   } else {
     initRafflePlugin();
   }
 })();
-
