@@ -16,7 +16,9 @@
       <div class="raffle-shell">
         <button class="raffle-nav raffle-nav--left" type="button" aria-label="Poprzedni grid">‹</button>
         <button class="raffle-nav raffle-nav--right" type="button" aria-label="Następny grid">›</button>
-
+      <div class="raffle-gif-wrap" id="catGifWrap" hidden>
+        <img class="raffle-gif" src="{% static 'bingo/images/cat-gambling.gif' %}" alt="Cat slot" />
+      </div>
         <div class="raffle-stage">
           {% for grid in grids %}
             <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}">

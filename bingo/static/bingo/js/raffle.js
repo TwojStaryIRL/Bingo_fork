@@ -28,9 +28,15 @@
 
   function playAudioById(id) {
     const audio = document.getElementById(id);
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
+    if (!audio) return false;
+    try {
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   function sleep(ms) {
@@ -68,9 +74,31 @@
     const badgeShuffle = document.getElementById("badgeShuffle");
 
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
+    const catGifWrap = document.getElementById("catGifWrap");
+    const rerollAudio = document.getElementById(audioRerollId);
+
+    // ===== CAT GIF helpers =====
+    function showCatGif() {
+      if (catGifWrap) catGifWrap.hidden = false;
+    }
+    function hideCatGif() {
+      if (catGifWrap) catGifWrap.hidden = true;
+    }
+
+    // chowaj GIF po zakończeniu dźwięku
+    if (rerollAudio) {
+      rerollAudio.addEventListener("ended", hideCatGif);
+      // awaryjnie: jeśli audio przerwane
+      rerollAudio.addEventListener("pause", () => {
+        try {
+          if (rerollAudio.currentTime > 0 && rerollAudio.currentTime < rerollAudio.duration) {
+            hideCatGif();
+          }
+        } catch {}
+      });
+    }
 
     let active = 0;
-
 
     function applyClasses() {
       if (!boards.length) return;
@@ -87,24 +115,27 @@
         else b.classList.add("raffle-board--hidden");
       });
     }
-      let rerollsLeft = Number(badgeReroll?.textContent || 0);
-      let shufflesLeft = Number(badgeShuffle?.textContent || 0);  
+
+    // START: wczytaj left z badge (czyli z DB przez template)
+    let rerollsLeft = toInt(badgeReroll?.textContent, 0);
+    let shufflesLeft = toInt(badgeShuffle?.textContent, 0);
+
     function updateBadges() {
-  const rl = Math.max(0, Number.isFinite(rerollsLeft) ? rerollsLeft : 0);
-  const sl = Math.max(0, Number.isFinite(shufflesLeft) ? shufflesLeft : 0);
+      const rl = Math.max(0, toInt(rerollsLeft, 0));
+      const sl = Math.max(0, toInt(shufflesLeft, 0));
 
-  if (badgeReroll) {
-    badgeReroll.textContent = String(rl);
-    badgeReroll.classList.toggle("btn-badge--disabled", rl === 0);
-  }
-  if (badgeShuffle) {
-    badgeShuffle.textContent = String(sl);
-    badgeShuffle.classList.toggle("btn-badge--disabled", sl === 0);
-  }
+      if (badgeReroll) {
+        badgeReroll.textContent = String(rl);
+        badgeReroll.classList.toggle("btn-badge--disabled", rl === 0);
+      }
+      if (badgeShuffle) {
+        badgeShuffle.textContent = String(sl);
+        badgeShuffle.classList.toggle("btn-badge--disabled", sl === 0);
+      }
 
-  if (btnReroll) btnReroll.disabled = (rl === 0);
-  if (btnShuffle) btnShuffle.disabled = (sl === 0);
-}
+      if (btnReroll) btnReroll.disabled = (rl === 0);
+      if (btnShuffle) btnShuffle.disabled = (sl === 0);
+    }
 
     function applyLeftFromResponse(data) {
       if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
@@ -125,8 +156,9 @@
     // INIT
     applyClasses();
     updateBadges();
+    hideCatGif(); // na wszelki wypadek
 
-    // SHUFFLE (backend limit + animacja)
+    // ===== SHUFFLE (backend limit + animacja) =====
     if (btnShuffle) {
       btnShuffle.addEventListener("click", async () => {
         if (btnShuffle.disabled) return;
@@ -138,7 +170,7 @@
 
         if (!gridEl || tiles.length !== targetTiles) return;
 
-        // UI lock (żeby nie spamować klikami)
+        // UI lock
         btnShuffle.disabled = true;
 
         try {
@@ -151,12 +183,10 @@
 
           if (!data.ok) {
             showToast?.(data.error || "Shuffle blocked", "error", 2200);
-            // nawet na błędzie spróbuj zaciągnąć left jeśli backend zwrócił
             applyLeftFromResponse(data);
             return;
           }
 
-          // Ustaw left z backendu
           applyLeftFromResponse(data);
 
           const first = tiles.map(t => t.getBoundingClientRect());
@@ -182,7 +212,7 @@
 
           await Promise.allSettled(toCenterAnims.map(a => a.finished));
 
-          // Faza 2: przetasuj teksty (frontend)
+          // Faza 2: przetasuj teksty
           const texts = textsEls.map(t => t.textContent);
           const shuffledTexts = shuffleArray(texts);
           textsEls.forEach((t, i) => { t.textContent = shuffledTexts[i]; });
@@ -210,26 +240,33 @@
 
         } catch (e) {
           console.error(e);
-          gridEl?.classList.remove("is-shuffling");
           showToast?.("Błąd shuffle (network)", "error", 2200);
         } finally {
-          updateBadges(); // odblokuje wg aktualnych left
+          updateBadges();
         }
       });
     }
 
-    // REROLL (backend limit + podmiana tekstów)
+    // ===== REROLL (backend + podmiana tekstów + CAT GIF) =====
     if (btnReroll) {
       btnReroll.addEventListener("click", async () => {
         if (btnReroll.disabled) return;
 
-        playAudioById(audioRerollId);
+        // pokaż kota i odpal dźwięk
+        showCatGif();
+        const played = playAudioById(audioRerollId);
 
-        const form = new FormData();
-        form.append("grid", String(active));
+        // jeśli audio nie odpaliło (autoplay), to i tak niech gif nie wisi bez sensu
+        if (!played) {
+          // zostaw na chwilę “efekt”, ale schowaj szybko
+          setTimeout(hideCatGif, 700);
+        }
 
         const board = boards[active];
         const gridEl = board ? board.querySelector(".raffle-grid") : null;
+
+        const form = new FormData();
+        form.append("grid", String(active));
 
         if (gridEl) gridEl.classList.add("is-rerolling");
         btnReroll.disabled = true;
@@ -246,17 +283,17 @@
           if (!data.ok) {
             showToast?.(data.error || "Reroll blocked", "error", 2200);
             applyLeftFromResponse(data);
+            // na błędzie też schowaj
+            hideCatGif();
             return;
           }
 
-          // Ustaw left z backendu
           applyLeftFromResponse(data);
 
           const tiles = Array.from(board.querySelectorAll(".raffle-text"));
 
-          await sleep(1367); // do dostosowania
+          await sleep(1367); // pod timing dźwięku/animacji
 
-          // backend powinien zwracać data.cells (lista 16)
           if (Array.isArray(data.cells)) {
             data.cells.forEach((txt, i) => {
               if (tiles[i]) tiles[i].textContent = txt;
@@ -266,17 +303,21 @@
         } catch (e) {
           console.error(e);
           showToast?.("Błąd reroll (network)", "error", 2200);
+          hideCatGif();
         } finally {
           setTimeout(() => {
             if (gridEl) gridEl.classList.remove("is-rerolling");
           }, 260);
+
+          // jeśli audio z jakiegoś powodu nie wywoła ended, niech gif nie wisi
+          setTimeout(hideCatGif, 3500);
 
           updateBadges();
         }
       });
     }
 
-    // WYBIERAM CIEBIE: JSON aktualnego grida z DOM
+    // ===== WYBIERAM CIEBIE: JSON aktualnego grida z DOM =====
     if (btnPick) {
       btnPick.addEventListener("click", () => {
         const board = boards[active];

@@ -854,4 +854,16 @@ body::after{
 /* .grid-table td:has(.plugin-placeholder){
   background: transparent !important; 
   } */
+.raffle-gif-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 14px;
+}
+
+.raffle-gif {
+  max-width: 220px;
+  width: 45vw;
+  height: auto;
+  border-radius: 14px;
+}
 
