@@ -12,9 +12,9 @@ class UserPluginConfig:
     sfx: Dict[str, List[str]]
 
 #
-def testinguser1_func() -> UserPluginConfig:
+def oniksu_func() -> UserPluginConfig:
     return UserPluginConfig(
-        js_plugin="bingo/js/plugins/testinguser1.js",
+        js_plugin="bingo/js/plugins/oniksu.js",
         sfx={
             "hide": [
                 static("bingo/sfx/twitch_on_hide_1.mp3"),
@@ -28,8 +28,12 @@ def testinguser1_func() -> UserPluginConfig:
     )
 
 
+
+
+
+
 USER_PLUGIN_REGISTRY = {
-    "testinguser1": testinguser1_func,
+    "oniksu": oniksu_func,
     #
 }
 

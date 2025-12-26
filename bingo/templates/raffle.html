@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block content %}
 
 <audio id="rerollSound" src="{% static 'bingo/sfx/reroll.mp3' %}" preload="auto"></audio>
@@ -45,6 +46,7 @@
           <button class="btn btn--secondary" type="button" id="btnShuffle">SHUFFLE</button>
           <div class="btn-badge" id="badgeShuffle">3</div>
         </div>
+
         <div class="btn-wrap">
           <button class="btn btn--secondary" type="button" id="btnPick">WYBIERAM CIEBIE</button>
           <div class="btn-badge btn-badge--disabled" id="badgePick">;3 UWU</div>
@@ -55,250 +57,22 @@
   </div>
 </div>
 
-<script>
-(function(){
-  function getCookie(name) {
-    const v = `; ${document.cookie}`;
-    const parts = v.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+{% endblock %}
+
+{% block scripts %}
+  <script id="raffle-config" type="application/json">
+  {
+    "endpoints": {
+      "shuffle": "{% url 'raffle_shuffle_use' %}",
+      "reroll": "{% url 'raffle_reroll_all' %}"
+    },
+    "limits": { "shuffle": 3, "reroll": 3 },
+    "gridSize": 4,
+    "audio": { "rerollId": "rerollSound" }
   }
-  const csrftoken = getCookie('csrftoken');
+  </script>
 
-  const boards = Array.from(document.querySelectorAll(".raffle-board--set"));
-  const left = document.querySelector(".raffle-nav--left");
-  const right = document.querySelector(".raffle-nav--right");
-
-  const btnReroll = document.getElementById("btnReroll");
-  const btnShuffle = document.getElementById("btnShuffle");
-  const btnPick = document.getElementById("btnPick");
-
-  const badgeReroll = document.getElementById("badgeReroll");
-  const badgeShuffle = document.getElementById("badgeShuffle");
-
-  const audio = document.getElementById("rerollSound");
-
-  let active = 0;
-  let rerollsUsed = 0;   // max 3
-  let shufflesUsed = 0;  // max 3
-
-  function applyClasses() {
-    if (!boards.length) return;
-    boards.forEach((b, i) => {
-      b.classList.remove("raffle-board--active","raffle-board--prev","raffle-board--next","raffle-board--hidden");
-      if (i === active) b.classList.add("raffle-board--active");
-      else if (i === (active + boards.length - 1) % boards.length) b.classList.add("raffle-board--prev");
-      else if (i === (active + 1) % boards.length) b.classList.add("raffle-board--next");
-      else b.classList.add("raffle-board--hidden");
-    });
-  }
-
-  function updateBadges() {
-    const rerollLeft = Math.max(0, 3 - rerollsUsed);
-    const shuffleLeft = Math.max(0, 3 - shufflesUsed);
-
-    badgeReroll.textContent = String(rerollLeft);
-    badgeShuffle.textContent = String(shuffleLeft);
-
-    badgeReroll.classList.toggle("btn-badge--disabled", rerollLeft === 0);
-    badgeShuffle.classList.toggle("btn-badge--disabled", shuffleLeft === 0);
-
-    btnReroll.disabled = (rerollLeft === 0);
-    btnShuffle.disabled = (shuffleLeft === 0);
-  }
-
-  function show(n){
-    if (!boards.length) return;
-    active = (n + boards.length) % boards.length;
-    applyClasses();
-  }
-
-  if (left) left.addEventListener("click", () => show(active - 1));
-  if (right) right.addEventListener("click", () => show(active + 1));
-
-  // INIT
-  applyClasses();
-  updateBadges();
-
-  // SHUFFLE (z limitem 3, liczonym na backendzie) + animacja: do środka -> na nowe pozycje
-btnShuffle.addEventListener("click", async () => {
-  if (btnShuffle.disabled) return;
-
-  const board = boards[active];
-  const gridEl = board?.querySelector(".raffle-grid");
-  const tiles = Array.from(board.querySelectorAll(".raffle-tile"));
-  const textsEls = Array.from(board.querySelectorAll(".raffle-text"));
-
-  if (!gridEl || tiles.length !== 16) return;
-
-  // helper: tasowanie tablicy (Fisher–Yates)
-  function shuffleArray(arr){
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  try {
-    // backend limit
-    const res = await fetch("{% url 'raffle_shuffle_use' %}", {
-      method: "POST",
-      headers: {"X-CSRFToken": csrftoken},
-    });
-    const data = await res.json();
-    if (!data.ok) return;
-
-    shufflesUsed = data.shuffles_used;
-    updateBadges();
-
-    // --- FAZA 0: przygotuj animację (zapisz pozycje) ---
-    const first = tiles.map(t => t.getBoundingClientRect());
-    const centerRect = gridEl.getBoundingClientRect();
-    const cx = centerRect.left + centerRect.width / 2;
-    const cy = centerRect.top + centerRect.height / 2;
-
-    gridEl.classList.add("is-shuffling");
-
-    // --- FAZA 1: wszyscy na środek ---
-    // (animujemy transform do środka siatki)
-    const toCenterAnims = tiles.map((tile, i) => {
-      const r = first[i];
-      const tx = cx - (r.left + r.width / 2);
-      const ty = cy - (r.top + r.height / 2);
-
-      return tile.animate(
-        [
-          { transform: "translate(0px, 0px) scale(1)" },
-          { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }
-        ],
-        { duration: 180, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
-      );
-    });
-
-    // poczekaj aż dojadą do środka
-    await Promise.allSettled(toCenterAnims.map(a => a.finished));
-
-    // --- FAZA 2: zmień treści (logika shuffle) ---
-    const texts = textsEls.map(t => t.textContent);
-    const shuffledTexts = shuffleArray(texts);
-    textsEls.forEach((t, i) => { t.textContent = shuffledTexts[i]; });
-
-    // teraz layout jest ten sam (grid), ale chcemy animować "powrót" na pola
-    // dlatego zdejmujemy animacje i robimy FLIP: center -> new positions
-    toCenterAnims.forEach(a => a.cancel());
-
-    // druga pozycja (po zmianie treści i reflow)
-    const last = tiles.map(t => t.getBoundingClientRect());
-
-    // --- FAZA 3: FLIP - zrób tak, by elementy startowały z "centerowej" pozycji, a kończyły na swoich komórkach ---
-    // Start: element "w środku" (jak było wizualnie), więc dodajemy mu offset = (center -> docelowa komórka)
-    const fromCenterToCellAnims = tiles.map((tile, i) => {
-      const r = last[i];
-      const tx = cx - (r.left + r.width / 2);
-      const ty = cy - (r.top + r.height / 2);
-
-      // startujemy z translate(tx,ty), kończymy na 0
-      return tile.animate(
-        [
-          { transform: `translate(${tx}px, ${ty}px) scale(0.92)` },
-          { transform: "translate(0px, 0px) scale(1)" }
-        ],
-        { duration: 260, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
-      );
-    });
-
-    await Promise.allSettled(fromCenterToCellAnims.map(a => a.finished));
-
-    // posprzątaj
-    fromCenterToCellAnims.forEach(a => a.cancel());
-    gridEl.classList.remove("is-shuffling");
-
-  } catch (e) {
-    console.error(e);
-    gridEl?.classList.remove("is-shuffling");
-  } finally {
-    updateBadges();
-  }
-});
-
-
-  // REROLL całego grida (limit 3 globalnie)
-  if (btnReroll) {
-    btnReroll.addEventListener("click", async () => {
-      if (btnReroll.disabled) return;
-
-      // dźwięk od początku
-      if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
-
-      const form = new FormData();
-      form.append("grid", String(active));
-
-      // łapiemy elementy przed try (żeby finally nie wywalił scope)
-      const board = boards[active];
-      const gridEl = board ? board.querySelector(".raffle-grid") : null;
-
-      // start animacji
-      if (gridEl) gridEl.classList.add("is-rerolling");
-
-      // blokada spam-click
-      btnReroll.disabled = true;
-
-      try {
-        const res = await fetch("{% url 'raffle_reroll_all' %}", {
-          method: "POST",
-          headers: {"X-CSRFToken": csrftoken},
-          body: form
-        });
-
-        const data = await res.json();
-        if (!data.ok) return;
-
-        const tiles = Array.from(board.querySelectorAll(".raffle-text"));
-        data.cells.forEach((txt, i) => {
-          if (tiles[i]) tiles[i].textContent = txt;
-        });
-
-        rerollsUsed = (typeof data.rerolls_used === "number") ? data.rerolls_used : rerollsUsed;
-
-      } catch (e) {
-        console.error(e);
-      } finally {
-        // stop animacji
-        setTimeout(() => { if (gridEl) gridEl.classList.remove("is-rerolling"); }, 260);
-        updateBadges();
-      }
-    });
-  }
-// WYBIERAM CIEBIE -> zczytaj aktualny grid (po shuffle też) i wypisz JSON w konsoli
-if (btnPick) {
-  btnPick.addEventListener("click", () => {
-    const board = boards[active];
-    if (!board) return;
-
-    const texts = Array.from(board.querySelectorAll(".raffle-text"))
-      .map(el => (el.textContent || "").trim());
-
-    // układ 4x4 z DOM (kolejność w HTML = kolejność w gridzie)
-    const size = 4;
-    const grid2d = [];
-    for (let r = 0; r < size; r++) {
-      grid2d.push(texts.slice(r * size, r * size + size));
-    }
-
-    const payload = {
-      active_grid_index: active,
-      size: size,
-      generated_at: new Date().toISOString(),
-      grid: grid2d,
-      flat: texts
-    };
-
-    console.log(JSON.stringify(payload, null, 2));
-  });
-}
-
-})();
-</script>
-
+  {# jeśli raffle.js korzysta z window.Bingo.getCookie/showToast, runtime musi być pierwszy #}
+  <script defer src="{% static 'bingo/js/plugin_runtime.js' %}"></script>
+  <script defer src="{% static 'bingo/js/raffle.js' %}"></script>
 {% endblock %}

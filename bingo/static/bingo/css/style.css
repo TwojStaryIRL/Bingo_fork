@@ -31,6 +31,35 @@ body{
     linear-gradient(180deg, var(--bg), var(--bg2));
 }
 
+/* Spaceglide: tło całej strony GIF */
+body.spaceglide{
+  background-image: url("/static/bingo/images/spacegliding.gif");
+  background-repeat: repeat;          
+  background-size: 200px 200px;
+  
+}
+
+/* przyciemnij UI żeby było czytelne */
+body.spaceglide .panel{
+  background: rgba(0,0,0,0.78) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+/* opcjonalnie: table też ciemniej */
+body.spaceglide .grid-table{
+  background: rgba(0,0,0,0.55) !important;
+}
+
+/* opcjonalnie: komórki / wrappery czytelniejsze */
+body.spaceglide .cell-wrapper{
+  background: rgba(0,0,0,0.35) !important;
+}
+body.spaceglide .page,
+body.spaceglide .hero{
+  background: transparent !important;
+}
+
+
 .page{
   min-height: 100%;
   display: flex;
