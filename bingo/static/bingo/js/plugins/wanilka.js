@@ -142,20 +142,24 @@
 
 .plugin-people{
   position: fixed;
-  width: 50vw;
-  height: 100vh;        /* pełna wysokość */
-  object-fit: contain;  /* <<< CAŁY OBRAZ w środku, bez cięcia */
+  right: 0;
+  bottom: 0;
+
+  width: 34vw;         /* prawa część ekranu */
+  max-width: 520px;    /* żeby nie zjadł pół strony na dużym monitorze */
+  height: 92vh;        /* prawie full Y */
+  max-height: 920px;
+
+  object-fit: cover;   /* może przyciąć, ale będzie “na maksa” w Y */
   object-position: right bottom;
-  left: 0;
-  top: 0;
-  transform: translate(-9999px, -9999px);
+
+  transform: translateX(120%); /* START poza ekranem */
   will-change: transform, opacity;
-  filter: drop-shadow(0 20px 36px rgba(0,0,0,.6));
-  opacity: 1;
+  filter: drop-shadow(0 18px 30px rgba(0,0,0,.55));
+  opacity: 0.95;
+
+  pointer-events: none; /* NIGDY nie blokuje klikania tabelki */
 }
-
-
-
 
 
         `;
@@ -322,32 +326,20 @@
           plane.style.transform = `translate(${startX}px, ${y}px) rotate(${planeRot}deg)`;
 
 
-          // ===== people enters from right-bottom and stops =====
-          const peopleW = 260; // musi pasować do CSS width (albo ustaw people.style.width = ...)
-          const peopleH = 180; // przybliżenie, nie musi być idealne
+// people: wjazd z prawej, potem stoi
+          const ENTER_MS = Math.max(700, Math.floor(CFG.FLIGHT_MS * 0.22));
 
-          // gdzie ma się zatrzymać (punkt kolizji)
-          const targetX = Math.floor(window.innerWidth * 0.82);
-          const targetY = Math.floor(window.innerHeight * 0.62);
-
-          // start poza ekranem: prawy dół
-          const startPeopleX = window.innerWidth + peopleW + 80;
-          const startPeopleY = window.innerHeight + peopleH + 80;
-
-          // ustaw start od razu (żeby nie mignęło)
-          people.style.opacity = "1";
-          people.style.transform = `translate(${startPeopleX}px, ${startPeopleY}px)`;
-
-          // czas wjazdu (krótszy niż lot)
-          const ENTER_MS = Math.max(1000, Math.floor(CFG.FLIGHT_MS * 0.35));
+          people.style.opacity = "0.95";
+          people.style.transform = "translateX(120%)"; // start offscreen
 
           const enter = people.animate(
             [
-              { transform: `translate(${startPeopleX}px, ${startPeopleY}px) scale(1)` },
-              { transform: `translate(${targetX}px, ${targetY}px) scale(1)` },
+              { transform: "translateX(120%)" },
+              { transform: "translateX(0%)" },
             ],
-            { duration: ENTER_MS, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
+            { duration: ENTER_MS, easing: "linear", fill: "forwards" }
           );
+
 
 
           // animacja lotu
