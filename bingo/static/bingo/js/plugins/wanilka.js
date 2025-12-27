@@ -54,6 +54,15 @@
       init(api) {
         const { ctx, sfx } = api;
 
+        // preload audio
+        try {
+          const pre1 = pickOne(sfx?.coconut_mall);
+          const pre2 = pickOne(sfx?.pokerface);
+          if (pre1) new Audio(pre1).load();
+          if (pre2) new Audio(pre2).load();
+        } catch {}
+
+
 
         const root = document.getElementById("plugin-root");
         if (!root) return;
@@ -221,32 +230,62 @@
           return ASSETS.postapo[postapoIdx] || pickFirstWorkingUrl(ASSETS.postapo);
         }
 
+        // ====helper do audio
+        function pickOne(x) {
+          if (!x) return "";
+          if (Array.isArray(x)) return x[Math.floor(Math.random() * x.length)] || "";
+          return String(x);
+        }
+
+
+
         // ===== loop audio =====
+
+
+        let coconutLoop = null;
         let pokerLoop = null;
 
-        function startPokerFaceLoop() {
-          const url = (sfx && sfx.pokerface) ? String(sfx.pokerface) : "";
+        function stopAudio(a) {
+          try {
+            if (!a) return;
+            a.pause();
+            a.currentTime = 0;
+          } catch {}
+        }
+
+        function startLoop(url, volume = 0.30) {
+          if (!url) return null;
+          const a = new Audio(String(url));
+          a.loop = true;
+          a.volume = volume;
+          a.currentTime = 0;
+          a.play().catch(() => {});
+          return a;
+        }
+
+        function startCoconutLoop() {
+          const url = pickOne(sfx?.coconut_mall || sfx?.coconutMall || sfx?.coconut);
           if (!url) return false;
 
-          // jeśli już gra, nie restartuj
+          if (coconutLoop && !coconutLoop.paused) return true;
+
+          stopAudio(coconutLoop);
+          coconutLoop = startLoop(url, 0.30);
+          return !!coconutLoop;
+        }
+
+        function startPokerFaceLoop() {
+          const url = pickOne(sfx?.pokerface);
+          if (!url) return false;
+
           if (pokerLoop && !pokerLoop.paused) return true;
 
-          try {
-            if (pokerLoop) {
-              pokerLoop.pause();
-              pokerLoop.currentTime = 0;
-            }
-          } catch {}
-
-          const a = new Audio(url);
-          a.loop = true;
-          a.volume = 0.30;   
-          a.currentTime = 0;
-
-          a.play().catch(() => {});
-          pokerLoop = a;
-          return true;
+          stopAudio(pokerLoop);
+          pokerLoop = startLoop(url, 0.42);
+          return !!pokerLoop;
         }
+
+
 
 
         function doFlash() {
@@ -265,6 +304,8 @@
           doFlash();
           shake();
 
+
+
           // ustaw dziurę dokładnie w miejscu eksplozji
           hole.style.left = x + "px";
           hole.style.top = y + "px";
@@ -277,6 +318,7 @@
 
           // zniknij samolot
           plane.style.opacity = "0";
+          stopAudio(coconutLoop);          
           startPokerFaceLoop();
         }
 
@@ -325,6 +367,8 @@
         async function run() {
           // start lotu: losowa wysokość
           const y = Math.max(60, Math.min(window.innerHeight - 160, window.innerHeight * (0.18 + Math.random() * 0.35)));
+
+          startCoconutLoop();
 
           const startX = -CFG.PLANE_W - 40;
           const explodeX = Math.floor(window.innerWidth * CFG.EXPLODE_AT_X);
@@ -411,14 +455,10 @@
         return () => {
           try { overlay.remove(); } catch {}
           try { style.remove(); } catch {}
-          try {
-                if (pokerLoop) {
-                  pokerLoop.pause();
-                  pokerLoop.currentTime = 0;
-                }
-              } catch {}
-
+          try { stopAudio(coconutLoop); } catch {}
+          try { stopAudio(pokerLoop); } catch {}
         };
+
       }
     };
   });

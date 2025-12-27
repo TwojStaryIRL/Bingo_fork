@@ -38,6 +38,9 @@ def wanilka_func() -> UserPluginConfig:
         sfx={
             "pokerface": [ 
                 static("bingo/sfx/wanilka/pokerface.mp3")
+            ],
+            "coconut_mall": [
+                static("bingo/sfx/wanilka/coconut_mall.mp3")
             ]
         }
     )

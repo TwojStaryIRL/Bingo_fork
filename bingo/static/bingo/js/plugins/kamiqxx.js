@@ -40,13 +40,13 @@
     ],
 
 
-    TILE_SIZE: 220,     // było 92
-    SUDOKU_CELL: 100,    // było 50
-    MODAL_MAX_W: 1300,   // większy modal
+    TILE_SIZE: 220,     
+    SUDOKU_CELL: 100,    
+    MODAL_MAX_W: 1300,   
 
 
     MODE_KEY: "bingo_kyspro_mode_v1",
-    DEFAULT_MODE: "findBoy", // 
+    DEFAULT_MODE: "findBoy",  
 
   };
 
