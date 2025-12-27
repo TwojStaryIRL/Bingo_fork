@@ -10,13 +10,12 @@
   }
 
   const CFG = {
-    IDLE_MS: 500,         
-    MAX_ON_SCREEN: 8,     
+    IDLE_MS: 500,
+    MAX_ON_SCREEN: 8,
     SCALE_MIN: 0.26,
     SCALE_MAX: 0.37,
     OPACITY: 0.55,
   };
-
 
   const ASSETS = {
     images: [
@@ -33,15 +32,9 @@
 
   function rand(min, max) { return min + Math.random() * (max - min); }
 
-  // losowa próbka BEZ powtórek
-  function sampleUnique(arr, n) {
-    // Fisher–Yates na kopii + utnij
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a.slice(0, Math.max(0, Math.min(n, a.length)));
+  // losuj 1 element z tablicy (zakładamy, że tablica niepusta)
+  function pickOne(arr) {
+    return arr[(Math.random() * arr.length) | 0];
   }
 
   function isTypingTarget(el) {
@@ -88,28 +81,45 @@
 
         // ===== state =====
         let idleTimer = null;
-        let iter = 0;        // liczba "oderwań"
+        let iter = 0;
         let isOn = false;
 
         const imgs = [];
 
-        // tu trzymamy "pulę na iterację"
-        let selectedPool = [];
+        // >>> TO JEST KLUCZ: rosnąca pula bez powtórek
+        let chosenPool = [];
 
         function countForIter(it) {
           return Math.min(CFG.MAX_ON_SCREEN, Math.max(1, it + 1));
         }
 
-        function refreshSelectedPool() {
-          const count = countForIter(iter);
+        function rebuildIfAssetsChanged() {
+          // jeśli kiedyś zmienisz ASSETS.images w locie, to to zabezpiecza przed dziwnymi stanami
+          const set = new Set(ASSETS.images);
+          chosenPool = chosenPool.filter(x => set.has(x));
+        }
 
-          // jeśli dobijamy do max (albo count >= liczby assetów),
-          // to bierzemy WSZYSTKIE (bez losowania z 8)
+        function growChosenPoolTo(count) {
+          rebuildIfAssetsChanged();
+
+          // jeśli count >= liczby assetów → bierzemy WSZYSTKIE (zero losowania z 8)
           if (count >= ASSETS.images.length) {
-            selectedPool = ASSETS.images.slice(); // wszystkie, w stałej kolejności
-          } else {
-            selectedPool = sampleUnique(ASSETS.images, count); // losowo, ale bez powtórek
+            chosenPool = ASSETS.images.slice();
+            return;
           }
+
+          // inaczej: dobieramy z "remaining" aż osiągniemy count
+          while (chosenPool.length < count) {
+            const chosenSet = new Set(chosenPool);
+            const remaining = ASSETS.images.filter(x => !chosenSet.has(x));
+
+            if (!remaining.length) break; // safety
+
+            chosenPool.push(pickOne(remaining));
+          }
+
+          // (gdyby kiedykolwiek count spadł — nie powinno, ale tnijmy)
+          if (chosenPool.length > count) chosenPool = chosenPool.slice(0, count);
         }
 
         function placeRandomly(el) {
@@ -143,16 +153,15 @@
           const count = countForIter(iter);
           ensurePoolSize(count);
 
-          // przy pierwszym show po przerwie ustawiamy źródła
-          // zgodnie z WYLOSOWANĄ pulą na iterację
-          if (!isOn) {
-            // bezpieczeństwo: gdyby ktoś zmienił ASSETS.images w locie
-            if (!selectedPool.length) refreshSelectedPool();
+          // upewnij się, że pula ma dokładnie `count` unikalnych
+          growChosenPoolTo(count);
 
+          // tylko przy "pierwszym show po przerwie" ustawiamy src/pozycje,
+          // żeby nie migało przy każdym keydown
+          if (!isOn) {
             for (let i = 0; i < count; i++) {
               const img = imgs[i];
-              // selectedPool ma długość count, a przy "max" ma długość 8 (wszystkie)
-              img.src = selectedPool[i];
+              img.src = chosenPool[i];   // <- zero powtórek w trakcie eskalacji
               placeRandomly(img);
             }
           }
@@ -169,11 +178,13 @@
           for (const img of imgs) img.classList.remove("is-on");
           isOn = false;
 
-          // "oderwanie" → eskalacja
+          // "oderwanie" → iter++
           iter = Math.min(CFG.MAX_ON_SCREEN - 1, iter + 1);
 
-          // po zmianie iteracji losujemy NOWĄ pulę na następną sesję pisania
-          refreshSelectedPool();
+          // WAŻNE: teraz nie losujemy całej puli od zera,
+          // tylko na następną falę "dorośnie" o 1 brakujący element.
+          // (czyli powtórki znikają)
+          growChosenPoolTo(countForIter(iter));
         }
 
         function scheduleHide() {
@@ -184,10 +195,9 @@
           }, CFG.IDLE_MS);
         }
 
-        // startowa pula dla iter=0
-        refreshSelectedPool();
+        // start: iter=0 → dobierz 1
+        growChosenPoolTo(countForIter(iter));
 
-        // ===== events =====
         ctx.on(document, "keydown", (e) => {
           if (e.ctrlKey || e.metaKey || e.altKey) return;
           const ae = document.activeElement;
