@@ -246,12 +246,6 @@
         setImgWithFallback(img, tile, badSrc, CFG.BAD_IMGS);
       }
 
-          }
-        });
-
-      }
-
-      tile.style.setProperty("--kys-img", `url("${img.src}")`);
 
 
 
