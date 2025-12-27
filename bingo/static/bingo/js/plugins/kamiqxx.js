@@ -411,11 +411,12 @@
     }
 
     function playNextTrack() {
+      if (!ensurePlaylist()) return false;
+      
       if (CFG.BG_SHUFFLE && playlist.length && (playlistIdx % playlist.length === 0)) {
         shuffleInPlace(playlist);
       }
 
-      if (!ensurePlaylist()) return false;
 
       const src = playlist[playlistIdx % playlist.length];
       playlistIdx++;
