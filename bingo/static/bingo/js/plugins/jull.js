@@ -12,6 +12,8 @@
       "/static/bingo/images/jull/bdkotek9.jpg",
       "/static/bingo/images/jull/bdkotek10.jpg",
       "/static/bingo/images/jull/bdkotek11.jpg",
+      "/static/bingo/images/jull/bdkotek12.gif",
+
     ],
     HAPPY_CAT: "/static/bingo/images/jull/happycat.jpg",
     SAD_CAT: "/static/bingo/images/jull/sadcat.jpg",
