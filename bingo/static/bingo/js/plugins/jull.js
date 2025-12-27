@@ -383,7 +383,7 @@ body::after{
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "jull-pumpbtn";
-        btn.textContent = "POMPUJ";
+        btn.textContent = "RATUJ KOTKA";
 
         bottom.appendChild(hint);
         bottom.appendChild(btn);
