@@ -15,8 +15,8 @@
 
     
     SFX_KEY: "ambient",
-    BG_VOL: 0.15,          
-    BG_FADE_MS: 700,       
+    BG_VOL: 0.10,          
+    BG_FADE_MS: 100,       
     BG_SHUFFLE: true,      
 
     // losowanie trybu: 0..1 (np. 0.5 = pół na pół)
@@ -443,7 +443,7 @@
       if (p && typeof p.then === "function") {
         p.then(() => {
           audioUnlocked = true;
-          fadeTo(Number(CFG.BG_VOL ?? 0.35), Number(CFG.BG_FADE_MS ?? 1000));
+          fadeTo(Number(CFG.BG_VOL ?? 0.10), Number(CFG.BG_FADE_MS ?? 400));
         }).catch(() => {});
       }
       return true;

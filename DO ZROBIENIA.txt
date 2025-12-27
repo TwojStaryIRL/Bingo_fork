@@ -1,8 +1,4 @@
-KOLEJNOŚĆ(most to least important): 1✅ -> 7,8,9 -> 2 -> 3 -> 4 -> 5
-
-# 1) Dodać opcję filtrowania na main page (game) - nie da się wybrać więcej niż 2 razy tej samej osoby,
-#    zalogowany aktualnie na tej sesji user nie pojawia się w opcjach wyboru
-
+KOLEJNOŚĆ(most to least important): 7,8,9 -> 2 -> 3 -> 5
 
 
 2) Natalka - dodawać inne może lepsze zdjęcia i jakąś muzyczkę w tle 
@@ -10,12 +6,7 @@ KOLEJNOŚĆ(most to least important): 1✅ -> 7,8,9 -> 2 -> 3 -> 4 -> 5
 
 
 
-3) Kamila - ponaprawiać zdjęcia dodane na zdjecia kyspro i innych chłopaków (zmienić troche interwały może wydłużyć)
-	też jakaś cosy muzyczka by była gites
-
-
-
-4) Wanilka - dodać jakiś ambient sound i może coconut mall w tle (nostalgia)
+3) Kamila - dodać zdjęcia chłopaków jeszcze bo jest troche za mało
 
 
 
