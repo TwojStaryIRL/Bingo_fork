@@ -24,6 +24,47 @@
     const masterByCtx = new WeakMap();  // ctx -> masterGain
     let installed = false;
     let globallyMuted = false;
+    (function installAudioRegistry() {
+  if (window.__BingoAudioRegistryInstalled) return;
+  window.__BingoAudioRegistryInstalled = true;
+
+  window.__BingoAllAudios = window.__BingoAllAudios || new Set();
+  window.__BingoGlobalMute = false; // <-- KLUCZ
+
+  const OrigAudio = window.Audio;
+
+  // patch new Audio(...)
+  window.Audio = function (...args) {
+    const a = new OrigAudio(...args);
+    try { window.__BingoAllAudios.add(a); } catch {}
+    // jeśli global mute już aktywny, to od razu ucisz nowo stworzone
+    try {
+      if (window.__BingoGlobalMute && !a.__bingoAllowSound) {
+        a.muted = true;
+        a.volume = 0;
+      }
+    } catch {}
+    return a;
+  };
+  window.Audio.prototype = OrigAudio.prototype;
+  window.Audio.__proto__ = OrigAudio;
+
+  // patch play() – wymusza mute podczas przejścia
+  const origPlay = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    try { window.__BingoAllAudios.add(this); } catch {}
+
+    try {
+      const allow = (this && (this.__bingoAllowSound === true));
+      if (window.__BingoGlobalMute && !allow) {
+        this.muted = true;
+        this.volume = 0;
+      }
+    } catch {}
+
+    return origPlay.apply(this, arguments);
+  };
+})();
 
     function ensureMaster(ctx) {
       let g = masterByCtx.get(ctx);
@@ -106,36 +147,37 @@
   // HTML MEDIA MUTE
   // ---------------------------
   function hardMuteAllMedia() {
-    // wycisz istniejące audio/video
-    document.querySelectorAll("audio, video").forEach((m) => {
+  // od tego momentu KAŻDE play() będzie automatycznie uciszane
+  window.__BingoGlobalMute = true;
+
+  // A) DOM audio/video
+  document.querySelectorAll("audio, video").forEach((m) => {
+    try {
+      if (m.__bingoAllowSound) return;
+      m.muted = true;
+      m.volume = 0;
+      m.pause?.();
+    } catch {}
+  });
+
+  // B) new Audio() z pluginów
+  const reg = window.__BingoAllAudios;
+  if (reg && typeof reg.forEach === "function") {
+    reg.forEach((a) => {
       try {
-        if (m.dataset.prevVolume == null) m.dataset.prevVolume = String(m.volume ?? 1);
-        m.muted = true;
-        m.volume = 0;
-        m.pause?.();
+        if (a.__bingoAllowSound) return;
+        a.muted = true;
+        a.volume = 0;
+        a.pause?.();
       } catch {}
     });
-
-    // patch na przyszłe new Audio()
-    if (!window.__mutePatchInstalled) {
-      window.__mutePatchInstalled = true;
-      const origPlay = HTMLMediaElement.prototype.play;
-      HTMLMediaElement.prototype.play = function () {
-        try {
-          if (this?.dataset?.allowSound === "1") {
-            // to jest nasz transition track
-          } else {
-            this.muted = true;
-            this.volume = 0;
-          }
-        } catch {}
-        return origPlay.apply(this, arguments);
-      };
-    }
-
-    // I NAJWAŻNIEJSZE: WebAudio OFF
-    WebAudioBus.setMuted(true);
   }
+
+  // C) WebAudio
+  try { WebAudioBus?.setMuted?.(true); } catch {}
+}
+
+
 
   // ---------------------------
   // UI overlay + drop
@@ -198,14 +240,17 @@
   }
 
   async function playSfx() {
-    const a = new Audio(CFG.SFX_SRC);
-    a.preload = "auto";
-    a.dataset.allowSound = "1";
-    a.muted = false;
-    a.volume = Math.max(0, Math.min(1, Number(CFG.SFX_VOL) || 1));
-    await a.play();
-    return a;
-  }
+  const a = new Audio(CFG.SFX_SRC);
+  a.preload = "auto";
+
+  // pozwól TYLKO temu jednemu grać mimo global mute
+  a.__bingoAllowSound = true;
+
+  a.muted = false;
+  a.volume = Math.max(0, Math.min(1, Number(CFG.SFX_VOL) || 1));
+  await a.play();
+  return a;
+}
 
   function findRaffleLink(el) {
     const a = el?.closest?.("a.btn.btn--secondary");
