@@ -26,7 +26,11 @@
     SUDOKU_EMPTY: 8,
 
     // obrazki 
-    GOOD_IMG: "/static/bingo/images/kamiqxx/goodboy1.gif",
+    GOOD_IMGS: [
+      "/static/bingo/images/kamiqxx/goodboy1.gif",
+      "/static/bingo/images/kamiqxx/goodboy2.jpg",
+    ],
+
     BAD_IMGS: [
       "/static/bingo/images/kamiqxx/badboy.gif",
       "/static/bingo/images/kamiqxx/badboy2.jpg",
@@ -120,17 +124,6 @@
     return a;
   }
 
-  let badImgsForTiles = [];
-  if (badPool.length >= 8) {
-    shuffleInPlace(badPool);
-    badImgsForTiles = badPool.slice(0, 8);
-  } else {
-    badImgsForTiles = badPool.slice();
-    while (badImgsForTiles.length < 8) {
-      badImgsForTiles.push(pickOne(badPool)); // dobierz losowo, mogą być powtórki
-    }
-    shuffleInPlace(badImgsForTiles);
-  }
 
   function permuteSudoku4(solution) {
     // prosta permutacja cyfr 1..4 + swap wierszy w obrębie bandów + swap kolumn w obrębie stacków
@@ -192,6 +185,17 @@
     const goodImg = pickOne(CFG.GOOD_IMGS);
 
     let badPool = CFG.BAD_IMGS.slice();
+    let badImgsForTiles = [];
+    if (badPool.length >= 8) {
+      shuffleInPlace(badPool);
+      badImgsForTiles = badPool.slice(0, 8);
+    } else {
+      badImgsForTiles = badPool.slice();
+      while (badImgsForTiles.length < 8) {
+        badImgsForTiles.push(pickOne(badPool)); // dobierz losowo, mogą być powtórki
+      }
+      shuffleInPlace(badImgsForTiles);
+    }
 
 
     for (let i = 0; i < 9; i++) {
