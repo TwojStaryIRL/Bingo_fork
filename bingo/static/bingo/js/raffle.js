@@ -1,5 +1,4 @@
 (() => {
-  // ===== Helpers (w stylu game.js) =====
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
     if (!el) return fallback;
@@ -10,7 +9,6 @@
 
   function getCsrfToken() {
     if (typeof getCookie === "function") return getCookie("csrftoken");
-
     const v = `; ${document.cookie}`;
     const parts = v.split(`; csrftoken=`);
     if (parts.length === 2) return parts.pop().split(";").shift();
@@ -33,11 +31,8 @@
     audio.play().catch(() => {});
   }
 
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // bezpieczny fetch json (żeby nie wywaliło się na HTML/500)
   async function fetchJsonSafe(url, opts) {
     const res = await fetch(url, opts);
     const ct = (res.headers.get("content-type") || "").toLowerCase();
@@ -45,7 +40,7 @@
       const text = await res.text().catch(() => "");
       const err = new Error("NON_JSON_RESPONSE");
       err.status = res.status;
-      err.body = text.slice(0, 400);
+      err.body = text.slice(0, 500);
       throw err;
     }
     const data = await res.json();
@@ -57,7 +52,13 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
-  // ===== Główna logika =====
+  function hardError(msg) {
+    console.error(msg);
+    showToast?.(msg, "error", 2800);
+    // jeśli showToast nie działa, pokaż chociaż alert raz:
+    try { alert(msg); } catch {}
+  }
+
   function initRafflePlugin() {
     const cfg = getJSONScript("raffle-config", null);
     if (!cfg) {
@@ -84,7 +85,7 @@
 
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
 
-    // >>> START: liczby bierzemy z HTML (czyli z DB przez render)
+    // ✅ Jedyny startowy stan: z HTML (czyli z DB przez render)
     let rerollsLeft = readInt(badgeReroll, 3);
     let shufflesLeft = readInt(badgeShuffle, 3);
 
@@ -93,12 +94,7 @@
     function applyClasses() {
       if (!boards.length) return;
       boards.forEach((b, i) => {
-        b.classList.remove(
-          "raffle-board--active",
-          "raffle-board--prev",
-          "raffle-board--next",
-          "raffle-board--hidden"
-        );
+        b.classList.remove("raffle-board--active", "raffle-board--prev", "raffle-board--next", "raffle-board--hidden");
         if (i === active) b.classList.add("raffle-board--active");
         else if (i === (active + boards.length - 1) % boards.length) b.classList.add("raffle-board--prev");
         else if (i === (active + 1) % boards.length) b.classList.add("raffle-board--next");
@@ -120,7 +116,6 @@
     }
 
     function syncCountersFromServer(data) {
-      // backend ma być źródłem prawdy
       if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
       if (data && typeof data.shuffles_left === "number") shufflesLeft = data.shuffles_left;
       paintBadges();
@@ -132,17 +127,13 @@
       applyClasses();
     }
 
-    // NAV
     if (left) left.addEventListener("click", () => show(active - 1));
     if (right) right.addEventListener("click", () => show(active + 1));
 
-    // INIT
     applyClasses();
     paintBadges();
 
-    // ======================
-    // SHUFFLE
-    // ======================
+    // ===== SHUFFLE =====
     if (btnShuffle) {
       btnShuffle.addEventListener("click", async () => {
         if (btnShuffle.disabled) return;
@@ -151,17 +142,16 @@
         const gridEl = board?.querySelector(".raffle-grid");
         const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
         const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
-
         if (!gridEl || tiles.length !== targetTiles) return;
 
         btnShuffle.disabled = true;
 
         try {
           const { data } = await fetchJsonSafe(endpoints.shuffle, {
-  method: "POST",
-  credentials: "same-origin",
-      headers: { "X-CSRFToken": csrftoken },
-});
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-CSRFToken": csrftoken },
+          });
 
           if (!data.ok) {
             syncCountersFromServer(data);
@@ -169,10 +159,8 @@
             return;
           }
 
-          // backend zwraca nowe liczniki
           syncCountersFromServer(data);
 
-          // animacja + shuffle tekstów lokalnie
           const first = tiles.map(t => t.getBoundingClientRect());
           const centerRect = gridEl.getBoundingClientRect();
           const cx = centerRect.left + centerRect.width / 2;
@@ -185,10 +173,7 @@
             const tx = cx - (r.left + r.width / 2);
             const ty = cy - (r.top + r.height / 2);
             return tile.animate(
-              [
-                { transform: "translate(0px, 0px) scale(1)" },
-                { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }
-              ],
+              [{ transform: "translate(0,0) scale(1)" }, { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }],
               { duration: 180, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
             );
           });
@@ -207,10 +192,7 @@
             const tx = cx - (r.left + r.width / 2);
             const ty = cy - (r.top + r.height / 2);
             return tile.animate(
-              [
-                { transform: `translate(${tx}px, ${ty}px) scale(0.92)` },
-                { transform: "translate(0px, 0px) scale(1)" }
-              ],
+              [{ transform: `translate(${tx}px, ${ty}px) scale(0.92)` }, { transform: "translate(0,0) scale(1)" }],
               { duration: 260, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
             );
           });
@@ -221,7 +203,8 @@
 
         } catch (e) {
           console.error("[shuffle] error:", e);
-          showToast?.("Shuffle: błąd serwera (sprawdź Network)", "error", 2400);
+          if (e && e.status) console.error("[shuffle] status/body:", e.status, e.body);
+          hardError("Shuffle: błąd serwera/CSRF — sprawdź konsolę (Network).");
           gridEl?.classList.remove("is-shuffling");
         } finally {
           paintBadges();
@@ -230,76 +213,69 @@
       });
     }
 
-    // ======================
-    // REROLL
-    // ======================
+    // ===== REROLL =====
     if (btnReroll) {
-  btnReroll.addEventListener("click", async () => {
-    if (btnReroll.disabled) return;
+      btnReroll.addEventListener("click", async () => {
+        if (btnReroll.disabled) return;
 
-    playAudioById(audioRerollId);
+        playAudioById(audioRerollId);
 
-    const board = boards[active];
-    const gridEl = board ? board.querySelector(".raffle-grid") : null;
-    const tiles = Array.from(board?.querySelectorAll(".raffle-text") || []);
+        const board = boards[active];
+        const gridEl = board ? board.querySelector(".raffle-grid") : null;
+        const tiles = Array.from(board?.querySelectorAll(".raffle-text") || []);
+        if (!board || tiles.length !== targetTiles) return;
 
-    if (!board || tiles.length !== targetTiles) return;
+        const form = new FormData();
+        form.append("grid", String(active));
 
-    const form = new FormData();
-    form.append("grid", String(active));
+        if (gridEl) gridEl.classList.add("is-rerolling");
+        btnReroll.disabled = true;
 
-    if (gridEl) gridEl.classList.add("is-rerolling");
-    btnReroll.disabled = true;
+        try {
+          const { data } = await fetchJsonSafe(endpoints.reroll, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-CSRFToken": csrftoken },
+            body: form
+          });
 
-    try {
-      const { data } = await fetchJsonSafe(endpoints.reroll, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "X-CSRFToken": csrftoken },
-        body: form
+          console.log("[reroll] response:", data);
+
+          if (!data.ok) {
+            syncCountersFromServer(data);
+            showToast?.(data.error || "Reroll blocked", "error", 2200);
+            return;
+          }
+
+          // backend -> liczniki (DB jest źródłem prawdy)
+          syncCountersFromServer(data);
+
+          if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
+            hardError("Reroll: serwer nie zwrócił cells[16].");
+            return;
+          }
+
+          await sleep(150);
+          data.cells.forEach((txt, i) => {
+            if (tiles[i]) tiles[i].textContent = (txt ?? "—");
+          });
+
+        } catch (e) {
+          console.error("[reroll] error:", e);
+          if (e && e.status) console.error("[reroll] status/body:", e.status, e.body);
+          hardError("Reroll: błąd serwera/CSRF — sprawdź konsolę (Network).");
+        } finally {
+          setTimeout(() => {
+            if (gridEl) gridEl.classList.remove("is-rerolling");
+          }, 260);
+
+          paintBadges();
+          btnReroll.disabled = (rerollsLeft <= 0);
+        }
       });
-
-      console.log("[reroll] response:", data);
-
-      if (!data.ok) {
-        syncCountersFromServer(data);
-        showToast?.(data.error || "Reroll blocked", "error", 2200);
-        return;
-      }
-
-      // backend -> liczniki (DB jest źródłem prawdy)
-      syncCountersFromServer(data);
-
-      // backend powinien zwrócić cells (16)
-      if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
-        showToast?.("Reroll: serwer nie zwrócił cells[16]", "error", 2400);
-        return;
-      }
-
-      await sleep(250); // pod animację
-
-      data.cells.forEach((txt, i) => {
-        if (tiles[i]) tiles[i].textContent = (txt ?? "—");
-      });
-
-    } catch (e) {
-      console.error("[reroll] error:", e);
-      if (e && e.status) console.error("[reroll] status/body:", e.status, e.body);
-      showToast?.("Błąd reroll (Network/CSRF) — sprawdź konsolę", "error", 2600);
-    } finally {
-      setTimeout(() => {
-        if (gridEl) gridEl.classList.remove("is-rerolling");
-      }, 260);
-
-      // tylko odśwież UI wg aktualnych wartości zmiennych
-      paintBadges();
     }
-  });
-}
 
-    // ======================
-    // PICK (JSON aktualnego grida)
-    // ======================
+    // ===== PICK =====
     if (btnPick) {
       btnPick.addEventListener("click", () => {
         const board = boards[active];
@@ -313,15 +289,14 @@
           grid2d.push(texts.slice(r * size, r * size + size));
         }
 
-        const payload = {
+        console.log(JSON.stringify({
           active_grid_index: active,
           size,
           generated_at: new Date().toISOString(),
           grid: grid2d,
           flat: texts
-        };
+        }, null, 2));
 
-        console.log(JSON.stringify(payload, null, 2));
         showToast?.("Grid JSON w konsoli ✅", "success", 1600);
       });
     }
