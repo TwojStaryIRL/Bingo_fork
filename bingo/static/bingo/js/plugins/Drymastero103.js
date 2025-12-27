@@ -13,9 +13,9 @@
 
   const CFG = {
     // podmień na swoje realne ścieżki do obrazków (static)
-    IMG1: "/static/bingo/img/plugins/drymastero103/czarny.png",
-    IMG2: "/static/bingo/img/plugins/drymastero103/czarnyidzie.jpg",
-    IMG3: "/static/bingo/img/plugins/drymastero103/bialy.jpg",
+    IMG1: "/static/bingo/images/Drymastero103/czarny.png",
+    IMG2: "/static/bingo/images/Drymastero103/czarnyidzie.jpg",
+    IMG3: "/static/bingo/images/Drymastero103/bialy.jpg",
 
     INTRO_TEXT: "Hej odwróć się na chwilę!",
     BOTTOM_TEXT: "Klikniecie = strzał",
@@ -31,7 +31,7 @@
     // wysokości (vh) dla runnerów - różne poziomy
     RUNNER2_TOP_VH: 22,
     RUNNER3_TOP_VH: 46,
-
+    STEAL_EVERY_MS: 60_000,
     // rozmiary (możesz dopasować)
     INTRO_W: 180,
     INTRO_H: 180,
@@ -181,6 +181,7 @@
         // ===== STATE =====
         const overlay = makeEl("div", "dry-overlay");
         root.appendChild(overlay);
+        let nextStealTimer = null;
 
         let introWrap = null;
         let bottom = null;
@@ -253,19 +254,32 @@
           // sprzątamy runnerów i dół
           stopRunners();
           setBottom(false);
-
+          scheduleNextSteal();
           return true;
         }
 
         function stopRunners() {
-          if (runnerLoopTimer) { clearTimeout(runnerLoopTimer); runnerLoopTimer = null; }
-          if (runnerLoopTimer2) { clearTimeout(runnerLoopTimer2); runnerLoopTimer2 = null; }
+  if (runnerLoopTimer) {
+    clearTimeout(runnerLoopTimer);
+    runnerLoopTimer = null;
+  }
 
-          if (runner2?.parentElement) runner2.parentElement.removeChild(runner2);
-          if (runner3?.parentElement) runner3.parentElement.removeChild(runner3);
-          runner2 = null;
-          runner3 = null;
-        }
+  if (runnerLoopTimer2) {
+    clearTimeout(runnerLoopTimer2);
+    runnerLoopTimer2 = null;
+  }
+
+  if (runner2?.parentElement) {
+    runner2.parentElement.removeChild(runner2);
+  }
+
+  if (runner3?.parentElement) {
+    runner3.parentElement.removeChild(runner3);
+  }
+
+  runner2 = null;
+  runner3 = null;
+}
 
         function spawnRunner2() {
           if (!stolen) return;
@@ -378,6 +392,22 @@
           // po chwili wyczyść intro obrazek (opcjonalnie)
           ctx.setTimeoutSafe(() => cleanupIntro(), CFG.INTRO_TEXT_HIDE_MS + 1200);
         }
+        function scheduleNextSteal() {
+  // nie planuj jeśli już coś jest zabrane
+  if (stolen) return;
+
+  if (nextStealTimer) {
+    clearTimeout(nextStealTimer);
+    nextStealTimer = null;
+  }
+
+  nextStealTimer = setTimeout(() => {
+    nextStealTimer = null;
+    // dalej tylko jeśli nadal nic nie jest zabrane
+    if (!stolen) showIntroThenSteal();
+  }, CFG.STEAL_EVERY_MS);
+}
+
 
         // start po krótkiej chwili od wejścia
         ctx.setTimeoutSafe(() => showIntroThenSteal(), 650);
