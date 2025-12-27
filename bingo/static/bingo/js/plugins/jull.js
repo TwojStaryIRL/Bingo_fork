@@ -26,9 +26,9 @@
     BG_OPACITY: 0.22,
 
     OXY_START: 0.75,
-    OXY_DECAY_PER_SEC: 0.005,
-    OXY_PUMP_ADD: 0.010,
-    OXY_PUMP_CD_MS: 300,
+    OXY_DECAY_PER_SEC: 0.013,
+    OXY_PUMP_ADD: 0.025,
+    OXY_PUMP_CD_MS: 200,
 
     // PRZEJŚCIE
     FADE_START_THRESHOLD: 0.45,     
@@ -38,7 +38,7 @@
     // DYMEK
     TALK_START_THRESHOLD: 0.40,   
     TALK_COOLDOWN_MS: 1400,       
-    DEAD_THRESHOLD: 0.1,          
+    DEAD_THRESHOLD: 0.07,          
 
 
     PANEL_W: 320,
@@ -60,17 +60,42 @@
     }, 40);
   }
 
-  function fillRow(track, rowW, tileW) {
+    function shuffledPool(arr) {
+          const a = arr.slice();
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = (Math.random() * (i + 1)) | 0;
+            [a[i], a[j]] = [a[j], a[i]];
+          }
+          return a;
+        }
+
+        let globalBag = [];
+        let globalK = 0;
+
+        function nextCatSrc() {
+          if (globalBag.length === 0 || globalK >= globalBag.length) {
+            globalBag = shuffledPool(CFG.BG_IMGS);
+            globalK = 0;
+          }
+          return globalBag[globalK++];
+        }
+
+
+
+    function fillRowNoDup(track, rowW, tileW) {
     const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
+
     for (let i = 0; i < need; i++) {
       const img = document.createElement("img");
-      img.src = pick(CFG.BG_IMGS);
+      img.src = nextCatSrc();
       img.alt = "kotek";
       img.draggable = false;
       img.loading = "lazy";
       track.appendChild(img);
     }
   }
+
+
 
   whenRuntime(() => {
     window.BingoUserPlugin = {
@@ -93,10 +118,13 @@ body::after{
 
 .jull-bubble{
   position: absolute;
-  left: 10px;
-  top: 0;                 /* bazujemy na górze catboxa */
-  transform: translateY(-100%) translateY(-10px) scale(.98); /* wyjeżdża nad obrazek */
-  max-width: calc(100% - 20px);
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px) scale(.98);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  text-align: center;
+
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255,255,255,.92);
@@ -112,6 +140,11 @@ body::after{
   z-index: 5;
 }
 
+.jull-bubble.is-on{
+  opacity: 1;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px) scale(1);
+}
+
 .jull-bubble::after{
   content: "";
   position: absolute;
@@ -119,13 +152,9 @@ body::after{
   top: 100%;
   border: 10px solid transparent;
   border-top-color: rgba(255,255,255,.92);
-  transform: translateY(-1px);
+  transform: translateX(-50%) translateY(-1px);
 }
 
-.jull-bubble.is-on{
-  opacity: 1;
-  transform: translateY(-100%) translateY(-10px) scale(1);
-}
 
 /* gdy dead – bardziej “ciężki” komunikat */
 .jull-bubble.is-dead{
@@ -351,12 +380,12 @@ body::after{
 
         const hint = document.createElement("div");
         hint.className = "jull-hint";
-        hint.innerHTML = `Pompkuj tlen: <strong>klik w panel</strong> / <strong>SPACJA</strong> / <strong>ENTER</strong>`;
+        hint.innerHTML = `Pomóż mu!!!: <strong>klikaj w panel</strong> / <strong>SPACJA</strong> / <strong>ENTER</strong>`;
 
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "jull-pumpbtn";
-        btn.textContent = "POMPUJ";
+        btn.textContent = "RATUJ KOTKA";
 
         bottom.appendChild(hint);
         bottom.appendChild(btn);
@@ -368,6 +397,9 @@ body::after{
         panel.appendChild(card);
         root.appendChild(panel);
 
+
+
+
         // ===== fill marquee =====
         function layoutFill() {
           const rowW = (window.innerWidth || 1200);
@@ -375,7 +407,7 @@ body::after{
 
           rowEls.forEach(({ track }) => {
             if (track.__filled) return;
-            fillRow(track, rowW, tileW);
+            fillRowNoDup(track, rowW, tileW);
             const imgs = Array.from(track.querySelectorAll("img"));
             imgs.forEach(img => track.appendChild(img.cloneNode(true)));
             track.__filled = true;
