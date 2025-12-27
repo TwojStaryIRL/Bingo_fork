@@ -10,36 +10,23 @@
   }
 
   const CFG = {
-    // po ilu ms bez klawisza uznajemy "oderwanie" od pisania
-    IDLE_MS: 500,
-
-    // ile max "oderwań" liczymy (potem już nie eskaluje)
-    MAX_ITERS: 9,
-
-    // ile ms ma żyć jeden obrazek (potem znika)
-    LIFE_MS: 1800,
-
-    // max obrazków jednocześnie w DOM (ochrona przed lagiem)
-    MAX_ON_SCREEN: 8,
-
-    // skala obrazków (losowo w tym zakresie)
+    IDLE_MS: 500,         // po ilu ms bez klawisza uznajemy "koniec pisania"
+    MAX_ON_SCREEN: 8,     // max obrazków naraz
     SCALE_MIN: 0.45,
     SCALE_MAX: 1.05,
-
-    // przezroczystość obrazków
     OPACITY: 0.95,
-
-    // placeholder na muzykę w tle (na razie nic)
-    // możesz potem wpiąć przez sfx i odpalać po pierwszym kliknięciu jak w poprzednich pluginach
-    BG_MUSIC_SFX_KEY: "", // np. "bg_music"
   };
 
   const ASSETS = {
-    // tu wrzuć ścieżki do obrazków (może być 1 albo wiele)
     images: [
       "/static/bingo/images/nataliagl131/astarion1.gif",
       "/static/bingo/images/nataliagl131/astarion2.gif",
       "/static/bingo/images/nataliagl131/astarion3.gif",
+      "/static/bingo/images/nataliagl131/astarion4.gif",
+      "/static/bingo/images/nataliagl131/astarion5.gif",
+      "/static/bingo/images/nataliagl131/astarion6.gif",
+      "/static/bingo/images/nataliagl131/astarion7.gif",
+      "/static/bingo/images/nataliagl131/astarion8.gif",
     ],
   };
 
@@ -49,7 +36,8 @@
   function isTypingTarget(el) {
     if (!el) return false;
     const tag = el.tagName;
-    return tag === "TEXTAREA" || (tag === "INPUT" && (el.type === "text" || el.type === "search" || el.type === "email" || el.type === "password"));
+    return tag === "TEXTAREA" ||
+      (tag === "INPUT" && ["text", "search", "email", "password"].includes(el.type));
   }
 
   whenRuntime(() => {
@@ -63,108 +51,150 @@
         const style = document.createElement("style");
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
-.wtf-layer{
+.ast-layer{
   position: fixed; inset: 0;
   pointer-events: none;
   z-index: 2147483646;
   overflow: hidden;
 }
-.wtf-img{
+.ast-img{
   position: fixed;
   left: 0; top: 0;
   will-change: transform, opacity;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
   user-select: none;
+
+  opacity: 0;
+  transform: translate(var(--x), var(--y)) scale(var(--s)) rotate(var(--r));
+  transition: opacity 140ms ease;
 }
-@keyframes wtfPop {
-  0%   { transform: translate(var(--x), var(--y)) scale(var(--s)) rotate(var(--r)); opacity: 0; }
-  12%  { transform: translate(var(--x), var(--y)) scale(calc(var(--s) * 1.05)) rotate(var(--r)); opacity: var(--o); }
-  100% { transform: translate(var(--x), var(--y)) scale(var(--s)) rotate(var(--r)); opacity: 0; }
-}
+.ast-img.is-on { opacity: var(--o); }
         `;
         document.head.appendChild(style);
 
         const layer = document.createElement("div");
-        layer.className = "wtf-layer";
+        layer.className = "ast-layer";
         root.appendChild(layer);
 
         // ===== state =====
-        let iter = 0;
         let idleTimer = null;
-        let onScreen = 0;
+        let iter = 0;        // liczba "oderwań" od klawiatury
+        let isOn = false;
 
-        function spawnOne() {
-          if (!ASSETS.images.length) return;
-          if (onScreen >= CFG.MAX_ON_SCREEN) return;
+        // trzymamy referencje do obrazków, żeby tylko je pokazywać/ukrywać
+        const imgs = [];
 
-          const img = document.createElement("img");
-          img.className = "wtf-img";
-          img.alt = "";
-          img.src = pick(ASSETS.images);
-
-          // pozycjonowanie: losowo, ale tak żeby w większości było na ekranie
+        function placeRandomly(el) {
           const pad = 18;
-          const x = Math.floor(rand(pad, window.innerWidth - pad));
-          const y = Math.floor(rand(pad, window.innerHeight - pad));
+          const x = Math.floor(rand(pad, Math.max(pad + 1, window.innerWidth - pad)));
+          const y = Math.floor(rand(pad, Math.max(pad + 1, window.innerHeight - pad)));
           const s = rand(CFG.SCALE_MIN, CFG.SCALE_MAX);
           const r = Math.floor(rand(-18, 18)) + "deg";
 
-          img.style.setProperty("--x", `${x}px`);
-          img.style.setProperty("--y", `${y}px`);
-          img.style.setProperty("--s", `${s}`);
-          img.style.setProperty("--r", r);
-          img.style.setProperty("--o", `${CFG.OPACITY}`);
-
-          // animacja “pojaw się i zniknij”
-          img.style.animation = `wtfPop ${CFG.LIFE_MS}ms ease-out 1 forwards`;
-
-          onScreen += 1;
-          layer.appendChild(img);
-
-          // sprzątanie
-          ctx.setTimeoutSafe(() => {
-            try { img.remove(); } catch {}
-            onScreen = Math.max(0, onScreen - 1);
-          }, CFG.LIFE_MS + 60);
-
-          // jeśli src walnięty — usuń szybciej
-          img.onerror = () => {
-            try { img.remove(); } catch {}
-            onScreen = Math.max(0, onScreen - 1);
-          };
+          el.style.setProperty("--x", `${x}px`);
+          el.style.setProperty("--y", `${y}px`);
+          el.style.setProperty("--s", `${s}`);
+          el.style.setProperty("--r", r);
+          el.style.setProperty("--o", `${CFG.OPACITY}`);
         }
 
-        function spawnWave(count) {
-          for (let i = 0; i < count; i++) spawnOne();
+        function ensurePoolSize(n) {
+          while (imgs.length < n) {
+            const img = document.createElement("img");
+            img.className = "ast-img";
+            img.alt = "";
+            img.onerror = () => {
+              // jak obrazek się nie wczyta, chowamy go żeby nie wisiał "pusty"
+              img.classList.remove("is-on");
+            };
+            imgs.push(img);
+            layer.appendChild(img);
+          }
         }
 
-        function onIdleBreak() {
-          iter = Math.min(CFG.MAX_ITERS, iter + 1);
-          spawnWave(iter); // eskalacja: im więcej przerw, tym więcej obrazków
+        function showWave() {
+          if (!ASSETS.images.length) return;
+
+          // iter rośnie przy "oderwaniu", więc w trakcie pisania pokazujemy iter+1
+          const count = Math.min(CFG.MAX_ON_SCREEN, Math.max(1, iter + 1));
+          ensurePoolSize(count);
+
+          // pokazujemy dokładnie `count` obrazków
+          for (let i = 0; i < count; i++) {
+            const img = imgs[i];
+
+            // przy pierwszym show po przerwie losujemy nowe gify i pozycje
+            // (żeby nie migało przy każdym keydown)
+            if (!isOn) {
+              img.src = pick(ASSETS.images);
+              placeRandomly(img);
+            }
+
+            img.classList.add("is-on");
+          }
+
+          // resztę (jeśli pool większy z poprzednich fal) chowamy
+          for (let i = count; i < imgs.length; i++) {
+            imgs[i].classList.remove("is-on");
+          }
+
+          isOn = true;
         }
 
-        function scheduleIdle() {
+        function hideAllAndCountBreak() {
+          if (!isOn) return;
+
+          for (const img of imgs) img.classList.remove("is-on");
+          isOn = false;
+
+          // to jest "oderwanie" → eskalacja na następną falę
+          iter = Math.min(CFG.MAX_ON_SCREEN - 1, iter + 1);
+        }
+
+        function scheduleHide() {
           if (idleTimer) clearTimeout(idleTimer);
           idleTimer = ctx.setTimeoutSafe(() => {
             idleTimer = null;
-            onIdleBreak();
+            hideAllAndCountBreak();
           }, CFG.IDLE_MS);
         }
 
-        // “startTyping” = dowolny klawisz gdy fokus jest w polu tekstowym
+        // ===== events =====
         ctx.on(document, "keydown", (e) => {
-          // ignoruj np. ctrl/alt itp, żeby nie naliczać skrótów
           if (e.ctrlKey || e.metaKey || e.altKey) return;
 
           const ae = document.activeElement;
           if (!isTypingTarget(ae)) return;
 
-          scheduleIdle();
+          showWave();     // pokazuj podczas pisania
+          scheduleHide(); // a po przerwie zgaś + podbij iter
         });
 
-        // opcjonalnie: gdy user kliknie gdzieś poza input, nie naliczaj przerwy
+        // input łapie też wklejanie, autouzupełnianie itd.
+        ctx.on(document, "input", () => {
+          const ae = document.activeElement;
+          if (!isTypingTarget(ae)) return;
+
+          showWave();
+          scheduleHide();
+        });
+
+        // klik poza input: natychmiast chowamy, ale NIE liczymy jako "oderwanie od klawiatury"
         ctx.on(document, "pointerdown", () => {
+          const ae = document.activeElement;
+          if (!isTypingTarget(ae)) {
+            for (const img of imgs) img.classList.remove("is-on");
+            isOn = false;
+          }
           if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+        });
+
+        // jak karta znika, chowamy (bez eskalacji)
+        ctx.on(document, "visibilitychange", () => {
+          if (document.hidden) {
+            for (const img of imgs) img.classList.remove("is-on");
+            isOn = false;
+          }
         });
 
         return () => {
@@ -174,9 +204,5 @@
         };
       }
     };
-
-    // nie musisz wołać initUserPlugin() tutaj, bo game.js już to robi po DOMContentLoaded
-    // ale jeśli chcesz plugin “self-running” na innych stronach, możesz odkomentować:
-    // window.BingoPluginRuntime?.initUserPlugin?.();
   });
 })();
