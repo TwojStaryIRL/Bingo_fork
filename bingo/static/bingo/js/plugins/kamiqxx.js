@@ -29,6 +29,8 @@
     GOOD_IMGS: [
       "/static/bingo/images/kamiqxx/goodboy1.jpg",
       "/static/bingo/images/kamiqxx/goodboy2.jpg",
+      "/static/bingo/images/kamiqxx/goodboy3.jpg",
+      "/static/bingo/images/kamiqxx/goodboy4.jpg",
     ],
 
     BAD_IMGS: [
