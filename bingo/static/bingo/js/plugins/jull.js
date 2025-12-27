@@ -84,7 +84,8 @@ body::after{
 .jull-bubble{
   position: absolute;
   left: 10px;
-  top: 10px;
+  top: 0;                 /* bazujemy na górze catboxa */
+  transform: translateY(-100%) translateY(-10px) scale(.98); /* wyjeżdża nad obrazek */
   max-width: calc(100% - 20px);
   padding: 10px 12px;
   border-radius: 14px;
@@ -96,9 +97,9 @@ body::after{
   letter-spacing: .2px;
   box-shadow: 0 14px 35px rgba(0,0,0,.35);
   opacity: 0;
-  transform: translateY(2px) scale(.98);
   transition: opacity 220ms ease, transform 220ms ease;
   pointer-events: none;
+  z-index: 5;
 }
 
 .jull-bubble::after{
@@ -106,8 +107,6 @@ body::after{
   position: absolute;
   left: 18px;
   top: 100%;
-  width: 0;
-  height: 0;
   border: 10px solid transparent;
   border-top-color: rgba(255,255,255,.92);
   transform: translateY(-1px);
@@ -115,7 +114,7 @@ body::after{
 
 .jull-bubble.is-on{
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateY(-100%) translateY(-10px) scale(1);
 }
 
 /* gdy dead – bardziej “ciężki” komunikat */
@@ -215,10 +214,11 @@ body::after{
 .jull-catbox{
   position: relative;
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible; 
   background: rgba(255,255,255,.04);
   outline: 1px solid rgba(255,255,255,.10);
 }
+
 
 .jull-catbox img{
   position: absolute;
@@ -449,7 +449,7 @@ body::after{
         }
 
         function pump() {
-          // if (isDead) return;
+          if (isDead) return;
           const t = performance.now();
           if (t - lastPumpAt < CFG.OXY_PUMP_CD_MS) return;
           lastPumpAt = t;
