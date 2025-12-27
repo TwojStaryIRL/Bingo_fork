@@ -24,9 +24,9 @@
     BG_OPACITY: 0.22,
 
     OXY_START: 0.75,
-    OXY_DECAY_PER_SEC: 0.005,
-    OXY_PUMP_ADD: 0.010,
-    OXY_PUMP_CD_MS: 300,
+    OXY_DECAY_PER_SEC: 0.013,
+    OXY_PUMP_ADD: 0.017,
+    OXY_PUMP_CD_MS: 200,
 
     // PRZEJŚCIE
     FADE_START_THRESHOLD: 0.45,     
@@ -36,7 +36,7 @@
     // DYMEK
     TALK_START_THRESHOLD: 0.40,   
     TALK_COOLDOWN_MS: 1400,       
-    DEAD_THRESHOLD: 0.1,          
+    DEAD_THRESHOLD: 0.5,          
 
 
     PANEL_W: 320,
@@ -117,7 +117,7 @@ body::after{
   top: 100%;
   border: 10px solid transparent;
   border-top-color: rgba(255,255,255,.92);
-  transform: translateX(-50%) translateY(-1px); /* <-- TO */
+  transform: translateX(-50%) translateY(-1px); 
 }
 
 
