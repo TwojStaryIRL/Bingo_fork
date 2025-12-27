@@ -23,8 +23,8 @@
     SAD_THRESHOLD: 0.30,
     FADE_MS: 280,
 
-    PANEL_W: 360,     // szerokość git
-    PANEL_H: 320,     // <<< WYŻSZE
+    PANEL_W: 320,     // 
+    PANEL_H: 360,     // 
     PANEL_MARGIN: 18,
   };
 
