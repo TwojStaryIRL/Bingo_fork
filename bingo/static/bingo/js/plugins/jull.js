@@ -117,8 +117,9 @@ body::after{
   top: 100%;
   border: 10px solid transparent;
   border-top-color: rgba(255,255,255,.92);
-  transform: translateY(-1px);
+  transform: translateX(-50%) translateY(-1px); /* <-- TO */
 }
+
 
 .jull-bubble.is-on{
   opacity: 1;
