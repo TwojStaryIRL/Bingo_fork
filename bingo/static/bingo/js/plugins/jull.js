@@ -15,16 +15,18 @@
     SPEED_MAX: 36,
     BG_OPACITY: 0.22,
 
-    OXY_START: 0.65,
+    OXY_START: 0.75,
     OXY_DECAY_PER_SEC: 0.015,
     OXY_PUMP_ADD: 0.08,
-    OXY_PUMP_CD_MS: 200,
+    OXY_PUMP_CD_MS: 300,
 
-    SAD_THRESHOLD: 0.30,
-    FADE_MS: 1000,
+    // >>> PŁYNNY FADE <<<
+    FADE_START_THRESHOLD: 0.45,     // od tego tlenu zaczyna się mieszanie
+    FADE_COMPLETE_THRESHOLD: 0.10,  // przy tym tlenie sad = 100%
+    FADE_MS: 1000,                  // tylko jako “wygładzacz” zmian opacity
 
-    PANEL_W: 320,     // 
-    PANEL_H: 360,     // 
+    PANEL_W: 320,
+    PANEL_H: 360,
     PANEL_MARGIN: 18,
   };
 
@@ -130,7 +132,6 @@ body::after{
 .jull-track.anim{ animation: jull-marquee var(--jullDur, 26s) linear infinite; }
 .jull-track.reverse{ animation-direction: reverse; }
 
-/* PANEL: większy, ale nadal przepuszcza klik poza card */
 .jull-panel{
   position: fixed;
   right: ${CFG.PANEL_MARGIN}px;
@@ -154,11 +155,8 @@ body::after{
   padding: 14px;
   box-sizing: border-box;
   display: grid;
-
-  /* <<< więcej miejsca na kotka */
   grid-template-rows: 1.45fr auto auto;
   gap: 12px;
-
   backdrop-filter: blur(6px);
 }
 
@@ -170,22 +168,17 @@ body::after{
   outline: 1px solid rgba(255,255,255,.10);
 }
 
-/* kotek bardziej “duży” w boxie */
 .jull-catbox img{
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: opacity ${CFG.FADE_MS}ms ease;
+  transition: opacity ${CFG.FADE_MS}ms linear;
   user-select: none;
   pointer-events: none;
 }
 
-.jull-happy{ opacity: 1; }
-.jull-sad{ opacity: 0; }
-
-/* pasek tlenu minimalnie większy */
 .jull-oxy{
   height: 18px;
   border-radius: 999px;
@@ -216,13 +209,12 @@ body::after{
   letter-spacing: .2px;
   user-select: none;
 }
-
 .jull-hint strong{ color: #fff; }
 
 .jull-pumpbtn{
   border: 0;
   border-radius: 14px;
-  padding: 14px 12px;     /* <<< większy “hitbox” */
+  padding: 14px 12px;
   font-weight: 950;
   cursor: pointer;
   background: rgba(255,255,255,.92);
@@ -269,13 +261,11 @@ body::after{
         catbox.className = "jull-catbox";
 
         const happy = document.createElement("img");
-        happy.className = "jull-happy";
         happy.src = CFG.HAPPY_CAT;
         happy.alt = "happy cat";
         happy.draggable = false;
 
         const sad = document.createElement("img");
-        sad.className = "jull-sad";
         sad.src = CFG.SAD_CAT;
         sad.alt = "sad cat";
         sad.draggable = false;
@@ -317,12 +307,9 @@ body::after{
 
           rowEls.forEach(({ track }) => {
             if (track.__filled) return;
-
             fillRow(track, rowW, tileW);
-
             const imgs = Array.from(track.querySelectorAll("img"));
             imgs.forEach(img => track.appendChild(img.cloneNode(true)));
-
             track.__filled = true;
           });
         }
@@ -335,10 +322,21 @@ body::after{
         let lastTick = performance.now();
         let raf = null;
 
+        function moodMix01() {
+          const a = Number(CFG.FADE_START_THRESHOLD);
+          const b = Number(CFG.FADE_COMPLETE_THRESHOLD);
+          if (!(a > b)) {
+            // fail-safe: jeśli ktoś źle ustawi progi, fallback do “skoku”
+            return oxyVal <= b ? 1 : 0;
+          }
+          // p=0 przy a, p=1 przy b
+          return clamp01((a - oxyVal) / (a - b));
+        }
+
         function setMood() {
-          const sadMode = oxyVal <= CFG.SAD_THRESHOLD;
-          happy.style.opacity = sadMode ? "0" : "1";
-          sad.style.opacity = sadMode ? "1" : "0";
+          const p = moodMix01();       // 0..1
+          happy.style.opacity = String(1 - p);
+          sad.style.opacity = String(p);
         }
 
         function setOxyUI() {
