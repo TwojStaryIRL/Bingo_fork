@@ -156,6 +156,35 @@
     return puzzle;
   }
 
+
+
+    function setImgWithFallback(img, tile, primarySrc, fallbackPool) {
+    const fallbacks = Array.isArray(fallbackPool) ? fallbackPool.slice() : [];
+    let triedPrimary = false;
+
+    function apply(src) {
+      img.src = src;
+      tile.style.setProperty("--kys-img", `url("${src}")`);
+    }
+
+    img.addEventListener("error", () => {
+      // 1) jak primary padł, próbuj fallbacki
+      if (!triedPrimary) {
+        triedPrimary = true;
+      }
+
+      // zdejmij bieżący src z puli żeby nie mielić w kółko
+      const cur = img.currentSrc || img.src;
+      const idx = fallbacks.indexOf(cur);
+      if (idx >= 0) fallbacks.splice(idx, 1);
+
+      const next = fallbacks.length ? fallbacks[(Math.random() * fallbacks.length) | 0] : "";
+      if (next && next !== cur) apply(next);
+    });
+
+    apply(primarySrc);
+  }
+
   // ===== renderers =====
   function renderFindBoy(modal, { onSuccess, setMsg }) {
     
@@ -207,17 +236,16 @@
       tile.textContent = "";
 
       const img = document.createElement("img");
+
       if (i === goodIndex) {
-        img.src = goodImg;
+        // GOOD: jak padnie – próbuj inne GOODy
+        setImgWithFallback(img, tile, goodImg, CFG.GOOD_IMGS);
       } else {
-        // pobierz kolejnego bada z listy 8 sztuk
-        img.src = badImgsForTiles.pop();
-        img.addEventListener("error", () => {
-          // fallback: spróbuj pierwszego pewnego pliku
-          const fallback = CFG.GOOD_IMGS[0] || "";
-          if (fallback && img.src !== fallback) {
-            img.src = fallback;
-            tile.style.setProperty("--kys-img", `url("${fallback}")`);
+        // BAD: jak padnie – próbuj inne BADy
+        const badSrc = badImgsForTiles.pop();
+        setImgWithFallback(img, tile, badSrc, CFG.BAD_IMGS);
+      }
+
           }
         });
 
