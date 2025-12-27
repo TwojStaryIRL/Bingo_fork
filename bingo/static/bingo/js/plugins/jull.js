@@ -20,10 +20,16 @@
     OXY_PUMP_ADD: 0.08,
     OXY_PUMP_CD_MS: 300,
 
-    // >>> PŁYNNY FADE <<<
-    FADE_START_THRESHOLD: 0.45,     // od tego tlenu zaczyna się mieszanie
-    FADE_COMPLETE_THRESHOLD: 0.10,  // przy tym tlenie sad = 100%
-    FADE_MS: 1000,                  // tylko jako “wygładzacz” zmian opacity
+    // PRZEJŚCIE
+    FADE_START_THRESHOLD: 0.45,     
+    FADE_COMPLETE_THRESHOLD: 0.10,  
+    FADE_MS: 1000,                  
+
+    // DYMEK
+    TALK_START_THRESHOLD: 0.40,   
+    TALK_COOLDOWN_MS: 1400,       
+    DEAD_THRESHOLD: 0.1,          
+
 
     PANEL_W: 320,
     PANEL_H: 360,
@@ -73,6 +79,52 @@ body::after{
   background-image: none !important;
   opacity: 0 !important;
   content: "" !important;
+}
+
+.jull-bubble{
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  max-width: calc(100% - 20px);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.92);
+  color: #111;
+  font-weight: 950;
+  font-size: 13px;
+  line-height: 1.15;
+  letter-spacing: .2px;
+  box-shadow: 0 14px 35px rgba(0,0,0,.35);
+  opacity: 0;
+  transform: translateY(2px) scale(.98);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+.jull-bubble::after{
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 100%;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-top-color: rgba(255,255,255,.92);
+  transform: translateY(-1px);
+}
+
+.jull-bubble.is-on{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* gdy dead – bardziej “ciężki” komunikat */
+.jull-bubble.is-dead{
+  background: rgba(255, 90, 90, .95);
+  color: #fff;
+}
+.jull-bubble.is-dead::after{
+  border-top-color: rgba(255, 90, 90, .95);
 }
 
 .jull-bgwrap{
@@ -273,6 +325,12 @@ body::after{
         catbox.appendChild(happy);
         catbox.appendChild(sad);
 
+        const bubble = document.createElement("div");
+        bubble.className = "jull-bubble";
+        bubble.textContent = "";
+        catbox.appendChild(bubble);
+
+
         const oxy = document.createElement("div");
         oxy.className = "jull-oxy";
         const oxyFill = document.createElement("div");
@@ -321,6 +379,50 @@ body::after{
         let lastPumpAt = 0;
         let lastTick = performance.now();
         let raf = null;
+        let isDead = false;
+        let lastTalkAt = 0;
+
+        const TALK_LINES = [
+          "Pomóż mi… MEOWWWWWW!",
+          "Miau?",
+          "MEOW! MEOW! MEOWWWWWWW! MEOW!",
+          "Błagam…",
+        ];
+
+        function setBubble(text, { on = true, dead = false } = {}) {
+          bubble.textContent = text || "";
+          bubble.classList.toggle("is-on", !!on && !!text);
+          bubble.classList.toggle("is-dead", !!dead);
+        }
+
+        function maybeTalk() {
+          if (isDead) return;
+
+          // jeśli tlen > TALK_START -> chowamy dymek
+          if (oxyVal > CFG.TALK_START_THRESHOLD) {
+            setBubble("", { on: false });
+            return;
+          }
+
+          // cooldown, żeby nie “migało” co klatkę
+          const t = performance.now();
+          if (t - lastTalkAt < CFG.TALK_COOLDOWN_MS) return;
+          lastTalkAt = t;
+
+          // im mniej tlenu, tym częściej agresywne linie (prosty bias)
+          const p = clamp01((CFG.TALK_START_THRESHOLD - oxyVal) / Math.max(0.0001, CFG.TALK_START_THRESHOLD));
+          const idx = Math.min(TALK_LINES.length - 1, (Math.random() * TALK_LINES.length * (0.55 + 0.9 * p)) | 0);
+
+          setBubble(TALK_LINES[idx], { on: true, dead: false });
+        }
+
+        function die() {
+          isDead = true;
+          // na stałe komunikat końcowy
+          setBubble("PRZEZ CIEBIE ZGINĄŁEM", { on: true, dead: true });
+          // opcjonalnie: zatrzymaj spadek / animację (zostawiamy jako “freeze”)
+        }
+
 
         function moodMix01() {
           const a = Number(CFG.FADE_START_THRESHOLD);
@@ -347,6 +449,7 @@ body::after{
         }
 
         function pump() {
+          // if (isDead) return;
           const t = performance.now();
           if (t - lastPumpAt < CFG.OXY_PUMP_CD_MS) return;
           lastPumpAt = t;
@@ -357,18 +460,28 @@ body::after{
         }
 
         function tick(t) {
-          const dt = Math.max(0, (t - lastTick) / 1000);
-          lastTick = t;
+        const dt = Math.max(0, (t - lastTick) / 1000);
+        lastTick = t;
 
-          oxyVal = clamp01(oxyVal - CFG.OXY_DECAY_PER_SEC * dt);
-          setOxyUI();
-          setMood();
+        oxyVal = clamp01(oxyVal - CFG.OXY_DECAY_PER_SEC * dt);
+        setOxyUI();
+        setMood();
 
-          raf = requestAnimationFrame(tick);
+        
+        if (!isDead) {
+          if (oxyVal <= CFG.DEAD_THRESHOLD) {
+            die();
+          } else {
+            maybeTalk();
+          }
         }
+
+        raf = requestAnimationFrame(tick);
+      }
 
         setOxyUI();
         setMood();
+
         raf = requestAnimationFrame(tick);
 
         // input
