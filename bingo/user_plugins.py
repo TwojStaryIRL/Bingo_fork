@@ -70,7 +70,13 @@ def stugsiana_func() -> UserPluginConfig:
         sfx={
             "mango67": [
                 static("bingo/sfx/stugsiana/mango67.mp3")
-            ]
+            ],
+            "meow": [
+                static("bingo/sfx/stugsiana/meow.mp3")
+            ],
+            "owoc": [
+                static("bingo/sfx/stugsiana/owoc.mp3")
+            ],
         }
     )
 

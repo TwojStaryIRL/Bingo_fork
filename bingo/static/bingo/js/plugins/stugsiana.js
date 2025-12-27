@@ -28,7 +28,18 @@
 
     // ile ma stać PO pełnym wsunięciu
     SLIDE_HOLD_MS: 4000,
-
+    // ===== FULLSCREEN POP (30-60s) =====
+    POP_SRCS: [
+    "/static/bingo/images/stugsiana/banan.png",
+    "/static/bingo/images/stugsiana/japko.png",
+    "/static/bingo/images/stugsiana/mandarynka.png",
+    ],
+    POP_SFX: "/static/bingo/sfx/stugsiana/owoc.mp3",
+    POP_MIN_MS: 30000,
+    POP_MAX_MS: 60000,
+    POP_FADE_OUT_MS: 1000,
+    POP_HOLD_MS: 100, 
+    POP_VOLUME: 0.85,
     SLIDE_DUCK_TO: 0.15,
 
     // popup na każdym wejściu
@@ -39,7 +50,121 @@
 
   // ===== runtime state =====
   let slideCatPlaying = false;
+function randInt(min, max) {
+    const a = Math.floor(min);
+    const b = Math.floor(max);
+    return a + Math.floor(Math.random() * (Math.max(1, b - a + 1)));
+  }
 
+  function createFullscreenPop(ctx, getLoopAudio) {
+  let running = false;
+
+  let ov = null;
+  let img = null;
+  let sfx = null;
+
+  function ensure() {
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = "stu-fullscreen-pop";
+      ov.style.position = "fixed";
+      ov.style.inset = "0";
+      ov.style.zIndex = "2147483647"; // NAD WSZYSTKIM
+      ov.style.pointerEvents = "none";
+      ov.style.display = "none";
+      ov.style.opacity = "0";
+      ov.style.transition = `opacity ${CFG.POP_FADE_OUT_MS}ms ease`;
+      ov.style.background = "rgba(0,0,0,0)";
+      document.body.appendChild(ov);
+    }
+
+    if (!img) {
+      img = document.createElement("img");
+      img.alt = "pop";
+      img.style.position = "absolute";
+      img.style.inset = "0";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover"; // cały ekran
+      img.style.userSelect = "none";
+      img.draggable = false;
+      ov.appendChild(img);
+    }
+
+    if (!sfx) {
+      sfx = new Audio(CFG.POP_SFX);
+      sfx.preload = "auto";
+    }
+  }
+
+  function play() {
+    if (running) return;
+    running = true;
+
+    ensure();
+
+    // jeśli kot jedzie albo popup "wybierz kicie" jest na wierzchu — odpuść i nie blokuj timera
+    if (slideCatPlaying || document.getElementById("stu-overlay")) {
+      running = false;
+      return;
+    }
+
+    // ===== LOSOWANIE OBRAZKA =====
+    const pool = Array.isArray(CFG.POP_SRCS) ? CFG.POP_SRCS : [];
+    const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    if (pick) img.src = pick;
+
+    // duck muzyki w tle (lekko)
+    const loop = typeof getLoopAudio === "function" ? getLoopAudio() : null;
+    const prevLoopVol = loop ? loop.volume : null;
+    if (loop && typeof prevLoopVol === "number") {
+      loop.volume = Math.max(0, prevLoopVol * 0.25);
+    }
+
+    // pokaż
+    ov.style.display = "block";
+    ov.style.opacity = "0";
+    ov.getBoundingClientRect(); // reflow
+    ov.style.opacity = "1";
+
+    // dźwięk
+    try {
+      sfx.pause();
+      sfx.currentTime = 0;
+      sfx.volume = clamp(Number(CFG.POP_VOLUME ?? 1), 0, 1);
+      const p = sfx.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {}
+
+    const hold = Number(CFG.POP_HOLD_MS ?? 700);
+    const fade = Number(CFG.POP_FADE_OUT_MS ?? 2000);
+
+    // po hold -> zacznij fade
+    ctx.setTimeoutSafe(() => {
+      ov.style.opacity = "0";
+    }, hold);
+
+    // po hold+fade -> schowaj + przywróć muzykę
+    ctx.setTimeoutSafe(() => {
+      ov.style.display = "none";
+
+      if (loop && typeof prevLoopVol === "number") {
+        loop.volume = prevLoopVol;
+      }
+
+      running = false;
+    }, hold + fade + 50);
+  }
+
+  return {
+    play,
+    destroy: () => {
+      try { sfx?.pause(); } catch {}
+      try { ov?.remove(); } catch {}
+      ov = null; img = null; sfx = null;
+    }
+  };
+}
   function whenRuntime(fn) {
     if (window.BingoPluginRuntime?.initUserPlugin) return fn();
     const t = setInterval(() => {
@@ -409,6 +534,20 @@
         // slide cat
         const slideCat = createSlideCat(ctx, () => loopAudio);
         let slideTimer = null;
+        // fullscreen pop
+        const pop = createFullscreenPop(ctx, () => loopAudio);
+        let popTimer = null;
+
+        function scheduleNextPop() {
+          if (popTimer) ctx.clearTimeoutSafe(popTimer);
+
+          const delay = randInt(CFG.POP_MIN_MS || 30000, CFG.POP_MAX_MS || 60000);
+          popTimer = ctx.setTimeoutSafe(() => {
+            pop.play();
+            // kolejny losowy czas liczony OD POPA
+            scheduleNextPop();
+          }, delay);
+        }
 
         // popup
         let overlay = null;
@@ -438,6 +577,7 @@
               slideCat.show();
             }, CFG.SLIDE_CAT_INTERVAL);
           }
+          scheduleNextPop();
         }
 
         function openOverlay() {
@@ -530,6 +670,8 @@
           try { loopAudio.pause(); } catch {}
           try { ctx.clearIntervalSafe(slideTimer); } catch {}
           try { slideCat.destroy?.(); } catch {}
+          try { if (popTimer) ctx.clearTimeoutSafe(popTimer); } catch {}
+          try { pop.destroy?.(); } catch {}
         };
       }
     };
