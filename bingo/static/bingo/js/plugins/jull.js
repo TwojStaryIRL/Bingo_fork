@@ -25,7 +25,7 @@
 
     OXY_START: 0.75,
     OXY_DECAY_PER_SEC: 0.013,
-    OXY_PUMP_ADD: 0.017,
+    OXY_PUMP_ADD: 0.025,
     OXY_PUMP_CD_MS: 200,
 
     // PRZEJŚCIE
@@ -91,10 +91,13 @@ body::after{
 
 .jull-bubble{
   position: absolute;
-  left: 10px;
-  top: 0;                 /* bazujemy na górze catboxa */
-  transform: translateY(-100%) translateY(-10px) scale(.98); /* wyjeżdża nad obrazek */
-  max-width: calc(100% - 20px);
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px) scale(.98);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  text-align: center;
+
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255,255,255,.92);
@@ -110,6 +113,11 @@ body::after{
   z-index: 5;
 }
 
+.jull-bubble.is-on{
+  opacity: 1;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px) scale(1);
+}
+
 .jull-bubble::after{
   content: "";
   position: absolute;
@@ -117,14 +125,9 @@ body::after{
   top: 100%;
   border: 10px solid transparent;
   border-top-color: rgba(255,255,255,.92);
-  transform: translateX(-50%) translateY(-1px); 
+  transform: translateX(-50%) translateY(-1px);
 }
 
-
-.jull-bubble.is-on{
-  opacity: 1;
-  transform: translateY(-100%) translateY(-10px) scale(1);
-}
 
 /* gdy dead – bardziej “ciężki” komunikat */
 .jull-bubble.is-dead{
