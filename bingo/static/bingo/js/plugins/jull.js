@@ -36,7 +36,7 @@
     // DYMEK
     TALK_START_THRESHOLD: 0.40,   
     TALK_COOLDOWN_MS: 1400,       
-    DEAD_THRESHOLD: 0.5,          
+    DEAD_THRESHOLD: 0.07,          
 
 
     PANEL_W: 320,
