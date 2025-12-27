@@ -572,9 +572,9 @@
           const modal = document.createElement("div");
           modal.className = "kys-modal";
 
-          const h = document.createElement("h2");
-          h.className = "kys-title";
-          h.textContent = CFG.TITLE;
+          // const h = document.createElement("h2");
+          // h.className = "kys-title";
+          // h.textContent = CFG.TITLE;
 
           // const s = document.createElement("p");
           // s.className = "kys-sub";
@@ -583,7 +583,7 @@
           msg = document.createElement("div");
           msg.className = "kys-msg";
 
-          modal.appendChild(h);
+          // modal.appendChild(h);
           // modal.appendChild(s);
 
           // PASS handler
