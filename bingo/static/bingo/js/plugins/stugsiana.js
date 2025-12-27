@@ -7,15 +7,15 @@
     SUBTITLE: "MEOOOOOOOOOOOOOOOOOOOOOOW 🐱🐱🐱",
 
     // Obrazki do pop-upa
-    IMG_1: "/static/bingo/img/stugsiana/kicia.png",
-    IMG_2: "/static/bingo/img/stugsiana/kicia2.png",
+    IMG_1: "/static/bingo/images/stugsiana/kicia.png",
+    IMG_2: "/static/bingo/images/stugsiana/kicia2.png",
 
     // ===== NOWE: audio =====
-    LOOP_AUDIO_SRC: "/static/bingo/sfx/mango67.mp3",
+    LOOP_AUDIO_SRC: "/static/bingo/sfx/stugsiana/mango67.mp3",
     LOOP_AUDIO_VOLUME: 0.18, // <- ściszanie tutaj (0.0 - 1.0)
 
     // ===== NOWE: bouncing logo =====
-    BOUNCE_LOGO_SRC: "/static/bingo/img/stugsiana/wzwod.jpg",
+    BOUNCE_LOGO_SRC: "/static/bingo/images/stugsiana/wzwod.jpg",
     BOUNCE_LOGO_SIZE: 92, // px
     BOUNCE_LOGO_OPACITY: 0.22,
     BOUNCE_LOGO_MAX: 5, // limit, żeby nie zabić przeglądarki
