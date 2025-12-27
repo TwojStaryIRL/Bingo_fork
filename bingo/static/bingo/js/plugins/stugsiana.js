@@ -32,6 +32,7 @@
   };
   
   const LOGO_COUNT_KEY = "bingo_stugsiana_logo_count_v1";
+  let slideCatPlaying = false;
 
   function whenRuntime(fn) {
     if (window.BingoPluginRuntime?.initUserPlugin) return fn();
@@ -348,6 +349,7 @@
         }
 
         function open() {
+          if (slideCatPlaying) return;
           if (document.getElementById("stu-overlay")) return;
 
           overlay = document.createElement("div");
@@ -466,8 +468,9 @@
   document.body.appendChild(el);
 
  function show() {
-  if (showing) return;        // nie nakładaj dwóch animacji
+  if (showing) return;
   showing = true;
+  slideCatPlaying = true;
 
   const fromLeft = Math.random() < 0.5;
 
@@ -495,9 +498,10 @@
   currentSfx = sfx;
 
   const cleanup = () => {
-    if (currentSfx === sfx) currentSfx = null;
-    showing = false;
-  };
+  if (currentSfx === sfx) currentSfx = null;
+  showing = false;
+  slideCatPlaying = false;
+};
 
   sfx.onended = () => {
     // wyjazd dopiero po końcu dźwięku
