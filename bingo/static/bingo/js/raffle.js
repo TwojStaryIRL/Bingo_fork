@@ -1,5 +1,5 @@
 (() => {
-  // ===== Helpers =====
+  // ===== Helpers (w stylu game.js) =====
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
     if (!el) return fallback;
@@ -16,6 +16,7 @@
     return "";
   }
 
+  // Fisher–Yates
   function shuffleArray(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -25,13 +26,23 @@
     return a;
   }
 
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  function playAudioById(id) {
+    const audio = document.getElementById(id);
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   function toInt(x, fallback = 0) {
-    const n = Number(String(x ?? "").trim());
+    const n = Number(x);
     return Number.isFinite(n) ? n : fallback;
   }
 
+  // ===== Główna logika =====
   function initRafflePlugin() {
     const cfg = getJSONScript("raffle-config", null);
     if (!cfg) {
@@ -42,6 +53,7 @@
     const endpoints = cfg.endpoints || {};
     const size = cfg.gridSize || 4;
     const targetTiles = size * size;
+
     const csrftoken = getCsrfToken();
 
     const boards = Array.from(document.querySelectorAll(".raffle-board--set"));
@@ -56,33 +68,9 @@
     const badgeShuffle = document.getElementById("badgeShuffle");
 
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
-    const rerollAudioEl = document.getElementById(audioRerollId);
-
-    // ===== CAT overlay (HTML/CSS: id="catGifOverlay") =====
-    const catOverlay = document.getElementById("catGifOverlay");
-    const showCatGif = () => { if (catOverlay) catOverlay.hidden = false; };
-    const hideCatGif = () => { if (catOverlay) catOverlay.hidden = true; };
-
-    // NA START: kot ma być niewidoczny
-    hideCatGif();
-
-    // Kot ma znikać po zakończeniu dźwięku (globalnie, raz)
-    if (rerollAudioEl) {
-      rerollAudioEl.addEventListener("ended", hideCatGif);
-      // jeśli ktoś zatrzyma/odetnie audio w trakcie
-      rerollAudioEl.addEventListener("pause", () => {
-        try {
-          // ukrywaj tylko jeśli to było "w trakcie", żeby nie znikał na starcie z pauzy
-          if (rerollAudioEl.currentTime > 0 && rerollAudioEl.currentTime < rerollAudioEl.duration) {
-            hideCatGif();
-          }
-        } catch {
-          hideCatGif();
-        }
-      });
-    }
 
     let active = 0;
+
 
     function applyClasses() {
       if (!boards.length) return;
@@ -99,27 +87,24 @@
         else b.classList.add("raffle-board--hidden");
       });
     }
-
-    // ===== BADGES: start z HTML (DB) =====
-    let rerollsLeft = toInt(badgeReroll?.textContent, 0);
-    let shufflesLeft = toInt(badgeShuffle?.textContent, 0);
-
+      let rerollsLeft = Number(badgeReroll?.textContent || 0);
+      let shufflesLeft = Number(badgeShuffle?.textContent || 0);  
     function updateBadges() {
-      const rl = Math.max(0, toInt(rerollsLeft, 0));
-      const sl = Math.max(0, toInt(shufflesLeft, 0));
+  const rl = Math.max(0, Number.isFinite(rerollsLeft) ? rerollsLeft : 0);
+  const sl = Math.max(0, Number.isFinite(shufflesLeft) ? shufflesLeft : 0);
 
-      if (badgeReroll) {
-        badgeReroll.textContent = String(rl);
-        badgeReroll.classList.toggle("btn-badge--disabled", rl === 0);
-      }
-      if (badgeShuffle) {
-        badgeShuffle.textContent = String(sl);
-        badgeShuffle.classList.toggle("btn-badge--disabled", sl === 0);
-      }
+  if (badgeReroll) {
+    badgeReroll.textContent = String(rl);
+    badgeReroll.classList.toggle("btn-badge--disabled", rl === 0);
+  }
+  if (badgeShuffle) {
+    badgeShuffle.textContent = String(sl);
+    badgeShuffle.classList.toggle("btn-badge--disabled", sl === 0);
+  }
 
-      if (btnReroll) btnReroll.disabled = (rl === 0);
-      if (btnShuffle) btnShuffle.disabled = (sl === 0);
-    }
+  if (btnReroll) btnReroll.disabled = (rl === 0);
+  if (btnShuffle) btnShuffle.disabled = (sl === 0);
+}
 
     function applyLeftFromResponse(data) {
       if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
@@ -141,7 +126,7 @@
     applyClasses();
     updateBadges();
 
-    // ===== SHUFFLE =====
+    // SHUFFLE (backend limit + animacja)
     if (btnShuffle) {
       btnShuffle.addEventListener("click", async () => {
         if (btnShuffle.disabled) return;
@@ -150,8 +135,10 @@
         const gridEl = board?.querySelector(".raffle-grid");
         const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
         const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
+
         if (!gridEl || tiles.length !== targetTiles) return;
 
+        // UI lock (żeby nie spamować klikami)
         btnShuffle.disabled = true;
 
         try {
@@ -164,10 +151,12 @@
 
           if (!data.ok) {
             showToast?.(data.error || "Shuffle blocked", "error", 2200);
+            // nawet na błędzie spróbuj zaciągnąć left jeśli backend zwrócił
             applyLeftFromResponse(data);
             return;
           }
 
+          // Ustaw left z backendu
           applyLeftFromResponse(data);
 
           const first = tiles.map(t => t.getBoundingClientRect());
@@ -177,6 +166,7 @@
 
           gridEl.classList.add("is-shuffling");
 
+          // Faza 1: do środka
           const toCenterAnims = tiles.map((tile, i) => {
             const r = first[i];
             const tx = cx - (r.left + r.width / 2);
@@ -192,14 +182,16 @@
 
           await Promise.allSettled(toCenterAnims.map(a => a.finished));
 
+          // Faza 2: przetasuj teksty (frontend)
           const texts = textsEls.map(t => t.textContent);
           const shuffledTexts = shuffleArray(texts);
           textsEls.forEach((t, i) => { t.textContent = shuffledTexts[i]; });
 
           toCenterAnims.forEach(a => a.cancel());
 
+          // Faza 3: z centrum na pola
           const last = tiles.map(t => t.getBoundingClientRect());
-          const backAnims = tiles.map((tile, i) => {
+          const fromCenterToCellAnims = tiles.map((tile, i) => {
             const r = last[i];
             const tx = cx - (r.left + r.width / 2);
             const ty = cy - (r.top + r.height / 2);
@@ -212,62 +204,34 @@
             );
           });
 
-          await Promise.allSettled(backAnims.map(a => a.finished));
-          backAnims.forEach(a => a.cancel());
+          await Promise.allSettled(fromCenterToCellAnims.map(a => a.finished));
+          fromCenterToCellAnims.forEach(a => a.cancel());
           gridEl.classList.remove("is-shuffling");
 
         } catch (e) {
           console.error(e);
+          gridEl?.classList.remove("is-shuffling");
           showToast?.("Błąd shuffle (network)", "error", 2200);
         } finally {
-          updateBadges();
+          updateBadges(); // odblokuje wg aktualnych left
         }
       });
     }
 
-    // ===== REROLL (backend + podmiana tekstów + kot) =====
+    // REROLL (backend limit + podmiana tekstów)
     if (btnReroll) {
       btnReroll.addEventListener("click", async () => {
         if (btnReroll.disabled) return;
 
-        const board = boards[active];
-        const gridEl = board ? board.querySelector(".raffle-grid") : null;
-        if (!board || !gridEl) return;
-
-        // kot pojawia się dopiero po kliknięciu reroll
-        showCatGif();
-
-        // audio start (bez onended tutaj)
-        // jeśli autoplay zablokowany, niech kot nie wisi bez końca:
-        try {
-          if (rerollAudioEl) {
-            rerollAudioEl.currentTime = 0;
-            const p = rerollAudioEl.play();
-            if (p && typeof p.catch === "function") {
-              p.catch(() => {
-                // audio nie ruszyło -> schowaj kota po chwili, ale reroll ma działać dalej
-                setTimeout(hideCatGif, 800);
-              });
-            }
-          } else {
-            // fallback: spróbuj po id
-            const a = document.getElementById(audioRerollId);
-            if (a && a.play) {
-              a.currentTime = 0;
-              const p = a.play();
-              if (p && typeof p.catch === "function") p.catch(() => setTimeout(hideCatGif, 800));
-            } else {
-              setTimeout(hideCatGif, 800);
-            }
-          }
-        } catch {
-          setTimeout(hideCatGif, 800);
-        }
+        playAudioById(audioRerollId);
 
         const form = new FormData();
         form.append("grid", String(active));
 
-        gridEl.classList.add("is-rerolling");
+        const board = boards[active];
+        const gridEl = board ? board.querySelector(".raffle-grid") : null;
+
+        if (gridEl) gridEl.classList.add("is-rerolling");
         btnReroll.disabled = true;
 
         try {
@@ -282,41 +246,37 @@
           if (!data.ok) {
             showToast?.(data.error || "Reroll blocked", "error", 2200);
             applyLeftFromResponse(data);
-            hideCatGif();
             return;
           }
 
+          // Ustaw left z backendu
           applyLeftFromResponse(data);
 
           const tiles = Array.from(board.querySelectorAll(".raffle-text"));
 
-          // Twój timing pod audio
-          await sleep(1367);
+          await sleep(1367); // do dostosowania
 
+          // backend powinien zwracać data.cells (lista 16)
           if (Array.isArray(data.cells)) {
             data.cells.forEach((txt, i) => {
               if (tiles[i]) tiles[i].textContent = txt;
             });
-          } else {
-            console.warn("[reroll] missing data.cells", data);
           }
 
         } catch (e) {
           console.error(e);
           showToast?.("Błąd reroll (network)", "error", 2200);
-          hideCatGif();
         } finally {
           setTimeout(() => {
-            gridEl.classList.remove("is-rerolling");
+            if (gridEl) gridEl.classList.remove("is-rerolling");
           }, 260);
 
           updateBadges();
-          // kota NIE chowamy tutaj — tylko ended/pause lub error
         }
       });
     }
 
-    // ===== PICK =====
+    // WYBIERAM CIEBIE: JSON aktualnego grida z DOM
     if (btnPick) {
       btnPick.addEventListener("click", () => {
         const board = boards[active];

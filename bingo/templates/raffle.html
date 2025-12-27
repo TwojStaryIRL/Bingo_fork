@@ -17,28 +17,24 @@
         <button class="raffle-nav raffle-nav--left" type="button" aria-label="Poprzedni grid">‹</button>
         <button class="raffle-nav raffle-nav--right" type="button" aria-label="Następny grid">›</button>
 
-    <div class="raffle-stage">
-      
-      <div id="catGifOverlay" class="raffle-cat-overlay" hidden>
-        <img src="{% static 'bingo/images/cat-gambling.gif' %}" alt="Cat rolling">
-      </div>
-
-      {% for grid in grids %}
-        <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}">
-          <div class="raffle-grid">
-            {% for row in grid %}
-              {% for cell in row %}
-                <div class="raffle-tile">
-                  <div class="raffle-text">
-                    {% if cell %}{{ cell.text }}{% else %}—{% endif %}
-                  </div>
-                </div>
-              {% endfor %}
-            {% endfor %}
-          </div>
+        <div class="raffle-stage">
+          {% for grid in grids %}
+            <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}">
+              <div class="raffle-grid">
+                {% for row in grid %}
+                  {% for cell in row %}
+                    <div class="raffle-tile">
+                      <div class="raffle-text">
+                        {% if cell %}{{ cell.text }}{% else %}—{% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
-    </div>
+      </div>
 
       <div class="raffle-actions">
         <div class="btn-wrap">
