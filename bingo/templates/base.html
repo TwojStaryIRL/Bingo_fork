@@ -11,9 +11,26 @@
     {% block head %}{% endblock %}
   </head>
   <body>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
     {% block content %}{% endblock %}
 
     <script defer src="{% static 'bingo/js/app.js' %}"></script>
+
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form =
+    document.querySelector("form[action*='login']") ||
+    document.querySelector("form#login-form") ||
+    document.querySelector("form");
+
+  if (!form) return;
+
+  form.addEventListener("submit", () => {
+    window.Bingo?.showToast?.("Logowanie…", "success", 60000); // długi czas
+  });
+});
+</script>
+
     {% block scripts %}{% endblock %}
   </body>
 </html>

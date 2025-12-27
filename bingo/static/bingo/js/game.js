@@ -129,6 +129,83 @@
     setTimeout(() => wrap.remove(), 1000);
   }
 
+    const MAX_PER_USER = 2;
+
+  function getActiveSelects() {
+    // 
+    return Array.from(document.querySelectorAll(
+      ".cell-wrapper:not(.plugin-placeholder) select.cell-user--inside"
+    ));
+  }
+
+  function countPicks() {
+    const counts = new Map();
+    for (const sel of getActiveSelects()) {
+      const v = (sel.value || "").trim();
+      if (!v) continue;
+      counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    return counts;
+  }
+
+  function setCustomOptionDisabled(wrapper, value, disabled) {
+    const optDiv = wrapper.querySelector(`.cd__option[data-value="${CSS.escape(value)}"]`);
+    if (!optDiv) return;
+    optDiv.classList.toggle("cd__option--disabled", !!disabled);
+    optDiv.setAttribute("aria-disabled", disabled ? "true" : "false");
+  }
+
+  function applyUserPickRules({ toastOnViolation = false, changedSelect = null, prevValue = "" } = {}) {
+    const counts = countPicks();
+    const selects = getActiveSelects();
+
+    for (const sel of selects) {
+      const wrapper = sel.closest(".cell-wrapper");
+      if (!wrapper) continue;
+
+      for (const opt of Array.from(sel.options)) {
+        const val = (opt.value || "").trim();
+        if (!val) continue;
+
+        const isSelf = (val === CURRENT_USER);
+        const picked = counts.get(val) || 0;
+
+        // 
+        const shouldDisableByLimit = (picked >= MAX_PER_USER) && (sel.value !== val);
+
+        const disabled = isSelf || shouldDisableByLimit;
+
+        opt.disabled = disabled;
+
+        // zaktualizuj UI 
+        setCustomOptionDisabled(wrapper, val, disabled);
+      }
+    }
+
+    
+    if (toastOnViolation && changedSelect) {
+      const v = (changedSelect.value || "").trim();
+
+      if (v === CURRENT_USER) {
+        changedSelect.value = prevValue || "";
+        changedSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        showToast?.("Nie możesz wybrać samego siebie.", "error", 2600);
+        return;
+      }
+
+      const c = countPicks().get(v) || 0;
+      if (v && c > MAX_PER_USER) {
+        changedSelect.value = prevValue || "";
+        changedSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        showToast?.(`Nick "${v}" może być przypisany maksymalnie ${MAX_PER_USER} razy.`, "error", 2800);
+        return;
+      }
+    }
+  }
+
+
+
+
   function enhanceDropdowns() {
     function closeAll(exceptWrapper = null) {
       document.querySelectorAll(".cd--open").forEach(w => {
@@ -164,21 +241,30 @@
         btn.textContent = opt ? opt.text : "—";
       }
 
-      [...select.options].forEach(opt => {
+        [...select.options].forEach(opt => {
         const div = document.createElement("div");
         div.className = "cd__option";
+        div.dataset.value = opt.value || "";          
         if (!opt.value) div.classList.add("cd__option--muted");
         div.textContent = opt.text;
 
         div.addEventListener("click", (e) => {
           e.stopPropagation();
+
+          
+          if (div.classList.contains("cd__option--disabled")) return;
+
           select.value = opt.value;
+          // event change 
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+
           syncFromSelect();
           wrapper.classList.remove("cd--open");
         });
 
         list.appendChild(div);
       });
+
 
       btn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -209,8 +295,7 @@
 //end of sfx //end of sfx //end of sfx //end of sfx //end of sfx 
   
   async function onSave() {
-    // const wrappers = document.querySelectorAll(".cell-wrapper");
-    // zmieniamy żeby działało dla znikających tilesów
+    
     const wrappers = document.querySelectorAll(".cell-wrapper:not(.plugin-placeholder)");
     const grid = [];
 
@@ -251,21 +336,62 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-  enhanceDropdowns();
-  loadSavedGrid();
+  function initPluginWhenReady() {
+  // failsafe jakby plugin się długo ładował i guess
+  const maxMs = 8000;
+  const step = 80;
+  let waited = 0;
 
-  const saveBtn = document.getElementById("save-btn");
-  if (saveBtn) saveBtn.addEventListener("click", onSave);
+  const t = setInterval(() => {
+    const hasRuntime = !!window.BingoPluginRuntime?.initUserPlugin;
+    const hasUserPlugin = typeof window.BingoUserPlugin?.init === "function";
+
+    if (hasRuntime && hasUserPlugin) {
+      clearInterval(t);
+      window.BingoPluginRuntime.initUserPlugin();
+      return;
+    }
+
+    waited += step;
+    if (waited >= maxMs) clearInterval(t);
+  }, step);
+}
+
+
+
+
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+    enhanceDropdowns();
+    loadSavedGrid();
+
     
-  //ładujemy juz sporo rzeczy wiec to takie failsave jakby sie plugin ładował dłużej niż sama strona, żeby na niego poczekała 
-  window.addEventListener("DOMContentLoaded", () => {
-  window.BingoPluginRuntime?.initUserPlugin?.();
+    applyUserPickRules();
+
+    // nasłuchuj zmian
+    let lastValueBySelect = new WeakMap();
+
+    for (const sel of document.querySelectorAll("select.cell-user--inside")) {
+      lastValueBySelect.set(sel, sel.value || "");
+
+      sel.addEventListener("focus", () => {
+        lastValueBySelect.set(sel, sel.value || "");
+      });
+
+      sel.addEventListener("change", () => {
+        const prev = lastValueBySelect.get(sel) || "";
+        applyUserPickRules({ toastOnViolation: true, changedSelect: sel, prevValue: prev });
+        lastValueBySelect.set(sel, sel.value || "");
+      });
+    }
+
+    const saveBtn = document.getElementById("save-btn");
+    if (saveBtn) saveBtn.addEventListener("click", onSave);
+
+    
+    initPluginWhenReady();
   });
 
-
-    
-  
-});
 
 })();
