@@ -16,19 +16,17 @@
 
     <script defer src="{% static 'bingo/js/app.js' %}"></script>
 
-    <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const form =
-    document.querySelector("form[action*='login']") ||
-    document.querySelector("form#login-form") ||
-    document.querySelector("form");
+<script>
 
-  if (!form) return;
+      document.addEventListener("DOMContentLoaded", () => {
+  const loginForm = document.getElementById("login-form");
+  if (!loginForm) return;
 
-  form.addEventListener("submit", () => {
-    window.Bingo?.showToast?.("Logowanie…", "success", 60000); // długi czas
+  loginForm.addEventListener("submit", () => {
+    window.Bingo?.showToast?.("Logowanie…", "success", 60000);
   });
 });
+  
 </script>
 
     {% block scripts %}{% endblock %}
