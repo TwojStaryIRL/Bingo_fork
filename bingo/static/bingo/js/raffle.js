@@ -153,9 +153,9 @@
           const data = await res.json();
 
           if (!data.ok) {
-            showToast?.(data.error || "Shuffle blocked", "error", 2200);
-            applyLeftFromResponse(data);
-            return;
+           showToast?.(data.error || "Reroll blocked", "error", 2200);
+          applyLeftFromResponse(data);
+          return;
           }
 
           applyLeftFromResponse(data);

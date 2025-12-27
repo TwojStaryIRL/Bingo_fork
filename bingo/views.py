@@ -121,9 +121,6 @@ def raffle(request):
         "rerolls_left": state.rerolls_left,
         "shuffles_left": state.shuffles_left,
     })
-
-
-
 @login_required
 @require_POST
 def raffle_reroll_all(request):
@@ -154,30 +151,48 @@ def raffle_reroll_all(request):
             payload.setdefault("shuffles_left", state.shuffles_left)
             return JsonResponse(payload, status=status)
 
-        # sukces -> odejmij limit w DB
+        # --- sukces ---
         state.rerolls_left = max(0, state.rerolls_left - 1)
 
-        # zapisz patch do DB
         new_payload = dict(state.generated_board_payload or {})
         if isinstance(patch, dict) and patch:
             new_payload.update(patch)
 
-        # kluczowe: przelicz raffle_grids -> grids_2d, żeby GET /raffle/ renderował aktualny stan
         size = int(new_payload.get("size") or 4)
+
+        # przelicz zawsze na grids_2d i zapisz
+        grids_2d_all = None
         if isinstance(new_payload.get("raffle_grids"), list):
-            new_payload["grids_2d"] = to_grids_2d(new_payload["raffle_grids"], size=size)
+            grids_2d_all = to_grids_2d(new_payload["raffle_grids"], size=size)
+            new_payload["grids_2d"] = grids_2d_all
 
         state.generated_board_payload = new_payload
         state.save(update_fields=["rerolls_left", "generated_board_payload", "updated_at"])
 
-        payload["ok"] = True
-        payload["rerolls_left"] = state.rerolls_left
-        payload["shuffles_left"] = state.shuffles_left
+        # przygotuj cells dla aktywnego grida (to jest to, czego potrzebuje JS)
+        try:
+            grid_idx = int(request.POST.get("grid", 0))
+        except Exception:
+            grid_idx = 0
 
-        return JsonResponse(payload, status=status)
+        cells = []
+        if isinstance(grids_2d_all, list) and 0 <= grid_idx < len(grids_2d_all):
+            grid2d = grids_2d_all[grid_idx]
+            for row in grid2d:
+                for cell in row:
+                    if isinstance(cell, dict):
+                        cells.append((cell.get("text") or "").strip())
+                    else:
+                        cells.append(str(cell).strip())
 
-
-login_required
+        return JsonResponse({
+            "ok": True,
+            "grid": grid_idx,
+            "cells": cells,  # <-- kluczowe dla JS
+            "rerolls_left": state.rerolls_left,
+            "shuffles_left": state.shuffles_left,
+        }, status=200)
+@login_required
 @require_POST
 def raffle_shuffle_use(request):
     with transaction.atomic():
@@ -191,10 +206,8 @@ def raffle_shuffle_use(request):
                 "shuffles_left": 0,
             }, status=429)
 
-        # sukces: odejmij limit w DB
         state.shuffles_left = max(0, state.shuffles_left - 1)
 
-        # (opcjonalnie) zapisz licznik techniczny do payloadu, jeśli chcesz go trzymać
         new_payload = dict(state.generated_board_payload or {})
         used = int(new_payload.get("raffle_shuffles_used") or 0) + 1
         new_payload["raffle_shuffles_used"] = used
@@ -206,5 +219,5 @@ def raffle_shuffle_use(request):
             "ok": True,
             "shuffles_left": state.shuffles_left,
             "rerolls_left": state.rerolls_left,
-            "shuffles_used": used,  # tylko informacyjnie
+            "shuffles_used": used,
         }, status=200)
