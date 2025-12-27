@@ -8,7 +8,6 @@
     HAPPY_CAT: "/static/bingo/images/jull/happycat.jpg",
     SAD_CAT: "/static/bingo/images/jull/sadcat.jpg",
 
-    // tło
     ROWS: 6,
     TILE_H: 160,
     TILE_GAP: 14,
@@ -16,7 +15,6 @@
     SPEED_MAX: 36,
     BG_OPACITY: 0.22,
 
-    // minigierka – tlen
     OXY_START: 0.65,
     OXY_DECAY_PER_SEC: 0.055,
     OXY_PUMP_ADD: 0.22,
@@ -25,9 +23,8 @@
     SAD_THRESHOLD: 0.30,
     FADE_MS: 280,
 
-    // PANEL (większy)
-    PANEL_W: 360,
-    PANEL_H: 260,
+    PANEL_W: 360,     // szerokość git
+    PANEL_H: 320,     // <<< WYŻSZE
     PANEL_MARGIN: 18,
   };
 
@@ -67,10 +64,8 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // ===== style =====
         const style = document.createElement("style");
         style.textContent = `
-/* 1) Wyłącz 2sigmy ONLY na czas pluginu */
 body::before,
 body::after{
   background-image: none !important;
@@ -78,7 +73,6 @@ body::after{
   content: "" !important;
 }
 
-/* tło kotków — dekoracyjne, nie klikalne */
 .jull-bgwrap{
   position: fixed;
   inset: 0;
@@ -136,36 +130,33 @@ body::after{
 .jull-track.anim{ animation: jull-marquee var(--jullDur, 26s) linear infinite; }
 .jull-track.reverse{ animation-direction: reverse; }
 
-/* 2) Panel większy + "przezroczyste boki": panel nie łapie klików */
+/* PANEL: większy, ale nadal przepuszcza klik poza card */
 .jull-panel{
   position: fixed;
   right: ${CFG.PANEL_MARGIN}px;
   bottom: ${CFG.PANEL_MARGIN}px;
   width: ${CFG.PANEL_W}px;
   height: ${CFG.PANEL_H}px;
-
   z-index: 10000;
-
-  pointer-events: none; /* <<< najważniejsze: klik przechodzi do pól */
+  pointer-events: none;
   display: grid;
   place-items: stretch;
 }
 
-/* Wszystko klikalne dopiero w card (mały obszar), reszta panelu przepuszcza klik */
 .jull-card{
   pointer-events: auto;
   width: 100%;
   height: 100%;
-
   border-radius: 18px;
   background: rgba(0,0,0,.68);
   outline: 1px solid rgba(255,255,255,.14);
   box-shadow: 0 20px 60px rgba(0,0,0,.45);
   padding: 14px;
   box-sizing: border-box;
-
   display: grid;
-  grid-template-rows: 1fr auto auto;
+
+  /* <<< więcej miejsca na kotka */
+  grid-template-rows: 1.45fr auto auto;
   gap: 12px;
 
   backdrop-filter: blur(6px);
@@ -179,12 +170,13 @@ body::after{
   outline: 1px solid rgba(255,255,255,.10);
 }
 
+/* kotek bardziej “duży” w boxie */
 .jull-catbox img{
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* większe zdjęcie wypełnia box */
+  object-fit: cover;
   transition: opacity ${CFG.FADE_MS}ms ease;
   user-select: none;
   pointer-events: none;
@@ -193,8 +185,9 @@ body::after{
 .jull-happy{ opacity: 1; }
 .jull-sad{ opacity: 0; }
 
+/* pasek tlenu minimalnie większy */
 .jull-oxy{
-  height: 16px;
+  height: 18px;
   border-radius: 999px;
   overflow: hidden;
   background: rgba(255,255,255,.12);
@@ -229,7 +222,7 @@ body::after{
 .jull-pumpbtn{
   border: 0;
   border-radius: 14px;
-  padding: 12px 12px;
+  padding: 14px 12px;     /* <<< większy “hitbox” */
   font-weight: 950;
   cursor: pointer;
   background: rgba(255,255,255,.92);
@@ -240,7 +233,7 @@ body::after{
 `;
         document.head.appendChild(style);
 
-        // ===== DOM: tło =====
+        // ===== BG =====
         const bgwrap = document.createElement("div");
         bgwrap.className = "jull-bgwrap";
 
@@ -265,7 +258,7 @@ body::after{
         bgwrap.appendChild(bg);
         root.appendChild(bgwrap);
 
-        // ===== DOM: panel =====
+        // ===== PANEL =====
         const panel = document.createElement("div");
         panel.className = "jull-panel";
 
@@ -336,7 +329,7 @@ body::after{
         layoutFill();
         ctx.on(window, "resize", () => layoutFill());
 
-        // ===== minigame logic =====
+        // ===== logic =====
         let oxyVal = clamp01(CFG.OXY_START);
         let lastPumpAt = 0;
         let lastTick = performance.now();
@@ -380,11 +373,10 @@ body::after{
         setMood();
         raf = requestAnimationFrame(tick);
 
-        // input: klik tylko w card (nie blokuje pól poza nim)
+        // input
         ctx.on(card, "pointerdown", (e) => { e.preventDefault(); pump(); }, { passive: false });
         btn.addEventListener("click", (e) => { e.preventDefault(); pump(); });
 
-        // klawiatura: tylko gdy kursor nad card
         let armed = false;
         ctx.on(card, "mouseenter", () => { armed = true; });
         ctx.on(card, "mouseleave", () => { armed = false; });
@@ -400,7 +392,6 @@ body::after{
           }
         }, { capture: true });
 
-        // cleanup
         return () => {
           try { if (raf) cancelAnimationFrame(raf); } catch {}
           try { panel.remove(); } catch {}
