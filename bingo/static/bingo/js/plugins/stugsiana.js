@@ -17,7 +17,7 @@
     // ===== bouncing logo =====
     BOUNCE_LOGO_SRC: "/static/bingo/images/stugsiana/wzwod.jpg",
     BOUNCE_LOGO_SIZE: 167,
-    BOUNCE_LOGO_OPACITY: 0.50,
+    BOUNCE_LOGO_OPACITY: 0.67,
     BOUNCE_LOGO_MAX: 5,
 
     // ===== SLIDE CAT =====
