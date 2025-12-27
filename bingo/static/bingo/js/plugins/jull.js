@@ -67,21 +67,32 @@
           return a;
         }
 
+        let globalBag = [];
+        let globalK = 0;
+
+        function nextCatSrc() {
+          if (globalBag.length === 0 || globalK >= globalBag.length) {
+            globalBag = shuffledPool(CFG.BG_IMGS);
+            globalK = 0;
+          }
+          return globalBag[globalK++];
+        }
+
+
+
     function fillRowNoDup(track, rowW, tileW) {
     const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
-    let bag = shuffledPool(CFG.BG_IMGS);
-    let k = 0;
 
     for (let i = 0; i < need; i++) {
-      if (k >= bag.length) { bag = shuffledPool(CFG.BG_IMGS); k = 0; } // reset po wyczerpaniu
       const img = document.createElement("img");
-      img.src = bag[k++];
+      img.src = nextCatSrc();
       img.alt = "kotek";
       img.draggable = false;
       img.loading = "lazy";
       track.appendChild(img);
     }
   }
+
 
 
   whenRuntime(() => {
