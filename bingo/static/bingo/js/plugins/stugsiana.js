@@ -4,7 +4,7 @@
     STORAGE_KEY: "bingo_stugsiana_cat_gate_v1",
 
     TITLE: "Proszę kliknąć na grzeczną kicie",
-    SUBTITLE: "Wybierz dowolny obrazek, oba są poprawne 🙂",
+    SUBTITLE: "Meow ;3",
 
     // Ścieżki do obrazków (wrzuć je do static i trzymaj jak poniżej)
     IMG_1: "/static/bingo/images/stugsiana/kicia.png",
@@ -206,9 +206,6 @@
           grid.appendChild(mkCard(CFG.IMG_1, "kicia 1"));
           grid.appendChild(mkCard(CFG.IMG_2, "kicia 2"));
 
-          const hint = document.createElement("div");
-          hint.className = "stu-hint";
-          hint.textContent = "Kliknij dowolny obrazek, żeby odblokować wpisywanie.";
 
           modal.appendChild(h);
           modal.appendChild(s);
