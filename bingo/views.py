@@ -177,7 +177,7 @@ def raffle_reroll_all(request):
         return JsonResponse(payload, status=status)
 
 
-login_required
+@login_required
 @require_POST
 def raffle_shuffle_use(request):
     with transaction.atomic():
