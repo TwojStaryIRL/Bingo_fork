@@ -166,7 +166,7 @@
     const fine = document.createElement("div");
     fine.className = "kys-fine";
     fine.textContent = "jest tylko jeden grzeczny chłopiec";
-    fine.style.fontSize = "11px";  
+    // fine.style.fontSize = "11px";  
     modal.appendChild(fine);
 
 
@@ -400,7 +400,7 @@
 }
 
 .kys-title{ font-size: 22px; font-weight: 800; margin: 0 0 8px; text-align:center; }
-.kys-sub{ font-size: 15px; opacity: .88; margin: 0 0 10px; line-height: 1.35; }
+.kys-sub{ font-size: 8px; opacity: .88; margin: 0 0 10px; line-height: 1.35; }
 
 .kys-row{ display:flex; gap:12px; margin-top:14px; align-items:center; justify-content:center; }
 
