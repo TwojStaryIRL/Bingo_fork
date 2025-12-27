@@ -47,6 +47,11 @@
       "/static/bingo/images/kamiqxx/badboy6.jpg",
       "/static/bingo/images/kamiqxx/badboy7.jpg",
       "/static/bingo/images/kamiqxx/badboy8.jpg",
+      "/static/bingo/images/kamiqxx/badboy9.jpg",
+      "/static/bingo/images/kamiqxx/badboy10.jpg",
+      "/static/bingo/images/kamiqxx/badboy11.jpg",
+      "/static/bingo/images/kamiqxx/badboy12.jpg",
+      "/static/bingo/images/kamiqxx/badboy13.jpg",
     ],
 
 
