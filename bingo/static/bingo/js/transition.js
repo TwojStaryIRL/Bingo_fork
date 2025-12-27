@@ -21,7 +21,7 @@
     SFX_VOL: 0.15,
 
     // jeśli audio nie ruszy (autoplay / błąd) → i tak przechodzimy po tym czasie
-    FALLBACK_NAV_MS: 2500,
+    FALLBACK_NAV_MS: 25000,
   };
 
   // tylko na /game/
