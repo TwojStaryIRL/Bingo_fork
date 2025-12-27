@@ -427,7 +427,7 @@ body::after{
         function die() {
           isDead = true;
           // na stałe komunikat końcowy
-          setBubble("PRZEZ CIEBIE ZGINĄŁEM", { on: true, dead: true });
+          setBubble("HAHAHA JESTEM GEORGE DROYD NIGDY MNIE NIE POKONASZ", { on: true, dead: true });
           // opcjonalnie: zatrzymaj spadek / animację (zostawiamy jako “freeze”)
         }
 
