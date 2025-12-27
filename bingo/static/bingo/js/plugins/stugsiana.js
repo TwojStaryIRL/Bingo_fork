@@ -407,7 +407,7 @@
 
           const hint = document.createElement("div");
           hint.className = "stu-hint";
-          hint.textContent = "Kliknij dowolny obrazek, żeby odblokować wpisywanie.";
+          hint.textContent = "Hmmm która kicia jest grzeczniejsza...?";
 
           modal.appendChild(h);
           modal.appendChild(s);
@@ -426,11 +426,13 @@
 
         // start popup
         ctx.setTimeoutSafe(() => open(), 80);
-        ctx.on(window, "pageshow", (e) => {
-          // jeśli strona wróciła z cache
-         if (e.persisted) {
-         open();
-         }
+        ctx.on(window, "pageshow", () => {
+        open();
+        });
+        ctx.on(document, "visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            open();
+        }
 });
 
         return () => {
@@ -479,18 +481,24 @@
 
     // wjazd
     el.style.transform = "translateX(0)";
+    audio.pause();
     audio.currentTime = 0;
-    audio.play().catch(() => {});
 
-    // wyjazd
-    ctx.setTimeoutSafe(() => {
-      el.style.transform = `translateX(${fromLeft ? "-100%" : "100%"})`;
-    }, CFG.SLIDE_CAT_DURATION);
+    const p = audio.play();
+    if (p && typeof p.then === "function") p.catch(() => {});
 
-    // schowanie
+    // najpierw wyczyść poprzedni handler, żeby się nie dublował
+    audio.onended = null;
+
+    audio.onended = () => {
+    // wyjazd dopiero po zakończeniu dźwięku
+    el.style.transform = `translateX(${fromLeft ? "-100%" : "100%"})`;
+
+    // schowanie po animacji wyjazdu (1.6s w CSS)
     ctx.setTimeoutSafe(() => {
-      el.style.display = "none";
-    }, CFG.SLIDE_CAT_DURATION + 1800);
+        el.style.display = "none";
+    }, 1800);
+    };
   }
 
   return { show };
