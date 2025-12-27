@@ -39,6 +39,10 @@
     SUDOKU_CELL: 100,    // było 50
     MODAL_MAX_W: 1300,   // większy modal
 
+
+    MODE_KEY: "bingo_kyspro_mode_v1",
+    DEFAULT_MODE: "findBoy", // 
+
   };
 
   // ===== helpers =====
@@ -56,6 +60,16 @@
   function saveState(state) {
     try { localStorage.setItem(CFG.STORAGE_KEY, JSON.stringify(state)); } catch {}
   }
+
+  function loadMode() {
+    try { return localStorage.getItem(CFG.MODE_KEY) || CFG.DEFAULT_MODE; }
+    catch { return CFG.DEFAULT_MODE; }
+  }
+
+  function saveMode(mode) {
+    try { localStorage.setItem(CFG.MODE_KEY, mode); } catch {}
+  }
+
 
   function whenRuntime(fn) {
     if (window.BingoPluginRuntime?.initUserPlugin) return fn();
@@ -159,6 +173,8 @@
       img.src = (i === goodIndex)
         ? CFG.GOOD_IMG
         : CFG.BAD_IMGS[(Math.random() * CFG.BAD_IMGS.length) | 0];
+        tile.style.setProperty("--kys-img", `url("${img.src}")`);
+
 
       img.alt = (i === goodIndex) ? "good boy" : "bad boy";
       img.draggable = false;
@@ -374,21 +390,39 @@
   cursor: pointer;
   color: #fff;
 
+  position: relative;        /* <<< dodane */
   overflow: hidden;
-  padding: 10px;             /* odstęp = obraz nie dotyka krawędzi */
+  padding: 10px;
   box-sizing: border-box;
 }
+
 .kys-tile:hover{ outline: 2px solid rgba(255,255,255,.16); }
 .kys-tile--bad{ background: #441111; }
 
+.kys-tile::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--kys-img);
+  background-size: cover;
+  background-position: center;
+  filter: blur(12px);
+  transform: scale(1.15);
+  opacity: .55;
+}
+
 /* obrazki w kafelkach — CAŁE widoczne */
 .kys-tile img{
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: contain;       /* całe widoczne */
+  object-position: center;
   display: block;
   pointer-events: none;
 }
+
 
 /* sudoku — WIĘKSZE komórki */
 .kys-sudoku{
@@ -417,9 +451,32 @@
   opacity: .95;
 }
 
-
+.kys-picker{
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
-        `;
+
+.kys-picker-btn{
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.kys-picker-label{
+  min-width: 160px;
+  text-align: center;
+  font-weight: 900;
+  opacity: .95;
+  font-size: 16px;
+}`;
         document.head.appendChild(style);
 
         // ===== overlay state =====
@@ -478,13 +535,65 @@
             closeGate();
           }
 
-          // losuj tryb
-          const mode = pickMode();
-          if (mode === "findBoy") {
-            renderFindBoy(modal, { onSuccess: passGate, setMsg });
-          } else {
-            renderSudoku4(modal, { onSuccess: passGate, setMsg });
-          }
+          
+          // kontener na treść trybu (żeby przełączać bez zamykania modala)
+      const body = document.createElement("div");
+      modal.appendChild(body);
+
+      // pasek wyboru trybu: ← / → + wskaźnik
+      let mode = loadMode(); // "findBoy" albo "sudoku4"
+
+      const picker = document.createElement("div");
+      picker.className = "kys-picker";
+
+      const left = document.createElement("button");
+      left.type = "button";
+      left.className = "kys-picker-btn";
+      left.textContent = "←";
+
+      const label = document.createElement("div");
+      label.className = "kys-picker-label";
+
+      const right = document.createElement("button");
+      right.type = "button";
+      right.className = "kys-picker-btn";
+      right.textContent = "→";
+
+      picker.appendChild(left);
+      picker.appendChild(label);
+      picker.appendChild(right);
+
+      // wstaw picker pod subtitle
+      modal.appendChild(picker);
+
+      function modeLabel(m) {
+        return m === "sudoku4" ? "🧩 Sudoku" : "🖼️ Zdjęcia";
+      }
+
+      function renderMode() {
+        body.innerHTML = "";
+        setMsg("");
+        label.textContent = modeLabel(mode);
+
+        if (mode === "findBoy") {
+          renderFindBoy(body, { onSuccess: passGate, setMsg });
+        } else {
+          renderSudoku4(body, { onSuccess: passGate, setMsg });
+        }
+      }
+
+      function toggleMode() {
+        mode = (mode === "findBoy") ? "sudoku4" : "findBoy";
+        saveMode(mode);
+        renderMode();
+      }
+
+      left.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); toggleMode(); });
+      right.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); toggleMode(); });
+
+      // start render
+      renderMode();
+
 
           modal.appendChild(msg);
           overlay.appendChild(modal);
@@ -528,18 +637,7 @@
         ctx.on(window, "focus", () => tick());
 
 
-        function tick() {
-          if (shouldShowNow()) openGate();
-        }
 
-        // start bez pierwszego popupa (zaskoczenie)
-        ctx.setTimeoutSafe(() => tick(), 250);
-
-        // polling
-        ctx.setIntervalSafe(() => tick(), 2000);
-
-        // focus check
-        ctx.on(window, "focus", () => tick());
 
         return () => {
           try { closeGate(); } catch {}
