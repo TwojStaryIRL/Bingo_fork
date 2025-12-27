@@ -159,6 +159,7 @@
         try {
           const { data } = await fetchJsonSafe(endpoints.shuffle, {
             method: "POST",
+            credentials: "same-origin",
             headers: { "X-CSRFToken": csrftoken },
           });
 
@@ -253,6 +254,7 @@
         try {
           const { data } = await fetchJsonSafe(endpoints.reroll, {
             method: "POST",
+            credentials: "same-origin",   // ⬅⬅⬅ TO JEST BRAKUJĄCE
             headers: { "X-CSRFToken": csrftoken },
             body: form
           });
