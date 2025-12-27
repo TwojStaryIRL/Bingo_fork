@@ -378,7 +378,7 @@ body::after{
 
         const hint = document.createElement("div");
         hint.className = "jull-hint";
-        hint.innerHTML = `Pompkuj tlen: <strong>klik w panel</strong> / <strong>SPACJA</strong> / <strong>ENTER</strong>`;
+        hint.innerHTML = `Pomóż mu!!!: <strong>klikaj w panel</strong> / <strong>SPACJA</strong> / <strong>ENTER</strong>`;
 
         const btn = document.createElement("button");
         btn.type = "button";
