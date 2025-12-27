@@ -512,7 +512,7 @@
       if (p && typeof p.then === "function") {
         p.then(() => {
           audioUnlocked = true;
-          fadeTo(Number(CFG.BG_VOL ?? 0.35), Number(CFG.BG_FADE_MS ?? 700));
+          fadeTo(Number(CFG.BG_VOL ?? 0.13), Number(CFG.BG_FADE_MS ?? 500));
           startSavingPosition();
           resume = null;
         }).catch(() => {});
