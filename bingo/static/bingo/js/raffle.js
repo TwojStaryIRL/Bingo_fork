@@ -158,10 +158,10 @@
 
         try {
           const { data } = await fetchJsonSafe(endpoints.shuffle, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "X-CSRFToken": csrftoken },
-          });
+  method: "POST",
+  credentials: "same-origin",
+      headers: { "X-CSRFToken": csrftoken },
+});
 
           if (!data.ok) {
             syncCountersFromServer(data);
@@ -234,68 +234,68 @@
     // REROLL
     // ======================
     if (btnReroll) {
-      btnReroll.addEventListener("click", async () => {
-        if (btnReroll.disabled) return;
+  btnReroll.addEventListener("click", async () => {
+    if (btnReroll.disabled) return;
 
-        playAudioById(audioRerollId);
+    playAudioById(audioRerollId);
 
-        const board = boards[active];
-        const gridEl = board ? board.querySelector(".raffle-grid") : null;
-        const tiles = Array.from(board?.querySelectorAll(".raffle-text") || []);
+    const board = boards[active];
+    const gridEl = board ? board.querySelector(".raffle-grid") : null;
+    const tiles = Array.from(board?.querySelectorAll(".raffle-text") || []);
 
-        if (!board || tiles.length !== targetTiles) return;
+    if (!board || tiles.length !== targetTiles) return;
 
-        const form = new FormData();
-        form.append("grid", String(active));
+    const form = new FormData();
+    form.append("grid", String(active));
 
-        if (gridEl) gridEl.classList.add("is-rerolling");
-        btnReroll.disabled = true;
+    if (gridEl) gridEl.classList.add("is-rerolling");
+    btnReroll.disabled = true;
 
-        try {
-          const { data } = await fetchJsonSafe(endpoints.reroll, {
-            method: "POST",
-            credentials: "same-origin",   // ⬅⬅⬅ TO JEST BRAKUJĄCE
-            headers: { "X-CSRFToken": csrftoken },
-            body: form
-          });
-
-          if (!data.ok) {
-            syncCountersFromServer(data);
-            showToast?.(data.error || "Reroll blocked", "error", 2200);
-            return;
-          }
-
-          // MUSI być cells[16]
-          if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
-            console.warn("[reroll] invalid cells:", data.cells);
-            showToast?.("Reroll: serwer nie zwrócił poprawnych danych", "error", 2400);
-            syncCountersFromServer(data);
-            return;
-          }
-
-          // opcjonalne opóźnienie pod animację
-          await sleep(250);
-
-          data.cells.forEach((txt, i) => {
-            if (tiles[i]) tiles[i].textContent = (txt || "—");
-          });
-
-          // backend zwraca nowe liczniki (to jest najważniejsze!)
-          syncCountersFromServer(data);
-
-        } catch (e) {
-          console.error("[reroll] error:", e);
-          showToast?.("Reroll: błąd serwera (sprawdź Network)", "error", 2400);
-        } finally {
-          setTimeout(() => {
-            if (gridEl) gridEl.classList.remove("is-rerolling");
-          }, 260);
-
-          paintBadges();
-          btnReroll.disabled = (rerollsLeft <= 0);
-        }
+    try {
+      const { data } = await fetchJsonSafe(endpoints.reroll, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrftoken },
+        body: form
       });
+
+      console.log("[reroll] response:", data);
+
+      if (!data.ok) {
+        syncCountersFromServer(data);
+        showToast?.(data.error || "Reroll blocked", "error", 2200);
+        return;
+      }
+
+      // backend -> liczniki (DB jest źródłem prawdy)
+      syncCountersFromServer(data);
+
+      // backend powinien zwrócić cells (16)
+      if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
+        showToast?.("Reroll: serwer nie zwrócił cells[16]", "error", 2400);
+        return;
+      }
+
+      await sleep(250); // pod animację
+
+      data.cells.forEach((txt, i) => {
+        if (tiles[i]) tiles[i].textContent = (txt ?? "—");
+      });
+
+    } catch (e) {
+      console.error("[reroll] error:", e);
+      if (e && e.status) console.error("[reroll] status/body:", e.status, e.body);
+      showToast?.("Błąd reroll (Network/CSRF) — sprawdź konsolę", "error", 2600);
+    } finally {
+      setTimeout(() => {
+        if (gridEl) gridEl.classList.remove("is-rerolling");
+      }, 260);
+
+      // tylko odśwież UI wg aktualnych wartości zmiennych
+      paintBadges();
     }
+  });
+}
 
     // ======================
     // PICK (JSON aktualnego grida)
