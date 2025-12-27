@@ -470,16 +470,20 @@
     function playNextTrack() {
       if (!ensurePlaylist()) return false;
 
-      // jeżeli to wznowienie — nie shuffle
+      const n = playlist.length;
+      const pos = (n > 0) ? (playlistIdx % n) : 0;
       const isResume = !!resume;
 
+
       // tasuj tylko na granicy 
-      if (!isResume && CFG.BG_SHUFFLE && playlist.length && (playlistIdx % playlist.length === 0)) {
+      // tasuj kolejność, ale tylko jeśli nie wznawiamy po F5
+      if (!isResume && CFG.BG_SHUFFLE && n > 1 && pos === 0) {
         shuffleInPlace(playlist);
       }
 
-      const src = playlist[playlistIdx % playlist.length];
-      const shouldSeek = isResume && (Number(resume.t) > 0) && (Number(resume.idx) === (playlistIdx % playlist.length));
+
+      const src = playlist[pos];
+      const shouldSeek = isResume && (Number(resume?.t) > 0) && (Number(resume?.idx) === pos);
       const seekTo = shouldSeek ? Number(resume.t) : 0;
 
       playlistIdx++;
@@ -494,7 +498,7 @@
       bg.src = src;
       bg.preload = "auto";
       bg.loop = false;              // playlista zamiast loop jednego
-      bg.volume = 0.05;                // start od zera -> fade-in
+      bg.volume = 0.13;                // start od zera -> fade-in
 
       bg.onended = () => {
         // następny utwór
@@ -512,7 +516,7 @@
       if (p && typeof p.then === "function") {
         p.then(() => {
           audioUnlocked = true;
-          fadeTo(Number(CFG.BG_VOL ?? 0.13), Number(CFG.BG_FADE_MS ?? 500));
+          fadeTo(Number(CFG.BG_VOL ?? 0.07), Number(CFG.BG_FADE_MS ?? 500));
           startSavingPosition();
           resume = null;
         }).catch(() => {});
