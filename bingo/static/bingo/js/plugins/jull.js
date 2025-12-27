@@ -113,7 +113,7 @@ body::after{
 .jull-bubble::after{
   content: "";
   position: absolute;
-  left: 18px;
+  left: 50%;
   top: 100%;
   border: 10px solid transparent;
   border-top-color: rgba(255,255,255,.92);
