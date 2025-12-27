@@ -19,8 +19,8 @@
 
     
     SFX_KEY: "ambient",
-    BG_VOL: 0.35,          
-    BG_FADE_MS: 700,       
+    BG_VOL: 0.10,          
+    BG_FADE_MS: 100,       
     BG_SHUFFLE: true,      
 
     // losowanie trybu: 0..1 (np. 0.5 = pół na pół)
@@ -33,6 +33,8 @@
     GOOD_IMGS: [
       "/static/bingo/images/kamiqxx/goodboy1.jpg",
       "/static/bingo/images/kamiqxx/goodboy2.jpg",
+      "/static/bingo/images/kamiqxx/goodboy3.jpg",
+      "/static/bingo/images/kamiqxx/goodboy4.jpg",
     ],
 
     BAD_IMGS: [
@@ -492,7 +494,7 @@
       bg.src = src;
       bg.preload = "auto";
       bg.loop = false;              // playlista zamiast loop jednego
-      bg.volume = 0;                // start od zera -> fade-in
+      bg.volume = 0.05;                // start od zera -> fade-in
 
       bg.onended = () => {
         // następny utwór

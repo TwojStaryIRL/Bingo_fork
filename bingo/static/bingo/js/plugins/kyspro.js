@@ -140,7 +140,7 @@
 
           bg = new Audio(url);
           bg.loop = true;
-          bg.volume = 0.55;
+          bg.volume = 0.75;
           bg.preload = "auto";
 
           const p = bg.play();

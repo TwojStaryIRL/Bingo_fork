@@ -112,9 +112,9 @@ def kamiqxx_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/kamiqxx.js",
         sfx={"ambient": [
-                static("bingo/sfx/kamiqxx/connangray1.mp3"),
-                static("bingo/sfx/kamiqxx/connangray2.mp3"),
-                static("bingo/sfx/kamiqxx/connangray3.mp3"),
+                static("bingo/sfx/kamiqxx/conangray.mp3"),
+                static("bingo/sfx/kamiqxx/cyberp.mp3"),
+                static("bingo/sfx/kamiqxx/stevienicks.mp3"),
             ]
         }
     )
