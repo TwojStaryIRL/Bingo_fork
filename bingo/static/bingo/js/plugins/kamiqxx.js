@@ -28,7 +28,7 @@
     // obrazki 
     GOOD_IMGS: [
       "/static/bingo/images/kamiqxx/goodboy1.gif",
-      "/static/bingo/images/kamiqxx/goodboy2.jpg",
+      "/static/bingo/images/kamiqxx/goodboy2.gif",
     ],
 
     BAD_IMGS: [
