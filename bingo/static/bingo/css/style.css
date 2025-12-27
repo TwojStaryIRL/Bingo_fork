@@ -867,22 +867,27 @@ body::after{
 
 /* stage musi być referencją dla overlay */
 /* raffle-stage musi być rodzicem pozycjonowania */
-.raffle-stage {
+.raffle-stage{
   position: relative;
 }
 
-.raffle-board--set { position: relative; }
+/* NIE NADPISUJ raffle-board--set (ma zostać absolute z wcześniejszej definicji) */
+
+/* hidden MUSI wygrywać – overlay ma być niewidoczny na starcie */
+.reroll-overlay[hidden]{
+  display: none !important;
+}
 
 .reroll-overlay{
-  position:absolute;
-  inset:0;
-  z-index:50;
-  display:grid;
-  place-items:center;
-  pointer-events:none;
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
 .reroll-overlay img{
-  max-width:min(520px, 90%);
-  height:auto;
+  max-width: min(520px, 90%);
+  height: auto;
 }
