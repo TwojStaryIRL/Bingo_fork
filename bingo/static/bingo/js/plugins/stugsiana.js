@@ -73,8 +73,12 @@ function randInt(min, max) {
       ov.style.pointerEvents = "none";
       ov.style.display = "none";
       ov.style.opacity = "0";
-      ov.style.transition = `opacity ${CFG.POP_FADE_OUT_MS}ms ease`;
       ov.style.background = "rgba(0,0,0,0)";
+
+      // ważne: layout + pewność, że img będzie na wierzchu
+      ov.style.transform = "translateZ(0)";
+      ov.style.willChange = "opacity";
+
       document.body.appendChild(ov);
     }
 
@@ -88,6 +92,7 @@ function randInt(min, max) {
       img.style.objectFit = "cover"; // cały ekran
       img.style.userSelect = "none";
       img.draggable = false;
+
       ov.appendChild(img);
     }
 
@@ -97,13 +102,13 @@ function randInt(min, max) {
     }
   }
 
-  function play() {
+  async function play() {
     if (running) return;
     running = true;
 
     ensure();
 
-    // jeśli kot jedzie albo popup "wybierz kicie" jest na wierzchu — odpuść i nie blokuj timera
+    // jeśli kot jedzie albo popup "wybierz kicie" jest na wierzchu — odpuść
     if (slideCatPlaying || document.getElementById("stu-overlay")) {
       running = false;
       return;
@@ -112,22 +117,39 @@ function randInt(min, max) {
     // ===== LOSOWANIE OBRAZKA =====
     const pool = Array.isArray(CFG.POP_SRCS) ? CFG.POP_SRCS : [];
     const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-    if (pick) img.src = pick;
+    if (!pick) { running = false; return; }
 
-    // duck muzyki w tle (lekko)
+    // ustaw src i POCZEKAJ aż obraz będzie gotowy (to naprawia "dźwięk jest, obraz nie")
+    try {
+      img.src = pick;
+      // decode() działa w większości przeglądarek; fallback to onload
+      if (img.decode) {
+        await img.decode();
+      } else {
+        await new Promise((res, rej) => {
+          img.onload = () => res();
+          img.onerror = () => rej(new Error("img load failed"));
+        });
+      }
+    } catch {
+      // nawet jeśli obraz nie wejdzie, nie blokuj w nieskończoność
+    }
+
+    // duck muzyki w tle (lekko) na czas POP
     const loop = typeof getLoopAudio === "function" ? getLoopAudio() : null;
     const prevLoopVol = loop ? loop.volume : null;
     if (loop && typeof prevLoopVol === "number") {
       loop.volume = Math.max(0, prevLoopVol * 0.25);
     }
 
-    // pokaż
+    // pokaż natychmiast (bez długich fade'ów)
+    ov.style.transition = "opacity 150ms linear";
     ov.style.display = "block";
     ov.style.opacity = "0";
     ov.getBoundingClientRect(); // reflow
     ov.style.opacity = "1";
 
-    // dźwięk
+    // dźwięk w tym samym momencie co pokazanie
     try {
       sfx.pause();
       sfx.currentTime = 0;
@@ -136,24 +158,23 @@ function randInt(min, max) {
       if (p && typeof p.catch === "function") p.catch(() => {});
     } catch {}
 
-    const hold = Number(CFG.POP_HOLD_MS ?? 700);
-    const fade = Number(CFG.POP_FADE_OUT_MS ?? 2000);
+    // po 1s: schowaj (krótki fade)
+    const SHOW_MS = 1000;
 
-    // po hold -> zacznij fade
     ctx.setTimeoutSafe(() => {
       ov.style.opacity = "0";
-    }, hold);
+    }, SHOW_MS);
 
-    // po hold+fade -> schowaj + przywróć muzykę
     ctx.setTimeoutSafe(() => {
       ov.style.display = "none";
 
+      // restore loop
       if (loop && typeof prevLoopVol === "number") {
         loop.volume = prevLoopVol;
       }
 
       running = false;
-    }, hold + fade + 50);
+    }, SHOW_MS + 180);
   }
 
   return {
@@ -434,6 +455,8 @@ function randInt(min, max) {
         preload(CFG.IMG_2);
         preload(CFG.BOUNCE_LOGO_SRC);
         preload(CFG.SLIDE_CAT_SRC);
+        (CFG.POP_SRCS || []).forEach(preload);
+        preload(CFG.POP_SFX);
 
         // ===== styles =====
         const style = document.createElement("style");
