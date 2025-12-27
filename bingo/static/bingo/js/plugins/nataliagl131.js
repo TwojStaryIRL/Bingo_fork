@@ -12,9 +12,9 @@
   const CFG = {
     IDLE_MS: 500,
     MAX_ON_SCREEN: 8,
-    SCALE_MIN: 0.26,
-    SCALE_MAX: 0.37,
-    OPACITY: 0.55,
+    SCALE_MIN: 0.36,
+    SCALE_MAX: 0.77,
+    OPACITY: 0.7,
   };
 
   const ASSETS = {
