@@ -16,12 +16,12 @@
     BG_OPACITY: 0.22,
 
     OXY_START: 0.65,
-    OXY_DECAY_PER_SEC: 0.055,
-    OXY_PUMP_ADD: 0.22,
-    OXY_PUMP_CD_MS: 180,
+    OXY_DECAY_PER_SEC: 0.015,
+    OXY_PUMP_ADD: 0.08,
+    OXY_PUMP_CD_MS: 200,
 
     SAD_THRESHOLD: 0.30,
-    FADE_MS: 280,
+    FADE_MS: 1000,
 
     PANEL_W: 320,     // 
     PANEL_H: 360,     // 
