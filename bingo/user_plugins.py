@@ -47,10 +47,10 @@ def Drymastero103_func() -> UserPluginConfig:
         js_plugin="bingo/js/plugins/Drymastero103.js",
         sfx={
             "gag": [
-                static("bingo/sfx/Drymastero/gag.mp3")
+                static("bingo/sfx/Drymastero103/gag.mp3")
             ],
             "tung": [
-                static("bingo/sfx/Drymastero/tung.mp3")
+                static("bingo/sfx/Drymastero103/tung.mp3")
             ],
         }
     )

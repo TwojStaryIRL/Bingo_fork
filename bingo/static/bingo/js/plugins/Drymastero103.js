@@ -1,7 +1,4 @@
 (() => {
-  // ===== DRYMASTERO103 - Egg Gate (right -> left -> unlock center 4) =====
-
-  // Konfiguracja: podmień ścieżki pod swoje static
   const CFG = {
     STORAGE_KEY: "bingo_drymastero103_egg_gate_v1",
 
@@ -10,14 +7,13 @@
     IMG_RIGHT: "/static/bingo/images/Drymastero103/mlotek.jpg",
     IMG_THIRD: "/static/bingo/images/Drymastero103/tung.png",
 
-    // audio
+    // fallback audio (jeśli api.sfx nie poda)
     BG_LOOP_URL: "/static/bingo/sfx/Drymastero103/gag.mp3",
     SFX_UNLOCK_URL: "/static/bingo/sfx/Drymastero103/tung.mp3",
 
     BG_VOLUME: 0.35,
     SFX_VOLUME: 0.85,
 
-    // pozycjonowanie jajek względem panelu
     GAP_PX: 14,
     EGG_W: 120,
     EGG_H: 120,
@@ -57,20 +53,15 @@
     return panel.getBoundingClientRect();
   }
 
-  // Ustal “środkowe 4” komórki:
-  // - bierzemy wszystkie textarea.grid-cell
-  // - zakładamy kwadrat NxN (np. 5x5)
-  // - bierzemy środkowy blok 2x2 dla N nieparzystego (typowo 5 -> indeksy [1..2] wokół środka)
   function getCenter4Textareas() {
     const cells = Array.from(document.querySelectorAll("textarea.grid-cell"));
     const n = Math.sqrt(cells.length);
 
     if (!Number.isInteger(n) || n < 3) return [];
 
-    // jeśli N parzyste (rzadziej), też wybierzemy “centralne 2x2”
     const mid = Math.floor(n / 2);
-    const r0 = n % 2 === 0 ? (mid - 1) : (mid - 1);
-    const c0 = n % 2 === 0 ? (mid - 1) : (mid - 1);
+    const r0 = mid - 1;
+    const c0 = mid - 1;
 
     const idx = (r, c) => r * n + c;
 
@@ -86,15 +77,9 @@
 
   function lockCenter4(locked) {
     const center = getCenter4Textareas();
-
     center.forEach((ta) => {
-      // blokada edycji
       ta.disabled = !!locked;
-
-      // dodatkowo UX: wizualny “lock”
       ta.classList.toggle("dry-locked", !!locked);
-
-      // gdyby disabled nie wystarczał w Twoich stylach:
       const wrap = ta.closest(".cell-wrapper");
       if (wrap) wrap.classList.toggle("dry-locked", !!locked);
     });
@@ -103,13 +88,18 @@
   whenRuntime(() => {
     window.BingoUserPlugin = {
       init(api) {
-        const { ctx } = api;
+        const { ctx, sfx } = api;
         const root = document.getElementById("plugin-root");
         if (!root) return;
+
+        // bierz audio z user_plugins.py jeśli jest
+        const bgUrl  = (sfx?.gag && sfx.gag[0]) ? sfx.gag[0] : CFG.BG_LOOP_URL;
+        const sfxUrl = (sfx?.tung && sfx.tung[0]) ? sfx.tung[0] : CFG.SFX_UNLOCK_URL;
 
         const style = document.createElement("style");
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
+
 .dry-egg {
   position: fixed;
   width: ${CFG.EGG_W}px;
@@ -125,6 +115,8 @@ textarea.grid-cell.dry-locked,
 .cell-wrapper.dry-locked textarea.grid-cell {
   opacity: .55;
   filter: grayscale(1);
+}
+
 .dry-msg {
   position: fixed;
   z-index: 2147483646;
@@ -139,7 +131,6 @@ textarea.grid-cell.dry-locked,
   user-select: none;
   pointer-events: none;
 }
-  }
         `;
         document.head.appendChild(style);
 
@@ -149,10 +140,10 @@ textarea.grid-cell.dry-locked,
 
         function startBgLoop() {
           if (bg && !bg.paused) return true;
-          if (!CFG.BG_LOOP_URL) return false;
+          if (!bgUrl) return false;
 
           try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
-          bg = new Audio(CFG.BG_LOOP_URL);
+          bg = new Audio(bgUrl);
           bg.loop = true;
           bg.volume = clamp01(CFG.BG_VOLUME);
           bg.preload = "auto";
@@ -169,13 +160,12 @@ textarea.grid-cell.dry-locked,
           startBgLoop();
         }
 
-        // Odblokuj audio na pierwszą interakcję (capture, żeby nie kolidowało z UI)
         ctx.on(document, "pointerdown", unlockAudioOnce, { once: true, capture: true });
         ctx.on(document, "keydown", unlockAudioOnce, { once: true, capture: true });
 
         function playOneShot() {
-          if (!CFG.SFX_UNLOCK_URL) return;
-          const a = new Audio(CFG.SFX_UNLOCK_URL);
+          if (!sfxUrl) return;
+          const a = new Audio(sfxUrl);
           a.volume = clamp01(CFG.SFX_VOLUME);
           a.currentTime = 0;
           a.play().catch(() => {});
@@ -183,8 +173,6 @@ textarea.grid-cell.dry-locked,
 
         // ===== state =====
         const st = loadState();
-
-        // Startowo: jeśli jeszcze nie unlocked -> blokujemy środek
         if (!st.unlocked) lockCenter4(true);
 
         // ===== UI eggs =====
@@ -200,59 +188,53 @@ textarea.grid-cell.dry-locked,
         eggRight.alt = "egg-right";
         eggRight.draggable = false;
 
+        let msgEl = null;
+        let msgTimer = null;
+
+        function showMsg(text) {
+          if (!msgEl) {
+            msgEl = document.createElement("div");
+            msgEl.className = "dry-msg";
+            root.appendChild(msgEl);
+          }
+          msgEl.textContent = text;
+          positionMsg();
+        }
+
+        function positionMsg() {
+          if (!msgEl) return;
+          const r = eggLeft.getBoundingClientRect();
+          msgEl.style.left = `${Math.min(window.innerWidth - 340, r.left)}px`;
+          msgEl.style.top  = `${Math.max(8, r.top + CFG.EGG_H + 10)}px`;
+        }
+
         function positionEggs() {
           const r = getPanelRect();
 
-          // Lewy: po lewej stronie panelu
           eggLeft.style.left = `${Math.max(8, r.left - CFG.EGG_W - CFG.GAP_PX)}px`;
           eggLeft.style.top  = `${Math.max(8, r.top + 30)}px`;
 
-          // Prawy: po prawej stronie panelu
           eggRight.style.left = `${Math.min(window.innerWidth - CFG.EGG_W - 8, r.right + CFG.GAP_PX)}px`;
           eggRight.style.top  = `${Math.max(8, r.top + 30)}px`;
-          if (msgEl) {
-         const r2 = eggLeft.getBoundingClientRect();
-         msgEl.style.left = `${Math.min(window.innerWidth - 340, r2.left)}px`;
-        msgEl.style.top  = `${Math.max(8, r2.top + CFG.EGG_H + 10)}px`;
-}
-        }
-        let msgEl = null;
-let msgTimer = null;
 
-function showMsg(text) {
-  if (!msgEl) {
-    msgEl = document.createElement("div");
-    msgEl.className = "dry-msg";
-    root.appendChild(msgEl);
-  }
-  msgEl.textContent = text;
-
-  // ustaw przy lewym jajku
-  const r = eggLeft.getBoundingClientRect();
-  msgEl.style.left = `${Math.min(window.innerWidth - 340, r.left)}px`;
-  msgEl.style.top  = `${Math.max(8, r.top + CFG.EGG_H + 10)}px`;
-
-  if (msgTimer) clearTimeout(msgTimer);
-}
-
-        // Dodaj do DOM tylko jeśli jeszcze nie “przeszło”
-        if (!st.unlocked) {
-          // jeśli prawy już kliknięty wcześniej -> nie pokazuj prawego
-          if (!st.rightClicked) root.appendChild(eggRight);
-          root.appendChild(eggLeft);
-          positionEggs();
-          ctx.on(window, "resize", positionEggs);
-          ctx.on(window, "scroll", positionEggs, { passive: true });
+          positionMsg();
         }
 
         function setLeftEnabled(enabled) {
           eggLeft.setAttribute("aria-disabled", enabled ? "false" : "true");
         }
 
-        // Start: lewy jest “zablokowany” dopóki nie klikniesz prawego
-        if (!st.unlocked) setLeftEnabled(!!st.rightClicked);
+        if (!st.unlocked) {
+          if (!st.rightClicked) root.appendChild(eggRight);
+          root.appendChild(eggLeft);
 
-        // Klik prawy -> znika, unlock lewego
+          positionEggs();
+          ctx.on(window, "resize", positionEggs);
+          ctx.on(window, "scroll", positionEggs, { passive: true });
+
+          setLeftEnabled(!!st.rightClicked);
+        }
+
         function onRightClick(e) {
           e.preventDefault();
           e.stopPropagation();
@@ -266,38 +248,31 @@ function showMsg(text) {
           setLeftEnabled(true);
         }
 
-        // Klik lewy -> tylko jeśli prawy był kliknięty; zamiana na 3 obrazek; one-shot; unlock center 4
         function onLeftClick(e) {
           e.preventDefault();
           e.stopPropagation();
 
           unlockAudioOnce();
 
-          if (!st.rightClicked) return; // twarda kolejność
-
+          if (!st.rightClicked) return;
           if (st.unlocked) return;
 
           st.unlocked = true;
           saveState(st);
 
-          // swap obrazka na trzeci
           eggLeft.src = CFG.IMG_THIRD;
-
-          // dźwięk
           playOneShot();
-
-          // unlock środkowych 4
           lockCenter4(false);
-          showMsg("Odblokowano środek. Masz 5 sekund zanim jajko zniknie.");
 
-        setTimeout(() => {
-        try { eggLeft.remove(); } catch {}
-        try { if (msgEl) msgEl.remove(); } catch {}
-        msgEl = null;
-        }, 5000);
+          showMsg("Odblokowano środek. Masz 5 sekund zanim obraz zniknie.");
 
-          // opcjonalnie: po odblokowaniu możesz usunąć też lewego, jeśli chcesz.
-          // Jeśli chcesz zostawić 3 obrazek jako “trofeum” to zostawiamy.
+          if (msgTimer) clearTimeout(msgTimer);
+          msgTimer = ctx.setTimeoutSafe(() => {
+            try { eggLeft.remove(); } catch {}
+            try { if (msgEl) msgEl.remove(); } catch {}
+            msgEl = null;
+            msgTimer = null;
+          }, 5000);
         }
 
         ctx.on(eggRight, "click", onRightClick);
@@ -306,10 +281,10 @@ function showMsg(text) {
         return () => {
           try { eggLeft.remove(); } catch {}
           try { eggRight.remove(); } catch {}
-          try { style.remove(); } catch {}
-          try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
           try { if (msgTimer) clearTimeout(msgTimer); } catch {}
           try { if (msgEl) msgEl.remove(); } catch {}
+          try { style.remove(); } catch {}
+          try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
         };
       }
     };
