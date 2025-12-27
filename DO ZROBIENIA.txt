@@ -1,7 +1,7 @@
-KOLEJNOŚĆ(most to least important): 1 -> 7,8,9 -> 2 -> 3 -> 4 -> 5
+KOLEJNOŚĆ(most to least important): 1✅ -> 7,8,9 -> 2 -> 3 -> 4 -> 5
 
-1) Dodać opcję filtrowania na main page (game) - nie da się wybrać więcej niż 2 razy tej samej osoby,
- 	zalogowany aktualnie na tej sesji user nie pojawia się w opcjach wyboru
+# 1) Dodać opcję filtrowania na main page (game) - nie da się wybrać więcej niż 2 razy tej samej osoby,
+#    zalogowany aktualnie na tej sesji user nie pojawia się w opcjach wyboru
 
 
 
