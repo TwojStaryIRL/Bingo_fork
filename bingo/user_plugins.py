@@ -67,7 +67,11 @@ def jull_func() -> UserPluginConfig:
 def stugsiana_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/stugsiana.js",
-        sfx={}
+        sfx={
+            "mango67": [
+                static("bingo/sfx/stugsiana/mango67.mp3")
+            ]
+        }
     )
 
 def nataliagl131_func() -> UserPluginConfig:
