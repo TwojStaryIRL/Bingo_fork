@@ -58,17 +58,22 @@
     }, 40);
   }
 
-  function fillRow(track, rowW, tileW) {
+    function fillRowNoDup(track, rowW, tileW) {
     const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
+    let bag = shuffledPool(CFG.BG_IMGS);
+    let k = 0;
+
     for (let i = 0; i < need; i++) {
+      if (k >= bag.length) { bag = shuffledPool(CFG.BG_IMGS); k = 0; } // reset po wyczerpaniu
       const img = document.createElement("img");
-      img.src = pick(CFG.BG_IMGS);
+      img.src = bag[k++];
       img.alt = "kotek";
       img.draggable = false;
       img.loading = "lazy";
       track.appendChild(img);
     }
   }
+
 
   whenRuntime(() => {
     window.BingoUserPlugin = {
@@ -369,6 +374,17 @@ body::after{
 
         panel.appendChild(card);
         root.appendChild(panel);
+
+
+
+        function shuffledPool(arr) {
+          const a = arr.slice();
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = (Math.random() * (i + 1)) | 0;
+            [a[i], a[j]] = [a[j], a[i]];
+          }
+          return a;
+        }
 
         // ===== fill marquee =====
         function layoutFill() {
