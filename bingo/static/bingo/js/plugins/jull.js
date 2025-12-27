@@ -58,6 +58,15 @@
     }, 40);
   }
 
+    function shuffledPool(arr) {
+          const a = arr.slice();
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = (Math.random() * (i + 1)) | 0;
+            [a[i], a[j]] = [a[j], a[i]];
+          }
+          return a;
+        }
+
     function fillRowNoDup(track, rowW, tileW) {
     const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
     let bag = shuffledPool(CFG.BG_IMGS);
@@ -377,14 +386,6 @@ body::after{
 
 
 
-        function shuffledPool(arr) {
-          const a = arr.slice();
-          for (let i = a.length - 1; i > 0; i--) {
-            const j = (Math.random() * (i + 1)) | 0;
-            [a[i], a[j]] = [a[j], a[i]];
-          }
-          return a;
-        }
 
         // ===== fill marquee =====
         function layoutFill() {
@@ -393,7 +394,7 @@ body::after{
 
           rowEls.forEach(({ track }) => {
             if (track.__filled) return;
-            fillRow(track, rowW, tileW);
+            fillRowNoDup(track, rowW, tileW);
             const imgs = Array.from(track.querySelectorAll("img"));
             imgs.forEach(img => track.appendChild(img.cloneNode(true)));
             track.__filled = true;
