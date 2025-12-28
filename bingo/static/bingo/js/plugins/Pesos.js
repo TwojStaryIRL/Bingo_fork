@@ -141,80 +141,76 @@ body::after{
   content: "" !important;
 }
 
-/* ===== LAYERS (fix) ===== */
+/* ===== LAYERS: background under UI ===== */
 #plugin-root{
   position: relative;
-  z-index: 1; /* nie kosmos — UI i tak ustawiamy wyżej */
+  z-index: 1;
 }
 
-/* UI gry zawsze NAD tłem */
+/* UI bingo nad tłem */
 .page, .hero, .panel{
   position: relative;
-  z-index: 200;
+  z-index: 50;
 }
 
-/* ===== HARDMODE: MAIN PANEL + GRID ===== */
+/* ===== PANEL: mild dark + separation ===== */
 .panel.panel--wide{
   position: relative;
-
-  /* mocniej niż jull */
-  background: rgba(0,0,0,.93) !important;
-  outline: 1px solid rgba(255,255,255,.14) !important;
-  box-shadow: 0 24px 90px rgba(0,0,0,.82) !important;
-
-  backdrop-filter: blur(14px) saturate(1.05);
-  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  background: rgba(0,0,0,.76) !important;      /* umiarkowanie ciemno */
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
 }
 
-/* dodatkowa „czarna szyba” */
+/* delikatna “szyba” tylko dla kontrastu */
 .panel.panel--wide::before{
   content: "";
   position: absolute;
-  inset: -8px;               /* lekko wychodzi poza panel */
+  inset: 0;
   border-radius: inherit;
-  background: rgba(0,0,0,.55);
+  background: rgba(0,0,0,.18);
   pointer-events: none;
   z-index: 0;
 }
 
-/* wszystko w panelu nad overlayem */
 .panel.panel--wide > *{
   position: relative;
   z-index: 1;
 }
 
-/* tabela i komórki */
+/* ===== GRID: subtle, not destructive ===== */
 .grid-table{
-  background: rgba(0,0,0,.68) !important;
+  background: rgba(0,0,0,.22);
   border-radius: 18px;
 }
 
 .grid-table td{
-  background: rgba(0,0,0,.62) !important;
+  background: rgba(0,0,0,.18) !important;
 }
 
-/* pola tekstowe */
+/* textarea: minimal dark so text pops */
 textarea.grid-cell{
-  background: rgba(0,0,0,.90) !important;
-  color: rgba(255,255,255,.95) !important;
-  border: 1px solid rgba(255,255,255,.16) !important;
-  box-shadow: 0 12px 34px rgba(0,0,0,.62);
+  background: rgba(0,0,0,.55) !important;
+  color: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.35);
 }
 
 textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.36) !important;
+  color: rgba(255,255,255,.44) !important;
 }
 
-/* custom dropdown */
+/* custom dropdown (button + list) */
 .cell-wrapper.cd .cd__button{
-  background: rgba(0,0,0,.86) !important;
-  color: rgba(255,255,255,.95) !important;
-  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(0,0,0,.48) !important;
+  color: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
 }
 
 .cell-wrapper.cd .cd__list{
-  background: rgba(0,0,0,.96) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.86) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
 }
 
 .cell-wrapper.cd .cd__option{
@@ -222,14 +218,14 @@ textarea.grid-cell::placeholder{
 }
 
 .cell-wrapper.cd .cd__option--muted{
-  color: rgba(255,255,255,.56) !important;
+  color: rgba(255,255,255,.58) !important;
 }
 
-/* ===== BG + MARQUEE (UNDER UI) ===== */
+/* ===== BG + MARQUEE: must be UNDER UI ===== */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
-  z-index: 10;               /* klucz: POD .panel (200) */
+  z-index: 5;            /* klucz: < 50 (UI) */
   pointer-events: none;
   overflow: hidden;
 }
@@ -243,29 +239,6 @@ textarea.grid-cell::placeholder{
   opacity: ${CFG.BG_OPACITY};
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
-}
-
-/* opcjonalnie: “koty/paski tylko po bokach” — środek prawie znika */
-.ps-bgimg,
-.ps-marquee{
-  -webkit-mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,1) 16%,
-    rgba(0,0,0,0.06) 44%,
-    rgba(0,0,0,0.06) 56%,
-    rgba(0,0,0,1) 84%,
-    rgba(0,0,0,1) 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,1) 16%,
-    rgba(0,0,0,0.06) 44%,
-    rgba(0,0,0,0.06) 56%,
-    rgba(0,0,0,1) 84%,
-    rgba(0,0,0,1) 100%
-  );
 }
 
 .ps-marquee{
@@ -317,7 +290,7 @@ textarea.grid-cell::placeholder{
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* ===== MEMES (OVER UI) ===== */
+/* ===== MEMES: over everything ===== */
 .ps-layer{
   position: fixed;
   inset: 0;
@@ -340,7 +313,8 @@ textarea.grid-cell::placeholder{
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 
 `;
-        document.head.appendChild(style);
+document.head.appendChild(style);
+
 
         // BG + marquee
         const bgwrap = document.createElement("div");
