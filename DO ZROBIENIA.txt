@@ -1,12 +1,8 @@
-KOLEJNOŚĆ(most to least important): 7,8,9 -> 2 -> 3 -> 5
+KOLEJNOŚĆ(most to least important): 7,8,9 -> 2 -> 5
 
 
 2) Natalka - dodawać inne może lepsze zdjęcia i jakąś muzyczkę w tle 
 	może jakieś tło bardziej cosy (coś może z baldura lub z jej pieskiem było git)
-
-
-
-3) Kamila - dodać zdjęcia chłopaków jeszcze bo jest troche za mało
 
 
 

@@ -110,7 +110,14 @@ def Pesos_func() -> UserPluginConfig:
 def SabrinaSitOnMe_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/SabrinaSitOnMe.js",
-        sfx={}
+        sfx={
+            "sabrina": [
+                static("bingo/sfx/SabrinaSitOnMe/sabrina.mp3"),
+            ],
+            "hs": [
+                static("bingo/sfx/SabrinaSitOnMe/hs.mp3"),
+            ],
+        }
     )
 
 def kamiqxx_func() -> UserPluginConfig:
