@@ -1,4 +1,5 @@
 (() => {
+  // Wait for runtime
   function whenRuntime(fn) {
     if (window.BingoPluginRuntime?.initUserPlugin) return fn();
     const t = setInterval(() => {
@@ -21,7 +22,6 @@
     return "";
   }
 
-  // Managed audio (żeby dało się wyciszyć podczas takeover)
   function playManaged(url, volume = 0.55) {
     if (!url) return null;
     const a = new Audio(url);
@@ -57,69 +57,54 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // ===== KONFIG =====
         const CFG = {
           BG_VOLUME: 0.22,
           SFX_VOLUME: 0.60,
 
           TRANSFORM_MS: 1200,
 
-          // START: cztery obrazki wjeżdżają i siedzą
-          ENTER_MS: 520,
-
-          // 4 sloty (GIFy)
+          // 4 corner slots
           SLOTS: [
-            { id: "L1", side: "left", pos: "top",
-              a: "/static/bingo/images/SabrinaSitOnMe/lala.gif",
-              b: "/static/bingo/images/SabrinaSitOnMe/nga.gif" },
-            { id: "L2", side: "left", pos: "bottom",
-              a: "/static/bingo/images/SabrinaSitOnMe/lala2.gif",
-              b: "/static/bingo/images/SabrinaSitOnMe/nga2.gif" },
-            { id: "R1", side: "right", pos: "top",
-              a: "/static/bingo/images/SabrinaSitOnMe/lala3.gif",
-              b: "/static/bingo/images/SabrinaSitOnMe/nga3.gif" },
-            { id: "R2", side: "right", pos: "bottom",
-              a: "/static/bingo/images/SabrinaSitOnMe/lala4.gif",
-              b: "/static/bingo/images/SabrinaSitOnMe/nga4.gif" },
+            { id: "L1", corner: "LT", a: "/static/bingo/images/SabrinaSitOnMe/lala.gif",  b: "/static/bingo/images/SabrinaSitOnMe/nga.gif"  },
+            { id: "L2", corner: "LB", a: "/static/bingo/images/SabrinaSitOnMe/lala2.gif", b: "/static/bingo/images/SabrinaSitOnMe/nga2.gif" },
+            { id: "R1", corner: "RT", a: "/static/bingo/images/SabrinaSitOnMe/lala3.gif", b: "/static/bingo/images/SabrinaSitOnMe/nga3.gif" },
+            { id: "R2", corner: "RB", a: "/static/bingo/images/SabrinaSitOnMe/lala4.gif", b: "/static/bingo/images/SabrinaSitOnMe/nga4.gif" },
           ],
 
-          // TAKEOVER (czas losowy)
+          // Takeover timing
           TAKEOVER_EVERY_MIN_MS: 55_000,
           TAKEOVER_EVERY_MAX_MS: 95_000,
           TAKEOVER_FADE_MS: 650,
           TAKEOVER_SLIDE_MS: 520,
 
-          // takeover obrazek + tekst
+          // Sabrina hero
           TAKEOVER_HERO_IMG: "/static/bingo/images/SabrinaSitOnMe/sabrina.png",
           TAKEOVER_TEXT: "Cześć… o mój Boże. Potrzebuję pomocy ze wskazaniem dobrego miejsca, w którym mogę usiąść.",
+          TAKEOVER_BTN_TEXT: "Tak, tak, tak, proszę mamusiu, pokażę Ci gdzie możesz usiąść.",
 
-          // popup 3x3
+          // Grid 3x3
           GRID_TITLE: "Gdzie Sabrina ma usiąść?",
-
-          // 8 takie same (wabik) + 1 inny w środku (poprawny)
-          GRID_DECOY: "/static/bingo/images/SabrinaSitOnMe/krzeslo.png",
+          GRID_DECOY: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           GRID_CORRECT: "/static/bingo/images/SabrinaSitOnMe/miejsce.png",
 
-          // po poprawnym wyborze: zdjęcie, które wjedzie i zakryje
-          COVER_IMG: "/static/bingo/images/SabrinaSitOnMe/sabrina.png",
-
-          // gdzie ma dolecieć poprawne zdjęcie (prawa „wolna” strona obok bingo)
+          // After correct pick
           TARGET_PAD_RIGHT: 18,
-          TARGET_Y_RATIO: 0.52,   // ~ środek ekranu
+          TARGET_Y_RATIO: 0.52,
           TARGET_W: 210,
           TARGET_H: 210,
-
-          // czasy animacji końcowej
           CORRECT_FLY_MS: 900,
+
+          // Cover that slides in and stays
+          COVER_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           COVER_SLIDE_MS: 520,
         };
 
-        // ===== AUDIO: tło (loop) =====
+        // ===== BG LOOP =====
         let bg = null;
         let audioUnlocked = false;
 
         function startLoop() {
-          const url = pickOne(sfx?.sabrina);
+          const url = pickOne(sfx?.bg_loop);
           if (!url) return false;
 
           if (bg && !bg.paused) return true;
@@ -159,32 +144,35 @@
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-.sabrina-col {
-  position: absolute;
-  top: 50%;
-  width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  opacity: 1;
+/* 4 corner columns (each holds 1 slot) */
+.sabrina-corner {
+  position: fixed;
+  width: 230px;
+  pointer-events: none;
+  z-index: 2147483645;
   transition: transform .52s ease, opacity .52s ease;
-  transform: translateY(-50%);
+  opacity: 1;
 }
 
-.sabrina-col.left  { left: 12px;  align-items: flex-start; }
-.sabrina-col.right { right: 12px; align-items: flex-end; }
+.sabrina-corner.is-pre { opacity: 0; }
+.sabrina-corner.is-hidden { opacity: 0; }
 
-/* start-in */
-.sabrina-col.is-pre.left  { transform: translate(-130%, -50%); opacity: 0; }
-.sabrina-col.is-pre.right { transform: translate(130%, -50%); opacity: 0; }
-.sabrina-col.is-hidden.left  { transform: translate(-130%, -50%); opacity: 0; }
-.sabrina-col.is-hidden.right { transform: translate(130%, -50%); opacity: 0; }
+.sabrina-corner.lt { left: 14px; top: 14px; }
+.sabrina-corner.lb { left: 14px; bottom: 14px; }
+.sabrina-corner.rt { right: 14px; top: 14px; }
+.sabrina-corner.rb { right: 14px; bottom: 14px; }
+
+/* slide in/out direction */
+.sabrina-corner.lt.is-pre, .sabrina-corner.lb.is-pre,
+.sabrina-corner.lt.is-hidden, .sabrina-corner.lb.is-hidden { transform: translateX(-130%); }
+
+.sabrina-corner.rt.is-pre, .sabrina-corner.rb.is-pre,
+.sabrina-corner.rt.is-hidden, .sabrina-corner.rb.is-hidden { transform: translateX(130%); }
 
 .sabrina-slot {
   width: 210px;
   pointer-events: auto;
   display: grid;
-  gap: 8px;
 }
 
 .sabrina-card {
@@ -209,7 +197,7 @@
   will-change: transform, filter;
 }
 
-/* TAKEOVER hero (jedno zdjęcie + tekst) */
+/* HERO (Sabrina) */
 .sabrina-hero {
   position: fixed;
   top: 16px;
@@ -240,7 +228,8 @@
 
 .sabrina-hero-imgwrap{
   width: 100%;
-  height: 240px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.12);
@@ -251,12 +240,22 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transform: translateX(120%);
   transition: transform .52s ease;
 }
 .sabrina-hero-img.is-in{ transform: translateX(0); }
 
-/* POPUP 3x3 */
+.sabrina-hero-btn{
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 11px 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* MODAL 3x3 */
 .sabrina-modal {
   position: fixed;
   inset: 0;
@@ -332,12 +331,10 @@
   display:block;
 }
 
-/* cover slide */
+/* cover slide-in (stays) */
 .sabrina-cover{
   position: fixed;
   z-index: 2147483647;
-  width: ${CFG.TARGET_W}px;
-  height: ${CFG.TARGET_H}px;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.14);
@@ -350,29 +347,36 @@
         `;
         document.head.appendChild(style);
 
-        // ===== UI budowa =====
+        // ===== Overlay root =====
         const overlay = document.createElement("div");
         overlay.className = "sabrina-overlay";
-
-        const colL = document.createElement("div");
-        colL.className = "sabrina-col left is-pre";
-
-        const colR = document.createElement("div");
-        colR.className = "sabrina-col right is-pre";
-
-        overlay.appendChild(colL);
-        overlay.appendChild(colR);
         root.appendChild(overlay);
 
-        // start-in anim
+        // 4 corner containers
+        const cLT = document.createElement("div");
+        cLT.className = "sabrina-corner lt is-pre";
+        const cLB = document.createElement("div");
+        cLB.className = "sabrina-corner lb is-pre";
+        const cRT = document.createElement("div");
+        cRT.className = "sabrina-corner rt is-pre";
+        const cRB = document.createElement("div");
+        cRB.className = "sabrina-corner rb is-pre";
+
+        overlay.appendChild(cLT);
+        overlay.appendChild(cLB);
+        overlay.appendChild(cRT);
+        overlay.appendChild(cRB);
+
         ctx.setTimeoutSafe(() => {
-          colL.classList.remove("is-pre");
-          colR.classList.remove("is-pre");
+          cLT.classList.remove("is-pre");
+          cLB.classList.remove("is-pre");
+          cRT.classList.remove("is-pre");
+          cRB.classList.remove("is-pre");
         }, 40);
 
-        // ===== STATE =====
+        // ===== State =====
         const slotStates = [];
-        const takeover = { active: false, timer: null, hero: null, modal: null };
+        const takeover = { active: false, timer: null, hero: null, modal: null, cover: null };
 
         function scheduleTakeover() {
           const ms = CFG.TAKEOVER_EVERY_MIN_MS +
@@ -382,7 +386,7 @@
 
         function stopAllSlotAudioAndAnimations() {
           slotStates.forEach(st => {
-            st.animToken++; // cancel RAF
+            st.animToken++;
             st.busy = false;
             fadeOutAudio(st.currentSfx, CFG.TAKEOVER_FADE_MS);
             st.currentSfx = null;
@@ -394,24 +398,27 @@
           if (takeover.active) return;
           takeover.active = true;
 
-          // zjazd slotów
-          colL.classList.add("is-hidden");
-          colR.classList.add("is-hidden");
+          // slide away corners
+          cLT.classList.add("is-hidden");
+          cLB.classList.add("is-hidden");
+          cRT.classList.add("is-hidden");
+          cRB.classList.add("is-hidden");
 
-          // przerwij animacje + wycisz dźwięki slotów
           stopAllSlotAudioAndAnimations();
 
           await sleep(ctx, CFG.TAKEOVER_SLIDE_MS);
+          openHero(); // waits for button click
+        }
 
-          // wjedź hero (jedno zdjęcie + tekst)
-          openHero();
-          await sleep(ctx, 1150);
+        async function endTakeover() {
+          // bring back corners
+          cLT.classList.remove("is-hidden");
+          cLB.classList.remove("is-hidden");
+          cRT.classList.remove("is-hidden");
+          cRB.classList.remove("is-hidden");
 
-          // hero ma zniknąć w momencie pojawienia się popupa
-          closeHero();
-
-          // popup 3x3
-          openGridModal();
+          takeover.active = false;
+          scheduleTakeover();
         }
 
         function openHero() {
@@ -433,16 +440,28 @@
           const img = document.createElement("img");
           img.className = "sabrina-hero-img";
           img.src = CFG.TAKEOVER_HERO_IMG;
-
           wrap.appendChild(img);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "sabrina-hero-btn";
+          btn.textContent = CFG.TAKEOVER_BTN_TEXT;
+
+          ctx.on(btn, "click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeHero();      // hero disappears when modal appears
+            openGridModal();  // user must choose correct
+          });
+
           inner.appendChild(title);
           inner.appendChild(wrap);
+          inner.appendChild(btn);
           hero.appendChild(inner);
 
           root.appendChild(hero);
           takeover.hero = hero;
 
-          // wjazd
           requestAnimationFrame(() => img.classList.add("is-in"));
         }
 
@@ -473,7 +492,7 @@
           msg.className = "sabrina-msg";
           msg.textContent = "";
 
-          // Układ 3x3: poprawny ZAWSZE w środku (index 4)
+          // fixed layout: correct always center
           const tiles = [
             CFG.GRID_DECOY, CFG.GRID_DECOY, CFG.GRID_DECOY,
             CFG.GRID_DECOY, CFG.GRID_CORRECT, CFG.GRID_DECOY,
@@ -492,29 +511,27 @@
             cell.appendChild(im);
 
             ctx.on(cell, "click", async (e) => {
-  e.preventDefault();
-  e.stopPropagation();
+              e.preventDefault();
+              e.stopPropagation();
 
-  const ok = (idx === 4); // środek = poprawne
+              const ok = (idx === 4);
+              if (!ok) {
+                msg.textContent = "Nie będę tu siadała, głuptasku.";
+                cell.animate(
+                  [{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }],
+                  { duration: 220 }
+                );
+                return; // must choose correct
+              }
 
-  if (!ok) {
-    msg.textContent = "Nie będę tu siadała głuptasku";
-    // opcjonalnie: mały „shake” błędnego kafelka
-    cell.animate(
-      [{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }],
-      { duration: 220 }
-    );
-    return; // <— KLUCZ: nie zamykamy, nie kończymy takeover
-  }
+              msg.textContent = "Lepiej weź głęboki oddech :*";
 
-  msg.textContent = "Lepiej weź głęboki oddech :*";
-  const centerImg = card.querySelector('.sabrina-gcell[data-idx="4"] img');
-  await handleCorrectPick(centerImg);
+              const centerImg = card.querySelector('.sabrina-gcell[data-idx="4"] img');
+              await handleCorrectPick(centerImg);
 
-  closeGridModal();
-  await endTakeover();
-});
-
+              closeGridModal();
+              await endTakeover();
+            });
 
             grid.appendChild(cell);
           });
@@ -524,7 +541,6 @@
           card.appendChild(msg);
           modal.appendChild(card);
 
-          // blokuj klik na tło strony
           ctx.on(modal, "pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); });
           ctx.on(modal, "click", (e) => { e.preventDefault(); e.stopPropagation(); });
 
@@ -542,7 +558,6 @@
         async function handleCorrectPick(centerImgEl) {
           if (!centerImgEl) return;
 
-          // bierz pozycję startową (z modala) i twórz "latający" element
           const r = centerImgEl.getBoundingClientRect();
 
           const fly = document.createElement("div");
@@ -557,15 +572,14 @@
           fly.appendChild(im);
           root.appendChild(fly);
 
-          // docelowe miejsce: prawa „wolna” strona obok bingo (uogólnienie)
           const targetW = CFG.TARGET_W;
           const targetH = CFG.TARGET_H;
           const targetX = window.innerWidth - targetW - CFG.TARGET_PAD_RIGHT;
           const targetY = window.innerHeight * CFG.TARGET_Y_RATIO - targetH / 2;
 
-          // animacja: płynne przejście
           fly.style.transition = `left ${CFG.CORRECT_FLY_MS}ms ease, top ${CFG.CORRECT_FLY_MS}ms ease, width ${CFG.CORRECT_FLY_MS}ms ease, height ${CFG.CORRECT_FLY_MS}ms ease`;
           await sleep(ctx, 30);
+
           fly.style.left = `${Math.max(0, targetX)}px`;
           fly.style.top = `${Math.max(0, targetY)}px`;
           fly.style.width = `${targetW}px`;
@@ -573,39 +587,36 @@
 
           await sleep(ctx, CFG.CORRECT_FLY_MS + 60);
 
-          // cover wjeżdża z prawej i zakrywa
+          // Create cover (stays)
+          if (takeover.cover) {
+            try { takeover.cover.remove(); } catch {}
+            takeover.cover = null;
+          }
+
           const cover = document.createElement("div");
           cover.className = "sabrina-cover";
           cover.style.left = `${Math.max(0, targetX)}px`;
           cover.style.top = `${Math.max(0, targetY)}px`;
+          cover.style.width = `${targetW}px`;
+          cover.style.height = `${targetH}px`;
 
           const coverImg = document.createElement("img");
           coverImg.src = CFG.COVER_IMG;
           cover.appendChild(coverImg);
 
           root.appendChild(cover);
+          takeover.cover = cover;
+
           await sleep(ctx, 30);
           cover.classList.add("is-in");
 
-          await sleep(ctx, CFG.COVER_SLIDE_MS + 120);
+          await sleep(ctx, CFG.COVER_SLIDE_MS + 80);
 
-          // sprzątanie: zostawiamy cover chwilę i usuwamy oba (albo możesz cover zostawić – jak chcesz)
+          // remove flying image, keep cover
           try { fly.remove(); } catch {}
-          try { cover.remove(); } catch {}
         }
 
-        async function endTakeover() {
-          // wróć sloty
-          colL.classList.remove("is-hidden");
-          colR.classList.remove("is-hidden");
-
-          takeover.active = false;
-
-          // planuj kolejny takeover
-          scheduleTakeover();
-        }
-
-        // ===== SLOTY (klik = swap) =====
+        // ===== Slots =====
         function createSlot(slotCfg) {
           const wrap = document.createElement("div");
           wrap.className = "sabrina-slot";
@@ -633,8 +644,11 @@
           slotStates.push(st);
 
           function playSwapSfx() {
-            const url = pickOne(sfx?.hs);
-            if (url) playManaged(url, CFG.SFX_VOLUME);
+            const url = pickOne(sfx?.swap);
+            if (url) {
+              fadeOutAudio(st.currentSfx, 120);
+              st.currentSfx = playManaged(url, CFG.SFX_VOLUME);
+            }
           }
 
           function runTransformSwap() {
@@ -664,7 +678,6 @@
 
               const p = Math.min(1, (now - t0) / CFG.TRANSFORM_MS);
 
-              // rozjaśnianie do bieli
               img.style.transform = `rotateY(${angle}deg) rotateZ(${Math.min(22, p * 22)}deg)`;
               img.style.filter = `brightness(${1 + p * 2.2}) saturate(${1 - p}) contrast(${1 + p * 0.2})`;
 
@@ -673,7 +686,6 @@
                 return;
               }
 
-              // 100% biało -> swap + sfx
               playSwapSfx();
               st.isAlt = !st.isAlt;
               img.src = st.isAlt ? slotCfg.b : slotCfg.a;
@@ -693,18 +705,18 @@
             runTransformSwap();
           });
 
-          return { wrap };
+          return { wrap, corner: slotCfg.corner };
         }
 
-        // render slotów
-        const slots = CFG.SLOTS.map(cfg => createSlot(cfg));
-        slots.forEach(s => {
-          const id = s.wrap.querySelector("img")?.alt || "";
-          const isLeft = id.startsWith("L");
-          (isLeft ? colL : colR).appendChild(s.wrap);
+        const slotViews = CFG.SLOTS.map(cfg => createSlot(cfg));
+        slotViews.forEach(v => {
+          if (v.corner === "LT") cLT.appendChild(v.wrap);
+          if (v.corner === "LB") cLB.appendChild(v.wrap);
+          if (v.corner === "RT") cRT.appendChild(v.wrap);
+          if (v.corner === "RB") cRB.appendChild(v.wrap);
         });
 
-        // start bg + takeover
+        // Start bg & schedule takeover
         startLoop();
         scheduleTakeover();
 
@@ -712,6 +724,7 @@
           try { if (takeover.timer) clearTimeout(takeover.timer); } catch {}
           closeHero();
           closeGridModal();
+          try { if (takeover.cover) takeover.cover.remove(); } catch {}
 
           try { overlay.remove(); } catch {}
           try { style.remove(); } catch {}
