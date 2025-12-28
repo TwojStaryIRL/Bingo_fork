@@ -95,6 +95,9 @@
           SEATING_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           SEATING_SLIDE_MS: 520,
           SEATING_SCALE: 2.3,
+          SEATING_ANCHOR_X: 0.50, // 0..1 (0 = lewa, 1 = prawa)
+          SEATING_ANCHOR_Y: 0.78, // 0..1 (0 = góra, 1 = dół)
+
         };
 
         // ===== BG LOOP =====
@@ -364,7 +367,7 @@
           seatingEl: null, // <img> sitting.png
           side: "left",    // startuje left -> pierwszy takeover będzie RIGHT po przełączeniu
           count: 0,
-          max: 2,
+          max: 1,
         };
 
         function scheduleTakeover() {
@@ -618,8 +621,14 @@
           seating.style.height = `${sh}px`;
 
           // pozycja: wycentruj na miejscu
-          seating.style.left = `${targetX - (sw - w) / 2}px`;
-          seating.style.top  = `${targetY - (sh - h) / 2}px`;
+          // punkt “siedzenia” w miejscu (środek miejsca)
+          const seatPointX = targetX + w * 0.5;
+          const seatPointY = targetY + h * 0.5;
+
+          // ustawiamy seating tak, żeby jego ANCHOR trafił w seatPoint
+          seating.style.left = `${seatPointX - sw * CFG.SEATING_ANCHOR_X}px`;
+          seating.style.top  = `${seatPointY - sh * CFG.SEATING_ANCHOR_Y}px`;
+
 
           await sleep(ctx, 30);
           seating.classList.add("is-in");
