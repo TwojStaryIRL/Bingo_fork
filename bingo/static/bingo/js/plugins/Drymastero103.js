@@ -17,6 +17,9 @@
     EGG_H: 367,
 
     HIDE_AFTER_MS: 5000,
+
+    // NOWE: animacja prawego (flip)
+    RIGHT_FLIP_MS: 180,  // szybko
   };
 
   function clamp01(x) {
@@ -112,6 +115,8 @@
   cursor: pointer;
   filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
   pointer-events: auto; /* klikalne mimo overlay pointer-events:none */
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .dry-egg.dry-disabled {
@@ -138,6 +143,23 @@
   box-shadow: 0 14px 30px rgba(0,0,0,.35);
   user-select: none;
   pointer-events: none;
+}
+
+/* NOWE: obrót prawego w lewo ~67deg i powrót */
+@keyframes dryFlipLeft67 {
+  0%   { transform: perspective(900px) rotateY(0deg); }
+  45%  { transform: perspective(900px) rotateY(-67deg); }
+  100% { transform: perspective(900px) rotateY(0deg); }
+}
+
+.dry-egg.is-flipping {
+  animation: dryFlipLeft67 ${CFG.RIGHT_FLIP_MS}ms ease-out;
+}
+
+/* NOWE: celownik (nowy kursor) */
+body.dry-aiming,
+body.dry-aiming * {
+  cursor: crosshair !important;
 }
         `;
         document.head.appendChild(style);
@@ -181,7 +203,17 @@
         }
 
         // ===== state: zawsze od zera (za każdym wejściem) =====
-        const st = { rightClicked: false, unlocked: false };
+        const st = {
+          rightClicked: false,
+          unlocked: false,
+          aiming: false,   // NOWE: czy włączony celownik
+          flipping: false, // NOWE: czy prawy jest w animacji
+        };
+
+        function setAiming(on) {
+          st.aiming = !!on;
+          document.body.classList.toggle("dry-aiming", st.aiming);
+        }
 
         // startowo: środek niewidoczny
         lockCenter4(true);
@@ -243,6 +275,36 @@
         ctx.on(window, "resize", positionEggs);
         ctx.on(window, "scroll", positionEggs, { passive: true });
 
+        // ===== NOWE: animacja obrotu prawego + callback po animacji =====
+        function flipRightThen(fnAfter) {
+          if (st.flipping) return;
+
+          st.flipping = true;
+          eggRight.classList.remove("is-flipping");
+          // wymuś reflow, żeby animacja zawsze odpalała
+          void eggRight.offsetWidth;
+          eggRight.classList.add("is-flipping");
+
+          const done = () => {
+            eggRight.classList.remove("is-flipping");
+            st.flipping = false;
+            fnAfter?.();
+          };
+
+          // animationend bywa różne, więc mamy fallback timeout
+          let called = false;
+          const safeDone = () => {
+            if (called) return;
+            called = true;
+            done();
+          };
+
+          const onEnd = () => safeDone();
+          eggRight.addEventListener("animationend", onEnd, { once: true });
+
+          setTimeout(safeDone, CFG.RIGHT_FLIP_MS + 60);
+        }
+
         // ===== kolejność: right -> left -> unlock =====
         function onRightClick(e) {
           e.preventDefault();
@@ -250,11 +312,14 @@
 
           unlockAudioOnce();
 
-          st.rightClicked = true;
+          // animacja i dopiero potem Twoja stara logika
+          flipRightThen(() => {
+            st.rightClicked = true;
 
-          // znika prawy + odblokuj lewy
-          try { eggRight.remove(); } catch {}
-          setLeftEnabled(true);
+            // znika prawy + odblokuj lewy
+            try { eggRight.remove(); } catch {}
+            setLeftEnabled(true);
+          });
         }
 
         function onLeftClick(e) {
@@ -266,12 +331,25 @@
           if (!st.rightClicked) return;
           if (st.unlocked) return;
 
+          // NOWE: pierwszy klik na lewy włącza celownik,
+          // dopiero drugi (z aktywnym celownikiem) robi "akcję"
+          if (!st.aiming) {
+            setAiming(true);
+            showMsg("Masz celownik. Kliknij jeszcze raz w lewy obrazek.");
+            return;
+          }
+
+          // tu już "nowym kursorem" -> robimy stary unlock
+          setAiming(false);
           st.unlocked = true;
 
           // lewy staje się 3. obrazkiem
           eggLeft.src = CFG.IMG_THIRD;
 
+          // dźwięk
           playOneShot();
+
+          // odblokuj środek
           lockCenter4(false);
 
           showMsg("Widziałem jak coś ci ukradł - trzymaj !");
@@ -289,6 +367,7 @@
         ctx.on(eggLeft, "click", onLeftClick);
 
         return () => {
+          try { setAiming(false); } catch {}
           try { eggLeft.remove(); } catch {}
           try { eggRight.remove(); } catch {}
           try { if (msgTimer) clearTimeout(msgTimer); } catch {}
