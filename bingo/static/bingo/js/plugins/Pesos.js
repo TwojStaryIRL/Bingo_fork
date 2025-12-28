@@ -132,7 +132,7 @@
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
         const style = document.createElement("style");
-        style.textContent = `
+style.textContent = `
 
 body::before,
 body::after{
@@ -211,7 +211,9 @@ textarea.grid-cell::placeholder{
   color: rgba(255,255,255,.55) !important;
 }
 
-/* bg + marquee */
+/* =========================
+   BG + MARQUEE (ONLY THIS)
+   ========================= */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
@@ -219,13 +221,34 @@ textarea.grid-cell::placeholder{
   pointer-events: none;
   overflow: hidden;
 }
+
+/* >>> to jest właściwe przyciemnienie tła, bez ruszania UI <<< */
+.ps-bgwrap::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  /* mocne przyciemnienie + lekka winieta */
+  background:
+    radial-gradient(ellipse at center,
+      rgba(0,0,0,.38) 0%,
+      rgba(0,0,0,.55) 60%,
+      rgba(0,0,0,.68) 100%
+    );
+}
+
+/* tło obrazka – zostaje, tylko mniej przebija */
 .ps-bgimg{
   position: absolute;
   inset: 0;
   background-image: url("${ASSETS.bgImg}");
   background-size: cover;
   background-position: center;
-  opacity: ${CFG.BG_OPACITY};
+
+  /* było CFG.BG_OPACITY; dajemy lekko mniej, żeby overlay robił robotę */
+  opacity: calc(${CFG.BG_OPACITY} * 0.75);
+
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
 }
@@ -238,7 +261,10 @@ textarea.grid-cell::placeholder{
   gap: ${CFG.TILE_GAP}px;
   padding: ${CFG.TILE_GAP}px;
   box-sizing: border-box;
-  opacity: ${CFG.MARQUEE_OPACITY};
+
+  /* było CFG.MARQUEE_OPACITY; minimalnie w dół */
+  opacity: calc(${CFG.MARQUEE_OPACITY} * 0.75);
+
   pointer-events: none;
   filter: saturate(1.05) contrast(1.03);
 }
@@ -297,8 +323,10 @@ textarea.grid-cell::placeholder{
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
-        `;
-        document.head.appendChild(style);
+
+`;
+document.head.appendChild(style);
+
 
         // BG + marquee
         const bgwrap = document.createElement("div");
