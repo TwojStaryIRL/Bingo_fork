@@ -313,6 +313,32 @@ body::after{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 .jull-pumpbtn:active{ transform: translateY(1px); }
+
+/* tło kotów – maska: środek prawie niewidoczny, boki pełne */
+.jull-bg{
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.10) 42%,
+    rgba(0,0,0,0.10) 58%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.10) 42%,
+    rgba(0,0,0,0.10) 58%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
+}
+
+
+
+
 `;
         document.head.appendChild(style);
 
