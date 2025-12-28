@@ -141,114 +141,30 @@ body::after{
   content: "" !important;
 }
 
-#plugin-root { position: relative; z-index: 2147483000; }
-
-/* darken grid/panel (hard mode) */
-.panel.panel--wide{
-  position: relative;
-  background: rgba(0,0,0,.86) !important;
-  outline: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 20px 70px rgba(0,0,0,.70) !important;
-  backdrop-filter: blur(10px) saturate(1.05);
-}
-
-/* dodatkowa "czarna szyba" na panelu (nie dotyka dzieci) */
-.panel.panel--wide::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: rgba(0,0,0,.38);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* wszystko w panelu nad tą warstwą */
-.panel.panel--wide > *{
-  position: relative;
-  z-index: 1;
-}
-
-/* tabela i komórki */
-.grid-table{
-  background: rgba(0,0,0,.45);
-  border-radius: 18px;
-}
-
-.grid-table td{
-  background: rgba(0,0,0,.40) !important;
-}
-
-/* same pola tekstowe */
-textarea.grid-cell{
-  background: rgba(0,0,0,.78) !important;
-  color: rgba(255,255,255,.94) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,.45);
-}
-
-textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.42) !important;
-}
-
-/* Wasz custom dropdown */
-.cell-wrapper.cd .cd__button{
-  background: rgba(0,0,0,.72) !important;
-  color: rgba(255,255,255,.92) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-}
-
-.cell-wrapper.cd .cd__list{
-  background: rgba(0,0,0,.92) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-}
-
-.cell-wrapper.cd .cd__option{
-  color: rgba(255,255,255,.92) !important;
-}
-
-.cell-wrapper.cd .cd__option--muted{
-  color: rgba(255,255,255,.55) !important;
-}
+/* plugin root nie musi być kosmicznie wysoko */
+#plugin-root { position: relative; z-index: 1; }
 
 /* =========================
-   BG + MARQUEE (ONLY THIS)
+   1) TŁO PLUGINU POD UI
    ========================= */
+
+/* TŁO (background + marquee) MUSI BYĆ POD panelem gry */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
-  z-index: 2147483638;
+  z-index: 0;                 /* <<< KLUCZ */
   pointer-events: none;
   overflow: hidden;
 }
 
-/* >>> to jest właściwe przyciemnienie tła, bez ruszania UI <<< */
-.ps-bgwrap::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-
-  /* mocne przyciemnienie + lekka winieta */
-  background:
-    radial-gradient(ellipse at center,
-      rgba(0,0,0,.38) 0%,
-      rgba(0,0,0,.55) 60%,
-      rgba(0,0,0,.68) 100%
-    );
-}
-
-/* tło obrazka – zostaje, tylko mniej przebija */
+/* zostawiasz jak było */
 .ps-bgimg{
   position: absolute;
   inset: 0;
   background-image: url("${ASSETS.bgImg}");
   background-size: cover;
   background-position: center;
-
-  /* było CFG.BG_OPACITY; dajemy lekko mniej, żeby overlay robił robotę */
-  opacity: calc(${CFG.BG_OPACITY} * 0.75);
-
+  opacity: ${CFG.BG_OPACITY};
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
 }
@@ -261,10 +177,7 @@ textarea.grid-cell::placeholder{
   gap: ${CFG.TILE_GAP}px;
   padding: ${CFG.TILE_GAP}px;
   box-sizing: border-box;
-
-  /* było CFG.MARQUEE_OPACITY; minimalnie w dół */
-  opacity: calc(${CFG.MARQUEE_OPACITY} * 0.75);
-
+  opacity: ${CFG.MARQUEE_OPACITY};
   pointer-events: none;
   filter: saturate(1.05) contrast(1.03);
 }
@@ -301,16 +214,55 @@ textarea.grid-cell::placeholder{
   0%   { transform: translateX(0); }
   100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
 }
-
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* memes */
+/* =========================
+   2) PRZYCIEMNIJ TYLKO PANEL GRY
+   ========================= */
+
+.panel.panel--wide{
+  position: relative;
+  background: rgba(0,0,0,.70) !important;          /* <<< przyciemnienie */
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* szyba pod treścią panelu */
+.panel.panel--wide::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0,0,0,.18) 0%,
+    rgba(0,0,0,.30) 65%,
+    rgba(0,0,0,.42) 100%
+  );
+}
+
+/* treść panelu nad szybą */
+.panel.panel--wide > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================
+   3) MEMY NAD WSZYSTKIM (bez zmian)
+   ========================= */
+
 .ps-layer{
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   pointer-events: none;
   z-index: 2147483646;
 }
+
 .ps-img{
   position: fixed;
   width: min(34vw, 520px);
@@ -326,6 +278,8 @@ textarea.grid-cell::placeholder{
 
 `;
 document.head.appendChild(style);
+
+
 
 
         // BG + marquee
