@@ -143,77 +143,54 @@ body::after{
 
 #plugin-root { position: relative; z-index: 2147483000; }
 
-/* darken grid/panel (hard mode) */
+/* =========================
+   MAIN GAME PANEL ONLY
+   (like jull)
+   ========================= */
+
 .panel.panel--wide{
   position: relative;
-  background: rgba(0,0,0,.86) !important;
-  outline: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 20px 70px rgba(0,0,0,.70) !important;
-  backdrop-filter: blur(10px) saturate(1.05);
+
+  /* przyciemnij sam panel, bez ingerencji w dzieci */
+  background: rgba(0,0,0,.70) !important;
+
+  /* odcięcie od tła */
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
+
+  /* “glass” */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* dodatkowa "czarna szyba" na panelu (nie dotyka dzieci) */
+/* czarna szyba NA TLE panelu, ale POD jego zawartością */
 .panel.panel--wide::before{
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: rgba(0,0,0,.38);
   pointer-events: none;
   z-index: 0;
+
+  /* subtelna winieta – podbija czytelność bez psucia layoutu */
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0,0,0,.18) 0%,
+    rgba(0,0,0,.28) 65%,
+    rgba(0,0,0,.38) 100%
+  );
 }
 
-/* wszystko w panelu nad tą warstwą */
+/* cały content panelu nad szybą */
 .panel.panel--wide > *{
   position: relative;
   z-index: 1;
 }
 
-/* tabela i komórki */
-.grid-table{
-  background: rgba(0,0,0,.45);
-  border-radius: 18px;
-}
-
-.grid-table td{
-  background: rgba(0,0,0,.40) !important;
-}
-
-/* same pola tekstowe */
-textarea.grid-cell{
-  background: rgba(0,0,0,.78) !important;
-  color: rgba(255,255,255,.94) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,.45);
-}
-
-textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.42) !important;
-}
-
-/* Wasz custom dropdown */
-.cell-wrapper.cd .cd__button{
-  background: rgba(0,0,0,.72) !important;
-  color: rgba(255,255,255,.92) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-}
-
-.cell-wrapper.cd .cd__list{
-  background: rgba(0,0,0,.92) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-}
-
-.cell-wrapper.cd .cd__option{
-  color: rgba(255,255,255,.92) !important;
-}
-
-.cell-wrapper.cd .cd__option--muted{
-  color: rgba(255,255,255,.55) !important;
-}
-
 /* =========================
-   BG + MARQUEE (ONLY THIS)
+   BG + MARQUEE (NO CHANGES)
    ========================= */
+
 .ps-bgwrap{
   position: fixed;
   inset: 0;
@@ -221,34 +198,13 @@ textarea.grid-cell::placeholder{
   pointer-events: none;
   overflow: hidden;
 }
-
-/* >>> to jest właściwe przyciemnienie tła, bez ruszania UI <<< */
-.ps-bgwrap::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-
-  /* mocne przyciemnienie + lekka winieta */
-  background:
-    radial-gradient(ellipse at center,
-      rgba(0,0,0,.38) 0%,
-      rgba(0,0,0,.55) 60%,
-      rgba(0,0,0,.68) 100%
-    );
-}
-
-/* tło obrazka – zostaje, tylko mniej przebija */
 .ps-bgimg{
   position: absolute;
   inset: 0;
   background-image: url("${ASSETS.bgImg}");
   background-size: cover;
   background-position: center;
-
-  /* było CFG.BG_OPACITY; dajemy lekko mniej, żeby overlay robił robotę */
-  opacity: calc(${CFG.BG_OPACITY} * 0.75);
-
+  opacity: ${CFG.BG_OPACITY};
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
 }
@@ -261,10 +217,7 @@ textarea.grid-cell::placeholder{
   gap: ${CFG.TILE_GAP}px;
   padding: ${CFG.TILE_GAP}px;
   box-sizing: border-box;
-
-  /* było CFG.MARQUEE_OPACITY; minimalnie w dół */
-  opacity: calc(${CFG.MARQUEE_OPACITY} * 0.75);
-
+  opacity: ${CFG.MARQUEE_OPACITY};
   pointer-events: none;
   filter: saturate(1.05) contrast(1.03);
 }
@@ -305,7 +258,10 @@ textarea.grid-cell::placeholder{
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* memes */
+/* =========================
+   MEMES (NO CHANGES)
+   ========================= */
+
 .ps-layer{
   position: fixed; inset: 0;
   pointer-events: none;
@@ -326,6 +282,7 @@ textarea.grid-cell::placeholder{
 
 `;
 document.head.appendChild(style);
+
 
 
         // BG + marquee
