@@ -18,8 +18,14 @@
 
     HIDE_AFTER_MS: 5000,
 
-    // NOWE: animacja prawego (flip)
-    RIGHT_FLIP_MS: 180,  // szybko
+    // młotek-kursor
+    HAMMER_W: 220,          // możesz dopasować
+    HAMMER_H: 220,
+    HAMMER_OFFSET_X: 8,     // przesunięcie względem kursora
+    HAMMER_OFFSET_Y: 8,
+
+    // animacja obrotu
+    HAMMER_FLIP_MS: 160,
   };
 
   function clamp01(x) {
@@ -115,8 +121,6 @@
   cursor: pointer;
   filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
   pointer-events: auto; /* klikalne mimo overlay pointer-events:none */
-  transform-origin: center center;
-  will-change: transform;
 }
 
 .dry-egg.dry-disabled {
@@ -145,21 +149,35 @@
   pointer-events: none;
 }
 
-/* NOWE: obrót prawego w lewo ~67deg i powrót */
-@keyframes dryFlipLeft67 {
-  0%   { transform: perspective(900px) rotateY(0deg); }
-  45%  { transform: perspective(900px) rotateY(-67deg); }
-  100% { transform: perspective(900px) rotateY(0deg); }
+/* młotek jako kursor */
+.dry-hammer {
+  position: fixed;
+  left: 0; top: 0;
+  width: ${CFG.HAMMER_W}px;
+  height: ${CFG.HAMMER_H}px;
+  z-index: 2147483647;
+  pointer-events: none; /* NIE blokuje klików */
+  user-select: none;
+  -webkit-user-drag: none;
+  transform-origin: 45% 55%;
+  filter: drop-shadow(0 14px 28px rgba(0,0,0,.45));
+  will-change: transform, left, top;
 }
 
-.dry-egg.is-flipping {
-  animation: dryFlipLeft67 ${CFG.RIGHT_FLIP_MS}ms ease-out;
+/* obrót -67deg w lewo i powrót */
+@keyframes dryHammerFlipLeft67 {
+  0%   { transform: rotate(0deg); }
+  45%  { transform: rotate(-67deg); }
+  100% { transform: rotate(0deg); }
+}
+.dry-hammer.is-flipping {
+  animation: dryHammerFlipLeft67 ${CFG.HAMMER_FLIP_MS}ms ease-out;
 }
 
-/* NOWE: celownik (nowy kursor) */
-body.dry-aiming,
-body.dry-aiming * {
-  cursor: crosshair !important;
+/* opcjonalnie: ukryj systemowy kursor gdy młotek aktywny */
+body.dry-hammer-active,
+body.dry-hammer-active * {
+  cursor: none !important;
 }
         `;
         document.head.appendChild(style);
@@ -202,25 +220,19 @@ body.dry-aiming * {
           a.play().catch(() => {});
         }
 
-        // ===== state: zawsze od zera (za każdym wejściem) =====
+        // ===== state =====
         const st = {
-          rightClicked: false,
+          hammerActive: false,
           unlocked: false,
-          aiming: false,   // NOWE: czy włączony celownik
-          flipping: false, // NOWE: czy prawy jest w animacji
+          flipping: false,
         };
-
-        function setAiming(on) {
-          st.aiming = !!on;
-          document.body.classList.toggle("dry-aiming", st.aiming);
-        }
 
         // startowo: środek niewidoczny
         lockCenter4(true);
 
-        // ===== UI eggs =====
+        // ===== UI: lewy i prawy obrazek =====
         const eggLeft = document.createElement("img");
-        eggLeft.className = "dry-egg dry-disabled"; // na start zablokowany
+        eggLeft.className = "dry-egg dry-disabled"; // zablokowany do czasu aktywacji młotka
         eggLeft.src = CFG.IMG_LEFT;
         eggLeft.alt = "egg-left";
         eggLeft.draggable = false;
@@ -230,6 +242,15 @@ body.dry-aiming * {
         eggRight.src = CFG.IMG_RIGHT;
         eggRight.alt = "egg-right";
         eggRight.draggable = false;
+
+        // młotek-kursor (osobny element)
+        const hammer = document.createElement("img");
+        hammer.className = "dry-hammer";
+        hammer.src = CFG.IMG_RIGHT;
+        hammer.alt = "hammer-cursor";
+        hammer.draggable = false;
+        hammer.style.display = "none"; // startowo niewidoczny
+        overlay.appendChild(hammer);
 
         let msgEl = null;
         let msgTimer = null;
@@ -275,84 +296,106 @@ body.dry-aiming * {
         ctx.on(window, "resize", positionEggs);
         ctx.on(window, "scroll", positionEggs, { passive: true });
 
-        // ===== NOWE: animacja obrotu prawego + callback po animacji =====
-        function flipRightThen(fnAfter) {
+        // ===== młotek podąża za kursorem =====
+        function updateHammerPos(clientX, clientY) {
+          hammer.style.left = `${Math.round(clientX + CFG.HAMMER_OFFSET_X)}px`;
+          hammer.style.top  = `${Math.round(clientY + CFG.HAMMER_OFFSET_Y)}px`;
+        }
+
+        function setHammerActive(on) {
+          st.hammerActive = !!on;
+          document.body.classList.toggle("dry-hammer-active", st.hammerActive);
+
+          if (st.hammerActive) {
+            hammer.style.display = "block";
+            // lewy aktywny (można trafić)
+            setLeftEnabled(true);
+          } else {
+            hammer.style.display = "none";
+            setLeftEnabled(false);
+          }
+        }
+
+        function doHammerFlip() {
+          if (!st.hammerActive) return;
           if (st.flipping) return;
 
           st.flipping = true;
-          eggRight.classList.remove("is-flipping");
-          // wymuś reflow, żeby animacja zawsze odpalała
-          void eggRight.offsetWidth;
-          eggRight.classList.add("is-flipping");
+          hammer.classList.remove("is-flipping");
+          void hammer.offsetWidth;
+          hammer.classList.add("is-flipping");
 
-          const done = () => {
-            eggRight.classList.remove("is-flipping");
+          // dźwięk na każdy "hit"
+          playOneShot();
+
+          setTimeout(() => {
+            hammer.classList.remove("is-flipping");
             st.flipping = false;
-            fnAfter?.();
-          };
-
-          // animationend bywa różne, więc mamy fallback timeout
-          let called = false;
-          const safeDone = () => {
-            if (called) return;
-            called = true;
-            done();
-          };
-
-          const onEnd = () => safeDone();
-          eggRight.addEventListener("animationend", onEnd, { once: true });
-
-          setTimeout(safeDone, CFG.RIGHT_FLIP_MS + 60);
+          }, CFG.HAMMER_FLIP_MS + 40);
         }
 
-        // ===== kolejność: right -> left -> unlock =====
+        // pointermove do aktualizacji pozycji młotka
+        function onPointerMove(e) {
+          if (!st.hammerActive) return;
+          updateHammerPos(e.clientX, e.clientY);
+        }
+        ctx.on(document, "pointermove", onPointerMove, { passive: true });
+
+        // globalny klik: jeśli młotek aktywny => flip + dźwięk
+        function onGlobalClick(e) {
+          if (!st.hammerActive) return;
+          // flip na klik gdziekolwiek
+          doHammerFlip();
+        }
+        ctx.on(document, "click", onGlobalClick, { capture: true });
+
+        // ===== Aktywacja młotka: klik w prawy obrazek =====
         function onRightClick(e) {
           e.preventDefault();
           e.stopPropagation();
 
           unlockAudioOnce();
 
-          // animacja i dopiero potem Twoja stara logika
-          flipRightThen(() => {
-            st.rightClicked = true;
+          // aktywuj młotek jako kursor
+          setHammerActive(true);
 
-            // znika prawy + odblokuj lewy
-            try { eggRight.remove(); } catch {}
-            setLeftEnabled(true);
-          });
+          // ustaw pozycję młotka na aktualnym kliknięciu
+          const x = e.clientX ?? (window.innerWidth / 2);
+          const y = e.clientY ?? (window.innerHeight / 2);
+          updateHammerPos(x, y);
+
+          // usuń prawy obrazek z boku (żeby był tylko "kursor")
+          try { eggRight.remove(); } catch {}
+
+          showMsg("Masz młotek. Klikaj gdziekolwiek, a żeby zakończyć – traf w lewy obrazek.");
         }
 
+        // ===== Trafienie lewego obrazka młotkiem =====
         function onLeftClick(e) {
           e.preventDefault();
           e.stopPropagation();
 
           unlockAudioOnce();
 
-          if (!st.rightClicked) return;
+          // lewy ma reagować TYLKO gdy młotek jest aktywny
+          if (!st.hammerActive) return;
           if (st.unlocked) return;
 
-          // NOWE: pierwszy klik na lewy włącza celownik,
-          // dopiero drugi (z aktywnym celownikiem) robi "akcję"
-          if (!st.aiming) {
-            setAiming(true);
-            showMsg("Masz celownik. Kliknij jeszcze raz w lewy obrazek.");
-            return;
-          }
-
-          // tu już "nowym kursorem" -> robimy stary unlock
-          setAiming(false);
           st.unlocked = true;
 
-          // lewy staje się 3. obrazkiem
-          eggLeft.src = CFG.IMG_THIRD;
+          // flip + dźwięk przy trafieniu
+          doHammerFlip();
 
-          // dźwięk
-          playOneShot();
+          // lewy staje się 3. obrazkiem (Twoja poprzednia funkcja)
+          eggLeft.src = CFG.IMG_THIRD;
 
           // odblokuj środek
           lockCenter4(false);
 
           showMsg("Widziałem jak coś ci ukradł - trzymaj !");
+
+          // młotek znika dopiero po trafieniu w lewy
+          setHammerActive(false);
 
           if (msgTimer) clearTimeout(msgTimer);
           msgTimer = ctx.setTimeoutSafe(() => {
@@ -367,9 +410,10 @@ body.dry-aiming * {
         ctx.on(eggLeft, "click", onLeftClick);
 
         return () => {
-          try { setAiming(false); } catch {}
+          try { document.body.classList.remove("dry-hammer-active"); } catch {}
           try { eggLeft.remove(); } catch {}
           try { eggRight.remove(); } catch {}
+          try { hammer.remove(); } catch {}
           try { if (msgTimer) clearTimeout(msgTimer); } catch {}
           try { if (msgEl) msgEl.remove(); } catch {}
           try { style.remove(); } catch {}
