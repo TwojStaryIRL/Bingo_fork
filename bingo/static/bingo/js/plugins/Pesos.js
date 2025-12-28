@@ -27,7 +27,7 @@
   };
 
   const ASSETS = {
-    plusImg: "/static/bingo/images/Pesos/socialcreditplus.jpg",
+    plusImg: "/static/bingo/images/Pesos/socialcreditplus.gif",
     minusImg: "/static/bingo/images/Pesos/socialcreditminus.jpg",
   };
 
