@@ -132,7 +132,7 @@
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
         const style = document.createElement("style");
-        style.textContent = `
+style.textContent = `
 
 body::before,
 body::after{
@@ -141,29 +141,43 @@ body::after{
   content: "" !important;
 }
 
-#plugin-root { position: relative; z-index: 2147483000; }
-
-/* darken grid/panel (hard mode) */
-.panel.panel--wide{
+/* ===== LAYERS (fix) ===== */
+#plugin-root{
   position: relative;
-  background: rgba(0,0,0,.86) !important;
-  outline: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 20px 70px rgba(0,0,0,.70) !important;
-  backdrop-filter: blur(10px) saturate(1.05);
+  z-index: 1; /* nie kosmos — UI i tak ustawiamy wyżej */
 }
 
-/* dodatkowa "czarna szyba" na panelu (nie dotyka dzieci) */
+/* UI gry zawsze NAD tłem */
+.page, .hero, .panel{
+  position: relative;
+  z-index: 200;
+}
+
+/* ===== HARDMODE: MAIN PANEL + GRID ===== */
+.panel.panel--wide{
+  position: relative;
+
+  /* mocniej niż jull */
+  background: rgba(0,0,0,.93) !important;
+  outline: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 24px 90px rgba(0,0,0,.82) !important;
+
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+}
+
+/* dodatkowa „czarna szyba” */
 .panel.panel--wide::before{
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -8px;               /* lekko wychodzi poza panel */
   border-radius: inherit;
-  background: rgba(0,0,0,.38);
+  background: rgba(0,0,0,.55);
   pointer-events: none;
   z-index: 0;
 }
 
-/* wszystko w panelu nad tą warstwą */
+/* wszystko w panelu nad overlayem */
 .panel.panel--wide > *{
   position: relative;
   z-index: 1;
@@ -171,36 +185,36 @@ body::after{
 
 /* tabela i komórki */
 .grid-table{
-  background: rgba(0,0,0,.45);
+  background: rgba(0,0,0,.68) !important;
   border-radius: 18px;
 }
 
 .grid-table td{
-  background: rgba(0,0,0,.40) !important;
+  background: rgba(0,0,0,.62) !important;
 }
 
-/* same pola tekstowe */
+/* pola tekstowe */
 textarea.grid-cell{
-  background: rgba(0,0,0,.78) !important;
-  color: rgba(255,255,255,.94) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  background: rgba(0,0,0,.90) !important;
+  color: rgba(255,255,255,.95) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  box-shadow: 0 12px 34px rgba(0,0,0,.62);
 }
 
 textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.42) !important;
+  color: rgba(255,255,255,.36) !important;
 }
 
-/* Wasz custom dropdown */
+/* custom dropdown */
 .cell-wrapper.cd .cd__button{
-  background: rgba(0,0,0,.72) !important;
-  color: rgba(255,255,255,.92) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.86) !important;
+  color: rgba(255,255,255,.95) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
 }
 
 .cell-wrapper.cd .cd__list{
-  background: rgba(0,0,0,.92) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(0,0,0,.96) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
 }
 
 .cell-wrapper.cd .cd__option{
@@ -208,17 +222,18 @@ textarea.grid-cell::placeholder{
 }
 
 .cell-wrapper.cd .cd__option--muted{
-  color: rgba(255,255,255,.55) !important;
+  color: rgba(255,255,255,.56) !important;
 }
 
-/* bg + marquee */
+/* ===== BG + MARQUEE (UNDER UI) ===== */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
-  z-index: 2147483638;
+  z-index: 10;               /* klucz: POD .panel (200) */
   pointer-events: none;
   overflow: hidden;
 }
+
 .ps-bgimg{
   position: absolute;
   inset: 0;
@@ -228,6 +243,29 @@ textarea.grid-cell::placeholder{
   opacity: ${CFG.BG_OPACITY};
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
+}
+
+/* opcjonalnie: “koty/paski tylko po bokach” — środek prawie znika */
+.ps-bgimg,
+.ps-marquee{
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.06) 44%,
+    rgba(0,0,0,0.06) 56%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.06) 44%,
+    rgba(0,0,0,0.06) 56%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
 }
 
 .ps-marquee{
@@ -271,7 +309,7 @@ textarea.grid-cell::placeholder{
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 
-@keyframes ps-marquee {
+@keyframes ps-marquee{
   0%   { transform: translateX(0); }
   100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
 }
@@ -279,12 +317,14 @@ textarea.grid-cell::placeholder{
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* memes */
+/* ===== MEMES (OVER UI) ===== */
 .ps-layer{
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   pointer-events: none;
-  z-index: 2147483646;
+  z-index: 9999;
 }
+
 .ps-img{
   position: fixed;
   width: min(34vw, 520px);
@@ -296,32 +336,10 @@ textarea.grid-cell::placeholder{
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
+
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 
-/* === zapewnij, że UI gry jest nad pluginem === */
-.page, .hero, .panel{
-  position: relative;
-  z-index: 50;
-}
-
-/* === przyciemnij i odseparuj główny panel od tła === */
-.panel.panel--wide{
-  background: rgba(0,0,0,.68);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 18px 55px rgba(0,0,0,.55);
-}
-
-/* opcjonalnie: lekko rozjaśnij pole tekstowe (dla kontrastu na ciemnym panelu) */
-.grid-table textarea.grid-cell{
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.92);
-  border-color: rgba(255,255,255,.18);
-}
-
-        `;
+`;
         document.head.appendChild(style);
 
         // BG + marquee
