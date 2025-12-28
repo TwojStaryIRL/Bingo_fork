@@ -97,6 +97,7 @@
           // Seating slides in AFTER place arrives and STAYS
           SEATING_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           SEATING_SLIDE_MS: 520,
+          SEATING_SCALE: 2.3,
         };
 
         // ===== BG LOOP =====
@@ -104,7 +105,7 @@
         let audioUnlocked = false;
 
         function startLoop() {
-          const url = pickOne(sfx?.bg_loop);
+          const url = pickOne(sfx?.sabrina);
           if (!url) return false;
 
           if (bg && !bg.paused) return true;
@@ -536,11 +537,11 @@
 
         async function runPlaceThenSeatingSequence() {
           // docelowe pozycje
-          const w = CFG.PLACE_W;
-          const h = CFG.PLACE_H;
+          const w = Math.round(window.innerWidth * 0.35);
+          const h = Math.round(window.innerHeight * 0.35);
 
           const startX = Math.round(window.innerWidth / 2 - w / 2);
-          const startY = Math.round(window.innerHeight * CFG.PLACE_START_Y_RATIO - h / 2);
+          const startY = Math.round(window.innerHeight / 2 - h / 2);
 
           const targetX = Math.round(window.innerWidth - w - CFG.PLACE_TARGET_PAD_RIGHT);
           const targetY = Math.round(window.innerHeight * CFG.PLACE_TARGET_Y_RATIO - h / 2);
@@ -583,10 +584,15 @@
             seating.classList.remove("is-in");
           }
 
-          seating.style.width = `${w}px`;
-          seating.style.height = `${h}px`;
-          seating.style.left = `${Math.max(0, targetX)}px`;
-          seating.style.top = `${Math.max(0, targetY)}px`;
+          const sw = Math.round(w * CFG.SEATING_SCALE);
+          const sh = Math.round(h * CFG.SEATING_SCALE);
+
+          seating.style.width  = `${sw}px`;
+          seating.style.height = `${sh}px`;
+
+          // korekta pozycji żeby "usiadła" na środku miejsca
+          seating.style.left = `${targetX - (sw - w) / 2}px`;
+          seating.style.top  = `${targetY - (sh - h) / 2}px`;
 
           await sleep(ctx, 30);
           seating.classList.add("is-in");
@@ -628,7 +634,7 @@
           slotStates.push(st);
 
           function playSwapSfx() {
-            const url = pickOne(sfx?.swap);
+            const url = pickOne(sfx?.hs);
             if (url) {
               fadeOutAudio(st.currentSfx, 120);
               st.currentSfx = playManaged(url, CFG.SFX_VOLUME);
