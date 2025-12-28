@@ -278,6 +278,13 @@ body::after{
 
 document.head.appendChild(style);
 
+// === DEFAULT LOOK (jak ustawione w konsoli) ===
+document.documentElement.style.setProperty("--ps-bg-opacity", "0.05");
+document.documentElement.style.setProperty("--ps-marquee-opacity", "0.12");
+document.documentElement.style.setProperty("--ps-scale", "0.62");
+document.documentElement.style.setProperty("--ps-rot-deg", "-8deg");
+
+
 
 
 
