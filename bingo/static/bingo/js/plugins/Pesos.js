@@ -134,6 +134,7 @@
         const style = document.createElement("style");
 style.textContent = `
 
+
 body::before,
 body::after{
   background-image: none !important;
@@ -141,179 +142,42 @@ body::after{
   content: "" !important;
 }
 
-/* ===== LAYERS: background under UI ===== */
-#plugin-root{
-  position: relative;
-  z-index: 1;
-}
 
-/* UI bingo nad tłem */
-.page, .hero, .panel{
-  position: relative;
-  z-index: 50;
-}
 
-/* ===== PANEL: mild dark + separation ===== */
 .panel.panel--wide{
   position: relative;
-  background: rgba(0,0,0,.76) !important;      /* umiarkowanie ciemno */
-  border: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
-  backdrop-filter: blur(10px) saturate(1.05);
-  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+
+  /* delikatne przyciemnienie samego panelu */
+  background: rgba(0,0,0,.72) !important;
+
+  /* wyraźna separacja od tła */
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.10),
+    0 22px 70px rgba(0,0,0,.65);
+
+  /* subtelna „matowa szyba” */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* delikatna “szyba” tylko dla kontrastu */
-.panel.panel--wide::before{
+/* optyczna winieta — NIE RUSZA LAYOUTU */
+.panel.panel--wide::after{
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: rgba(0,0,0,.18);
   pointer-events: none;
-  z-index: 0;
+
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0,0,0,.18) 0%,
+    rgba(0,0,0,.28) 60%,
+    rgba(0,0,0,.38) 100%
+  );
 }
-
-.panel.panel--wide > *{
-  position: relative;
-  z-index: 1;
-}
-
-/* ===== GRID: subtle, not destructive ===== */
-.grid-table{
-  background: rgba(0,0,0,.22);
-  border-radius: 18px;
-}
-
-.grid-table td{
-  background: rgba(0,0,0,.18) !important;
-}
-
-/* textarea: minimal dark so text pops */
-textarea.grid-cell{
-  background: rgba(0,0,0,.55) !important;
-  color: rgba(255,255,255,.94) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  box-shadow: 0 10px 28px rgba(0,0,0,.35);
-}
-
-textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.44) !important;
-}
-
-/* custom dropdown (button + list) */
-.cell-wrapper.cd .cd__button{
-  background: rgba(0,0,0,.48) !important;
-  color: rgba(255,255,255,.92) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-}
-
-.cell-wrapper.cd .cd__list{
-  background: rgba(0,0,0,.86) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-}
-
-.cell-wrapper.cd .cd__option{
-  color: rgba(255,255,255,.92) !important;
-}
-
-.cell-wrapper.cd .cd__option--muted{
-  color: rgba(255,255,255,.58) !important;
-}
-
-/* ===== BG + MARQUEE: must be UNDER UI ===== */
-.ps-bgwrap{
-  position: fixed;
-  inset: 0;
-  z-index: 5;            /* klucz: < 50 (UI) */
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.ps-bgimg{
-  position: absolute;
-  inset: 0;
-  background-image: url("${ASSETS.bgImg}");
-  background-size: cover;
-  background-position: center;
-  opacity: ${CFG.BG_OPACITY};
-  filter: contrast(1.05) saturate(0.95);
-  transform: scale(1.02);
-}
-
-.ps-marquee{
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-rows: repeat(${CFG.ROWS}, ${CFG.TILE_H}px);
-  gap: ${CFG.TILE_GAP}px;
-  padding: ${CFG.TILE_GAP}px;
-  box-sizing: border-box;
-  opacity: ${CFG.MARQUEE_OPACITY};
-  pointer-events: none;
-  filter: saturate(1.05) contrast(1.03);
-}
-
-.ps-row{
-  position: relative;
-  overflow: hidden;
-  border-radius: 18px;
-  background: rgba(255,255,255,.02);
-  outline: 1px solid rgba(255,255,255,.06);
-}
-
-.ps-track{
-  position: absolute;
-  top: 0; left: 0;
-  height: 100%;
-  display: flex;
-  gap: ${CFG.TILE_GAP}px;
-  align-items: center;
-  will-change: transform;
-}
-
-.ps-track img{
-  height: 100%;
-  width: auto;
-  border-radius: 18px;
-  object-fit: cover;
-  user-select: none;
-  pointer-events: none;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-}
-
-@keyframes ps-marquee{
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
-}
-
-.ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
-.ps-track.reverse{ animation-direction: reverse; }
-
-/* ===== MEMES: over everything ===== */
-.ps-layer{
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.ps-img{
-  position: fixed;
-  width: min(34vw, 520px);
-  max-width: 520px;
-  height: auto;
-  user-select: none;
-  opacity: 0;
-  transform: scale(${CFG.SCALE}) rotate(${CFG.ROT_DEG}deg);
-  transition: opacity 120ms ease;
-  filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
-}
-
-.ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 
 `;
-document.head.appendChild(style);
+        document.head.appendChild(style);
 
 
         // BG + marquee
