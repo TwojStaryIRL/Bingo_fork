@@ -28,7 +28,7 @@
 
   const ASSETS = {
     plusImg: "/static/bingo/images/Pesos/socialcreditplus.jpg",
-    minusImg: "/static/bingo/images/socialcreditminus.jpg",
+    minusImg: "/static/bingo/images/Pesos/socialcreditminus.jpg",
   };
 
   function getJSONScript(id, fallback = null) {
