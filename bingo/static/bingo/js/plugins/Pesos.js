@@ -131,9 +131,7 @@
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
-        const style = document.createElement("style");
-style.textContent = `
-
+        style.textContent = `
 body::before,
 body::after{
   background-image: none !important;
@@ -141,34 +139,35 @@ body::after{
   content: "" !important;
 }
 
-/* plugin root nie musi być kosmicznie wysoko */
-#plugin-root { position: relative; z-index: 1; }
+/* sterowanie parametrami w locie */
+:root{
+  --ps-bg-opacity: ${CFG.BG_OPACITY};
+  --ps-marquee-opacity: ${CFG.MARQUEE_OPACITY};
+  --ps-rot-deg: ${CFG.ROT_DEG}deg;
+  --ps-scale: ${CFG.SCALE};
+}
 
-/* =========================
-   1) TŁO PLUGINU POD UI
-   ========================= */
-
-/* TŁO (background + marquee) MUSI BYĆ POD panelem gry */
+/* tło pod UI */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
-  z-index: 0;                 /* <<< KLUCZ */
+  z-index: 1;
   pointer-events: none;
   overflow: hidden;
 }
 
-/* zostawiasz jak było */
 .ps-bgimg{
   position: absolute;
   inset: 0;
   background-image: url("${ASSETS.bgImg}");
   background-size: cover;
   background-position: center;
-  opacity: ${CFG.BG_OPACITY};
+  opacity: var(--ps-bg-opacity);
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
 }
 
+/* marquee */
 .ps-marquee{
   position: absolute;
   inset: 0;
@@ -177,9 +176,29 @@ body::after{
   gap: ${CFG.TILE_GAP}px;
   padding: ${CFG.TILE_GAP}px;
   box-sizing: border-box;
-  opacity: ${CFG.MARQUEE_OPACITY};
+  opacity: var(--ps-marquee-opacity);
   pointer-events: none;
   filter: saturate(1.05) contrast(1.03);
+
+  /* maska jak u jull: środek prawie niewidoczny, boki pełne */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.10) 42%,
+    rgba(0,0,0,0.10) 58%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.10) 42%,
+    rgba(0,0,0,0.10) 58%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
 }
 
 .ps-row{
@@ -214,48 +233,26 @@ body::after{
   0%   { transform: translateX(0); }
   100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
 }
+
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* =========================
-   2) PRZYCIEMNIJ TYLKO PANEL GRY
-   ========================= */
-
-.panel.panel--wide{
+/* UI gry nad tłem – jak u jull */
+.page, .hero, .panel{
   position: relative;
-  background: rgba(0,0,0,.70) !important;          /* <<< przyciemnienie */
-  border: 1px solid rgba(255,255,255,.10) !important;
-  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
+  z-index: 50;
+}
+
+/* przyciemnienie panelu (jak u jull) */
+.panel.panel--wide{
+  background: rgba(0,0,0,.68) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 18px 55px rgba(0,0,0,.55) !important;
 }
 
-/* szyba pod treścią panelu */
-.panel.panel--wide::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0,0,0,.18) 0%,
-    rgba(0,0,0,.30) 65%,
-    rgba(0,0,0,.42) 100%
-  );
-}
-
-/* treść panelu nad szybą */
-.panel.panel--wide > *{
-  position: relative;
-  z-index: 1;
-}
-
-/* =========================
-   3) MEMY NAD WSZYSTKIM (bez zmian)
-   ========================= */
-
+/* === MEMY NAD WSZYSTKIM + możliwość kręcenia === */
 .ps-layer{
   position: fixed;
   inset: 0;
@@ -270,13 +267,13 @@ body::after{
   height: auto;
   user-select: none;
   opacity: 0;
-  transform: scale(${CFG.SCALE}) rotate(${CFG.ROT_DEG}deg);
+  transform: scale(var(--ps-scale)) rotate(var(--ps-rot-deg));
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
-
 `;
+
 document.head.appendChild(style);
 
 
