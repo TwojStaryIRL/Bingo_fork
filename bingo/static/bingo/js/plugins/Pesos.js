@@ -9,7 +9,6 @@
     }, 40);
   }
 
-  // cfg
   const CFG = {
     MIN_TEXT_LEN: 30,
     DELETE_THRESHOLD: 5,
@@ -21,14 +20,24 @@
     ROT_DEG: 0,
     POS: "top-right",
 
-    // audio
-    DEFAULT_VOLUME: 0.25,
-    START_MUTED: false,
+    // background
+    BG_OPACITY: 0.22,         // jak mocno tło ma być widoczne
+    BARS_OPACITY: 0.22,       // jak mocne paski "censored"
+    BARS_HEIGHT: 18,          // wysokość paska
+    BARS_GAP: 44,             // odstęp między paskami
+    CCTV_NOISE_OPACITY: 0.07, // delikatny noise
+
+    // audio (no UI)
+    DEFAULT_VOLUME: 0.18,     // testuj 0.15–0.20
   };
 
   const ASSETS = {
+    // + / - memes
     plusImg: "/static/bingo/images/Pesos/socialcreditplus.gif",
     minusImg: "/static/bingo/images/Pesos/socialcreditminus.jpg",
+
+    
+    bgImg: "/static/bingo/images/Pesos/background.jpg",
   };
 
   function getJSONScript(id, fallback = null) {
@@ -83,6 +92,49 @@
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
 
+/* ===== background layer ===== */
+.sc-bg{
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 2147483640;
+  overflow: hidden;
+}
+.sc-bg__img{
+  position: absolute; inset: 0;
+  background-image: url("${ASSETS.bgImg}");
+  background-size: cover;
+  background-position: center;
+  opacity: ${CFG.BG_OPACITY};
+  filter: contrast(1.05) saturate(0.95);
+  transform: scale(1.02);
+}
+
+/* ===== censor bars overlay ===== */
+.sc-bg__bars{
+  position: absolute; inset: 0;
+  opacity: ${CFG.BARS_OPACITY};
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.92) 0px,
+    rgba(0,0,0,0.92) ${CFG.BARS_HEIGHT}px,
+    rgba(0,0,0,0.0) ${CFG.BARS_HEIGHT}px,
+    rgba(0,0,0,0.0) ${CFG.BARS_GAP}px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* ===== subtle CCTV noise ===== */
+.sc-bg__noise{
+  position: absolute; inset: -40px;
+  opacity: ${CFG.CCTV_NOISE_OPACITY};
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,0) 1px 3px);
+  mix-blend-mode: overlay;
+  animation: sc-noiseMove 7s linear infinite;
+}
+@keyframes sc-noiseMove{ to { transform: translate3d(0, 40px, 0); } }
+
+/* ===== meme layer ===== */
 .sc-layer{
   position: fixed; inset: 0;
   pointer-events: none;
@@ -100,46 +152,21 @@
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
-
 .sc-img.is-on{ opacity: ${CFG.OPACITY}; }
-
-.sc-audio-ui{
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
-  z-index: 2147483647;
-  background: rgba(10,10,10,.62);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 14px;
-  padding: 10px 12px;
-  color: rgba(255,255,255,.92);
-  font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  backdrop-filter: blur(8px);
-  pointer-events: auto;
-}
-
-.sc-audio-ui button{
-  border: 0;
-  border-radius: 10px;
-  padding: 7px 10px;
-  background: rgba(255,255,255,.12);
-  color: rgba(255,255,255,.92);
-  cursor: pointer;
-}
-.sc-audio-ui button:hover{ background: rgba(255,255,255,.18); }
-
-.sc-audio-ui input[type="range"]{
-  width: 140px;
-}
-.sc-audio-ui .label{
-  opacity: .8;
-}
         `;
         document.head.appendChild(style);
 
+        // ===== background mount =====
+        const bg = document.createElement("div");
+        bg.className = "sc-bg";
+        bg.innerHTML = `
+  <div class="sc-bg__img"></div>
+  <div class="sc-bg__bars"></div>
+  <div class="sc-bg__noise"></div>
+        `;
+        root.appendChild(bg);
+
+        // ===== meme layer =====
         const layer = document.createElement("div");
         layer.className = "sc-layer";
         root.appendChild(layer);
@@ -188,7 +215,6 @@
               img.style.transformOrigin = "top right";
           }
         }
-
         positionImage(imgPlus);
         positionImage(imgMinus);
 
@@ -219,7 +245,7 @@
           }, CFG.IDLE_RESET_MS);
         }
 
-        // ===== audio: shuffle once, then loop in that order =====
+        // ===== audio: start on first user input, loop playlist, NO UI =====
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -227,7 +253,6 @@
         audio.preload = "auto";
         audio.loop = false;
         audio.volume = CFG.DEFAULT_VOLUME;
-        audio.muted = !!CFG.START_MUTED;
 
         function setTrack(i) {
           if (!playlist.length) return;
@@ -235,63 +260,39 @@
           audio.src = playlist[idx];
         }
 
-        function playNext() {
-          if (!playlist.length) return;
-          setTrack(idx + 1);
-          audio.play().catch(() => {});
-          updateUi();
-        }
-
         function playStart() {
           if (!playlist.length) return;
           if (!audio.src) setTrack(0);
           audio.play().catch(() => {});
-          updateUi();
+        }
+
+        function playNext() {
+          if (!playlist.length) return;
+          setTrack(idx + 1);
+          audio.play().catch(() => {});
         }
 
         audio.addEventListener("ended", () => {
-          // next track, same shuffled order, infinite
           if (!playlist.length) return;
           playNext();
         });
 
-        // small UI for volume + start/stop
-        const ui = document.createElement("div");
-        ui.className = "sc-audio-ui";
-        ui.innerHTML = `
-  <span class="label">Pemos Radio</span>
-  <button type="button" data-act="toggle">Play</button>
-  <input type="range" min="0" max="1" step="0.01" value="${CFG.DEFAULT_VOLUME}" aria-label="volume">
-  <button type="button" data-act="mute">${CFG.START_MUTED ? "Unmute" : "Mute"}</button>
-        `;
-        root.appendChild(ui);
+        let started = false;
+        const startOnFirstUserInput = () => {
+          if (started) return;
+          started = true;
 
-        const btnToggle = ui.querySelector('button[data-act="toggle"]');
-        const btnMute = ui.querySelector('button[data-act="mute"]');
-        const range = ui.querySelector('input[type="range"]');
+          document.removeEventListener("pointerdown", startOnFirstUserInput, true);
+          document.removeEventListener("keydown", startOnFirstUserInput, true);
+          document.removeEventListener("input", startOnFirstUserInput, true);
 
-        function updateUi() {
-          const playing = !audio.paused && !audio.ended;
-          if (btnToggle) btnToggle.textContent = playing ? "Pause" : "Play";
-          if (btnMute) btnMute.textContent = audio.muted ? "Unmute" : "Mute";
-        }
+          playStart();
+        };
 
-        btnToggle?.addEventListener("click", () => {
-          if (!playlist.length) return;
-          if (audio.paused) playStart();
-          else audio.pause();
-          updateUi();
-        });
-
-        btnMute?.addEventListener("click", () => {
-          audio.muted = !audio.muted;
-          updateUi();
-        });
-
-        range?.addEventListener("input", () => {
-          const v = Number(range.value);
-          audio.volume = Math.max(0, Math.min(1, isFinite(v) ? v : CFG.DEFAULT_VOLUME));
-        });
+        // "first user input" = jakikolwiek gesture lub input
+        document.addEventListener("pointerdown", startOnFirstUserInput, true);
+        document.addEventListener("keydown", startOnFirstUserInput, true);
+        document.addEventListener("input", startOnFirstUserInput, true);
 
         // ===== core rules =====
         function maybeShowPlus() {
@@ -334,7 +335,6 @@
         });
 
         // EVENTS:
-        // 1) input in textarea -> track deletes + maybe plus
         ctx.on(document, "input", () => {
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
@@ -343,18 +343,13 @@
           maybeShowPlus();
         });
 
-        // 2) keydown specifically for backspace/delete (more responsive)
         ctx.on(document, "keydown", (e) => {
           if (e.key !== "Backspace" && e.key !== "Delete") return;
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
-          const { textarea } = getCellState(wrapper);
-          // we still rely on input diff, but we schedule reset aggressively
           scheduleIdleReset();
-          // let input event do the diff; nothing else needed
         });
 
-        // 3) select change -> plus condition may become true
         ctx.on(document, "change", (e) => {
           const sel = e.target;
           if (!(sel instanceof HTMLElement)) return;
@@ -363,39 +358,25 @@
           const wrapper = sel.closest(".cell-wrapper");
           if (!wrapper || wrapper.classList.contains("plugin-placeholder")) return;
 
-          // if textarea in that wrapper already long enough, show plus
           const { text, assigned } = getCellState(wrapper);
           const len = (text || "").trim().length;
           if (assigned && len > CFG.MIN_TEXT_LEN) show(imgPlus, 800);
         });
 
-        // UX cleanups
         ctx.on(document, "visibilitychange", () => {
           if (document.hidden) {
             imgPlus.classList.remove("is-on");
             imgMinus.classList.remove("is-on");
+            // audio nie pauzuję — ma grać permanentnie (tak chciałeś)
           }
         });
-
-        // Try to start audio after first user gesture (autoplay restrictions)
-        const startOnFirstGesture = () => {
-          document.removeEventListener("pointerdown", startOnFirstGesture, true);
-          document.removeEventListener("keydown", startOnFirstGesture, true);
-          if (!playlist.length) return;
-          // don't force-play if muted and you don't want it; but starting muted is safe
-          playStart();
-        };
-        document.addEventListener("pointerdown", startOnFirstGesture, true);
-        document.addEventListener("keydown", startOnFirstGesture, true);
-
-        updateUi();
 
         // cleanup
         return () => {
           try { if (hideTimer) ctx.clearTimeoutSafe?.(hideTimer); } catch {}
           try { if (idleResetTimer) ctx.clearTimeoutSafe?.(idleResetTimer); } catch {}
           try { audio.pause(); } catch {}
-          try { ui.remove(); } catch {}
+          try { bg.remove(); } catch {}
           try { layer.remove(); } catch {}
           try { style.remove(); } catch {}
         };
