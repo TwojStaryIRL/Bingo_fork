@@ -10,21 +10,17 @@
   }
 
   const CFG = {
-    // rules
     MIN_TEXT_LEN: 30,
     DELETE_THRESHOLD: 5,
     IDLE_RESET_MS: 900,
 
-    // plus/minus visuals
     OPACITY: 0.92,
     SCALE: 0.62,
     ROT_DEG: 0,
     POS: "top-right",
 
-    // background
     BG_OPACITY: 0.22,
 
-    // marquee (Big Brother strips)
     MARQUEE_IMGS: [
       "/static/bingo/images/Pesos/pasek1.jpg",
       "/static/bingo/images/Pesos/pasek2.jpg",
@@ -35,12 +31,18 @@
     ROWS: 6,
     TILE_H: 140,
     TILE_GAP: 14,
-    SPEED_MIN: 18,
-    SPEED_MAX: 36,
+
+    // <<< SLOWER (about 2x slower than 18-36)
+    SPEED_MIN: 36,
+    SPEED_MAX: 72,
+
     MARQUEE_OPACITY: 0.22,
 
-    // audio (no UI)
     DEFAULT_VOLUME: 0.18,
+
+    // spam tuning
+    SPAM_MS: 260,          // jak długo obrazek ma być widoczny przy spamie
+    SPAM_COOLDOWN_MS: 140, // min odstęp między kolejnymi pokazaniami
   };
 
   const ASSETS = {
@@ -66,7 +68,6 @@
     return a;
   }
 
-  // global bag (no duplicates until exhausted) – jak u jull
   function shuffledPool(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -75,6 +76,7 @@
     }
     return a;
   }
+
   let globalBag = [];
   let globalK = 0;
   function nextStripSrc() {
@@ -88,7 +90,6 @@
 
   function fillRowNoDup(track, rowW, tileW) {
     const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
-
     for (let i = 0; i < need; i++) {
       const img = document.createElement("img");
       img.src = nextStripSrc();
@@ -130,12 +131,40 @@
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
-        // ===== style =====
         const style = document.createElement("style");
         style.textContent = `
+/* reset kolegi */
+body::before,
+body::after{
+  background-image: none !important;
+  opacity: 0 !important;
+  content: "" !important;
+}
+
 #plugin-root { position: relative; z-index: 2147483000; }
 
-/* ===== background image ===== */
+/* darken grid/panel (tło jasne -> UI ciemne) */
+.panel.panel--wide{
+  background: rgba(0,0,0,.72) !important;
+  outline: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(6px);
+}
+
+.grid-table td{
+  background: rgba(0,0,0,.10);
+}
+
+textarea.grid-cell{
+  background: rgba(0,0,0,.62) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-color: rgba(255,255,255,.14) !important;
+}
+textarea.grid-cell::placeholder{
+  color: rgba(255,255,255,.40) !important;
+}
+
+/* bg + marquee */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
@@ -154,7 +183,6 @@
   transform: scale(1.02);
 }
 
-/* ===== marquee layer (like jull) ===== */
 .ps-marquee{
   position: absolute;
   inset: 0;
@@ -204,13 +232,12 @@
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* ===== meme layer ===== */
+/* memes */
 .ps-layer{
   position: fixed; inset: 0;
   pointer-events: none;
   z-index: 2147483646;
 }
-
 .ps-img{
   position: fixed;
   width: min(34vw, 520px);
@@ -226,7 +253,7 @@
         `;
         document.head.appendChild(style);
 
-        // ===== mount BG + marquee =====
+        // BG + marquee
         const bgwrap = document.createElement("div");
         bgwrap.className = "ps-bgwrap";
 
@@ -255,7 +282,6 @@
         bgwrap.appendChild(marquee);
         root.appendChild(bgwrap);
 
-        // fill marquee (like jull)
         function layoutFill() {
           const rowW = (window.innerWidth || 1200);
           const tileW = (CFG.TILE_H * 1.35) + CFG.TILE_GAP;
@@ -271,7 +297,7 @@
         layoutFill();
         ctx.on(window, "resize", () => layoutFill());
 
-        // ===== meme layer =====
+        // meme layer
         const layer = document.createElement("div");
         layer.className = "ps-layer";
         root.appendChild(layer);
@@ -323,7 +349,6 @@
         positionImage(imgPlus);
         positionImage(imgMinus);
 
-        // show/hide
         let hideTimer = null;
         function show(img, ms = 650) {
           imgPlus.classList.remove("is-on");
@@ -337,20 +362,26 @@
           }, ms);
         }
 
-        // deletion tracking
+        // deletion tracking + spam
         let lastLenByTextarea = new WeakMap();
-        let deletedSinceReset = 0;
         let idleResetTimer = null;
+
+        let lastSpamAt = 0;
+        function spam(img) {
+          const now = performance.now();
+          if (now - lastSpamAt < CFG.SPAM_COOLDOWN_MS) return;
+          lastSpamAt = now;
+          show(img, CFG.SPAM_MS);
+        }
 
         function scheduleIdleReset() {
           if (idleResetTimer) ctx.clearTimeoutSafe?.(idleResetTimer);
           idleResetTimer = ctx.setTimeoutSafe(() => {
-            deletedSinceReset = 0;
             idleResetTimer = null;
           }, CFG.IDLE_RESET_MS);
         }
 
-        // audio: first gesture start, loop playlist, no UI
+        // audio
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -394,52 +425,46 @@
         document.addEventListener("keydown", startOnFirstUserInput, true);
         document.addEventListener("input", startOnFirstUserInput, true);
 
-        // rules
-        function maybeShowPlus() {
+        // init lengths
+        document.querySelectorAll("textarea.grid-cell").forEach(t => {
+          lastLenByTextarea.set(t, (t.value ?? "").length);
+        });
+
+        // INPUT: spam + / - based on length diff
+        ctx.on(document, "input", () => {
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
           if (wrapper.classList.contains("plugin-placeholder")) return;
 
-          const { text, assigned } = getCellState(wrapper);
-          const len = (text || "").trim().length;
-
-          if (assigned && len > CFG.MIN_TEXT_LEN) {
-            show(imgPlus, 800);
-          }
-        }
-
-        function updateDeleteCountFromTextarea(textarea) {
+          const { textarea, text, assigned } = getCellState(wrapper);
           if (!textarea) return;
 
           const prev = lastLenByTextarea.get(textarea);
           const cur = (textarea.value ?? "").length;
 
+          // spam logic
           if (typeof prev === "number") {
-            const diff = prev - cur;
+            const diff = cur - prev;
             if (diff > 0) {
-              deletedSinceReset += diff;
+              // typed characters
+              if (assigned) spam(imgPlus); // tylko jak wybrany user (żeby miało sens)
+            } else if (diff < 0) {
+              // deleted characters
+              spam(imgMinus);
               scheduleIdleReset();
-              if (deletedSinceReset >= CFG.DELETE_THRESHOLD) {
-                deletedSinceReset = 0;
-                show(imgMinus, 800);
-              }
             }
           }
+
           lastLenByTextarea.set(textarea, cur);
-        }
 
-        document.querySelectorAll("textarea.grid-cell").forEach(t => {
-          lastLenByTextarea.set(t, (t.value ?? "").length);
+          // dodatkowo: jak już spełnione warunki długości, pokaż plus mocniej
+          const lenTrim = (text || "").trim().length;
+          if (assigned && lenTrim > CFG.MIN_TEXT_LEN) {
+            show(imgPlus, 650);
+          }
         });
 
-        ctx.on(document, "input", () => {
-          const wrapper = getCellWrapperFromActive();
-          if (!wrapper) return;
-          const { textarea } = getCellState(wrapper);
-          updateDeleteCountFromTextarea(textarea);
-          maybeShowPlus();
-        });
-
+        // keydown: tylko po to, żeby łapać kasowanie bardziej responsywnie (ale spam i tak robi input diff)
         ctx.on(document, "keydown", (e) => {
           if (e.key !== "Backspace" && e.key !== "Delete") return;
           const wrapper = getCellWrapperFromActive();
@@ -447,6 +472,7 @@
           scheduleIdleReset();
         });
 
+        // select change: jeśli tekst już długi -> plus
         ctx.on(document, "change", (e) => {
           const sel = e.target;
           if (!(sel instanceof HTMLElement)) return;
@@ -457,7 +483,7 @@
 
           const { text, assigned } = getCellState(wrapper);
           const len = (text || "").trim().length;
-          if (assigned && len > CFG.MIN_TEXT_LEN) show(imgPlus, 800);
+          if (assigned && len > CFG.MIN_TEXT_LEN) show(imgPlus, 650);
         });
 
         ctx.on(document, "visibilitychange", () => {
@@ -467,7 +493,6 @@
           }
         });
 
-        // cleanup
         return () => {
           try { if (hideTimer) ctx.clearTimeoutSafe?.(hideTimer); } catch {}
           try { if (idleResetTimer) ctx.clearTimeoutSafe?.(idleResetTimer); } catch {}
