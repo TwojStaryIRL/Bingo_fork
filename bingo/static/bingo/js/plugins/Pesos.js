@@ -133,7 +133,7 @@
 
         const style = document.createElement("style");
         style.textContent = `
-/* reset kolegi */
+
 body::before,
 body::after{
   background-image: none !important;
@@ -143,25 +143,72 @@ body::after{
 
 #plugin-root { position: relative; z-index: 2147483000; }
 
-/* darken grid/panel (tło jasne -> UI ciemne) */
+/* darken grid/panel (hard mode) */
 .panel.panel--wide{
-  background: rgba(0,0,0,.72) !important;
-  outline: 1px solid rgba(255,255,255,.10) !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,.55) !important;
-  backdrop-filter: blur(6px);
+  position: relative;
+  background: rgba(0,0,0,.86) !important;
+  outline: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 20px 70px rgba(0,0,0,.70) !important;
+  backdrop-filter: blur(10px) saturate(1.05);
+}
+
+/* dodatkowa "czarna szyba" na panelu (nie dotyka dzieci) */
+.panel.panel--wide::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(0,0,0,.38);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* wszystko w panelu nad tą warstwą */
+.panel.panel--wide > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* tabela i komórki */
+.grid-table{
+  background: rgba(0,0,0,.45);
+  border-radius: 18px;
 }
 
 .grid-table td{
-  background: rgba(0,0,0,.10);
+  background: rgba(0,0,0,.40) !important;
 }
 
+/* same pola tekstowe */
 textarea.grid-cell{
-  background: rgba(0,0,0,.62) !important;
-  color: rgba(255,255,255,.92) !important;
-  border-color: rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.78) !important;
+  color: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
 }
+
 textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.40) !important;
+  color: rgba(255,255,255,.42) !important;
+}
+
+/* Wasz custom dropdown */
+.cell-wrapper.cd .cd__button{
+  background: rgba(0,0,0,.72) !important;
+  color: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+}
+
+.cell-wrapper.cd .cd__list{
+  background: rgba(0,0,0,.92) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+}
+
+.cell-wrapper.cd .cd__option{
+  color: rgba(255,255,255,.92) !important;
+}
+
+.cell-wrapper.cd .cd__option--muted{
+  color: rgba(255,255,255,.55) !important;
 }
 
 /* bg + marquee */
