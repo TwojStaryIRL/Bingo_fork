@@ -59,7 +59,6 @@
         const CFG = {
           BG_VOLUME: 0.22,
           SFX_VOLUME: 0.60,
-
           TRANSFORM_MS: 1200,
 
           // corner slots
@@ -86,21 +85,34 @@
           GRID_DECOY: "/static/bingo/images/SabrinaSitOnMe/krzeslo.png",
           GRID_CORRECT: "/static/bingo/images/SabrinaSitOnMe/miejsce.png",
 
-          // Background sequence (GOŁE PNG)
-PLACE_W: 180,        // ← MNIEJSZE SIEDZENIE (TU STERUJESZ)
-PLACE_H: 180,        // ← MNIEJSZE SIEDZENIE
-PLACE_TARGET_PAD_RIGHT: 18,
-PLACE_TARGET_Y_RATIO: 0.52,
-PLACE_FLY_MS: 950,
+          // ====== TŁO (GOŁE PNG) ======
+          // rozmiar "miejsce.png" (czyli Twoje "siedzenie.png")
+          PLACE_W: 180,
+          PLACE_H: 180,
 
+          // gdzie ma wylądować "miejsce.png" (czerwona ramka)
+          // 0.80 = mniej więcej prawa "wolna" część, ale NIE przy krawędzi
+          PLACE_TARGET_X_RATIO: 0.82, // prawa strona; lewa będzie symetryczna
+          PLACE_TARGET_Y_RATIO: 0.55, // wysokość (dostosuj pod ramkę)
 
-          // Seating slides in AFTER place arrives and STAYS
+          // w którym punkcie NA "miejsce.png" jest to niebieskie X (gdzie ma usiąść Sabrina)
+          // 0..1 w obrębie obrazka "miejsce.png"
+          PLACE_SEAT_X: 0.55,
+          PLACE_SEAT_Y: 0.45,
+
+          // animacja przelotu miejsca
+          PLACE_FLY_MS: 950,
+
+          // ====== SABRINA (sitting.png) ======
           SEATING_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           SEATING_SLIDE_MS: 520,
-          SEATING_SCALE: 1.67,
-          SEATING_ANCHOR_X: 0.52, // 0..1 (0 = lewa, 1 = prawa)
-          SEATING_ANCHOR_Y: 0.67, // 0..1 (0 = góra, 1 = dół)
 
+          // Sabrina większa/mniejsza względem miejsca
+          SEATING_SCALE: 1.67,
+
+          // anchor w PNG sitting.png (punkt, który ma trafić w PLACE_SEAT_X/Y)
+          SEATING_ANCHOR_X: 0.52,
+          SEATING_ANCHOR_Y: 0.67,
         };
 
         // ===== BG LOOP =====
@@ -108,7 +120,7 @@ PLACE_FLY_MS: 950,
         let audioUnlocked = false;
 
         function startLoop() {
-          const url = pickOne(sfx?.sabrina); // dopasowane do Twojego user_plugins.py
+          const url = pickOne(sfx?.sabrina);
           if (!url) return false;
 
           if (bg && !bg.paused) return true;
@@ -237,7 +249,6 @@ PLACE_FLY_MS: 950,
 }
 .sabrina-hero.left .sabrina-hero-img{ transform: translateX(-120%); }
 .sabrina-hero-img.is-in{ transform: translateX(0); }
-.sabrina-hero.left .sabrina-hero-img.is-in{ transform: translateX(0); }
 
 .sabrina-hero-btn{
   width: 100%;
@@ -279,8 +290,6 @@ PLACE_FLY_MS: 950,
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
-
-/* FIX: usuń buttonowe ramki/tła (to robiło “nie okej”) */
 .sabrina-gcell{
   aspect-ratio: 1 / 1;
   border-radius: 14px;
@@ -291,21 +300,14 @@ PLACE_FLY_MS: 950,
   padding: 0 !important;
   cursor: pointer;
 }
-.sabrina-gcell:focus,
-.sabrina-gcell:focus-visible{
-  outline: none !important;
-}
 .sabrina-gcell img{
   width: 100%;
   height: 100%;
   display:block;
-
-  /* ładne i bez brutalnego ucinania */
   object-fit: contain;
   object-position: center;
   background: transparent;
 }
-
 .sabrina-msg{
   margin-top: 10px;
   font-size: 13px;
@@ -366,19 +368,19 @@ PLACE_FLY_MS: 950,
           hero: null,
           modal: null,
           lock: false,
-          placeEl: null,   // <img> miejsce.png
-          seatingEl: null, // <img> sitting.png
-          side: "left",    // startuje left -> pierwszy takeover będzie RIGHT po przełączeniu
+          placeEl: null,
+          seatingEl: null,
+          side: "left", // przełączy się na "right" przy pierwszym beginTakeover
           count: 0,
-          max: 1,
+          max: 2,       // ✅ raz prawa, raz lewa
         };
 
         function scheduleTakeover() {
-  if (takeover.count >= takeover.max) return; // STOP po 2 razach
-  const ms = CFG.TAKEOVER_EVERY_MIN_MS +
-    Math.random() * (CFG.TAKEOVER_EVERY_MAX_MS - CFG.TAKEOVER_EVERY_MIN_MS);
-  takeover.timer = ctx.setTimeoutSafe(() => beginTakeover(), ms | 0);
-}
+          if (takeover.count >= takeover.max) return;
+          const ms = CFG.TAKEOVER_EVERY_MIN_MS +
+            Math.random() * (CFG.TAKEOVER_EVERY_MAX_MS - CFG.TAKEOVER_EVERY_MIN_MS);
+          takeover.timer = ctx.setTimeoutSafe(() => beginTakeover(), ms | 0);
+        }
 
         function stopAllSlotAudioAndAnimations() {
           slotStates.forEach(st => {
@@ -395,7 +397,6 @@ PLACE_FLY_MS: 950,
           takeover.active = true;
           takeover.count++;
 
-          // NAPRZEMIENNIE: right/left
           takeover.side = (takeover.side === "right") ? "left" : "right";
 
           cLT.classList.add("is-hidden");
@@ -563,22 +564,24 @@ PLACE_FLY_MS: 950,
         }
 
         async function runPlaceThenSeatingSequence() {
-          // start z centrum (duże, czytelne)
-          const w = Math.round(window.innerWidth * 0.35);
-          const h = Math.round(window.innerHeight * 0.35);
+          // 1) start z centrum
+          const w = CFG.PLACE_W;
+          const h = CFG.PLACE_H;
 
           const startX = Math.round(window.innerWidth / 2 - w / 2);
           const startY = Math.round(window.innerHeight / 2 - h / 2);
 
-          // target zależny od strony
-          const pad = CFG.PLACE_TARGET_PAD;
-          const targetX = (takeover.side === "right")
-            ? Math.round(window.innerWidth - w - pad)
-            : Math.round(pad);
+          // 2) target: "czerwona ramka" (ratio -> środek ramki)
+          const targetCenterX = (takeover.side === "right")
+            ? Math.round(window.innerWidth * CFG.PLACE_TARGET_X_RATIO)
+            : Math.round(window.innerWidth * (1 - CFG.PLACE_TARGET_X_RATIO));
 
-          const targetY = Math.round(window.innerHeight * CFG.PLACE_TARGET_Y_RATIO - h / 2);
+          const targetCenterY = Math.round(window.innerHeight * CFG.PLACE_TARGET_Y_RATIO);
 
-          // 1) miejsce (GOŁY IMG)
+          const targetX = Math.round(targetCenterX - w / 2);
+          const targetY = Math.round(targetCenterY - h / 2);
+
+          // 3) miejsce (GOŁY IMG)
           let place = takeover.placeEl;
           if (!place) {
             place = document.createElement("img");
@@ -594,7 +597,7 @@ PLACE_FLY_MS: 950,
           place.style.top = `${Math.max(0, startY)}px`;
           place.style.transition = "none";
 
-          // 2) leci do targeta
+          // 4) leci do targeta
           await sleep(ctx, 30);
           place.style.transition = `left ${CFG.PLACE_FLY_MS}ms ease, top ${CFG.PLACE_FLY_MS}ms ease`;
           place.style.left = `${Math.max(0, targetX)}px`;
@@ -602,7 +605,7 @@ PLACE_FLY_MS: 950,
 
           await sleep(ctx, CFG.PLACE_FLY_MS + 60);
 
-          // 3) sitting (GOŁY IMG) wjeżdża z tej samej strony i zostaje
+          // 5) Sabrina (sitting.png) wjeżdża z tej samej strony i zostaje
           let seating = takeover.seatingEl;
           if (!seating) {
             seating = document.createElement("img");
@@ -612,7 +615,6 @@ PLACE_FLY_MS: 950,
             takeover.seatingEl = seating;
           }
 
-          // reset klas kierunku i animacji
           seating.className = "sabrina-bgimg sabrina-seating";
           seating.classList.add(takeover.side === "right" ? "from-right" : "from-left");
           seating.classList.remove("is-in");
@@ -623,22 +625,20 @@ PLACE_FLY_MS: 950,
           seating.style.width  = `${sw}px`;
           seating.style.height = `${sh}px`;
 
-          // pozycja: wycentruj na miejscu
-          // punkt “siedzenia” w miejscu (środek miejsca)
-          const seatPointX = targetX + w * 0.5;
-          const seatPointY = targetY + h * 0.5;
+          // 6) NIEBIESKI X: punkt na miejscu (PLACE_SEAT_X/Y)
+          const seatPointX = targetX + w * CFG.PLACE_SEAT_X;
+          const seatPointY = targetY + h * CFG.PLACE_SEAT_Y;
 
-          // ustawiamy seating tak, żeby jego ANCHOR trafił w seatPoint
+          // 7) anchor w sitting.png (SEATING_ANCHOR_X/Y) trafia w X
           seating.style.left = `${seatPointX - sw * CFG.SEATING_ANCHOR_X}px`;
           seating.style.top  = `${seatPointY - sh * CFG.SEATING_ANCHOR_Y}px`;
-
 
           await sleep(ctx, 30);
           seating.classList.add("is-in");
 
           await sleep(ctx, CFG.SEATING_SLIDE_MS + 60);
 
-          // SFX potwierdzenia — dopasowane do Twojego sfx: "hs"
+          // sfx potwierdzenia
           const okUrl = pickOne(sfx?.hs);
           if (okUrl) playManaged(okUrl, CFG.SFX_VOLUME);
 
