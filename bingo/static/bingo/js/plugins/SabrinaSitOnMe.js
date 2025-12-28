@@ -1,5 +1,4 @@
 (() => {
-  // Wait for runtime
   function whenRuntime(fn) {
     if (window.BingoPluginRuntime?.initUserPlugin) return fn();
     const t = setInterval(() => {
@@ -63,7 +62,7 @@
 
           TRANSFORM_MS: 1200,
 
-          // 4 corner slots
+          // corner slots
           SLOTS: [
             { id: "L1", corner: "LT", a: "/static/bingo/images/SabrinaSitOnMe/lala.gif",  b: "/static/bingo/images/SabrinaSitOnMe/nga.gif"  },
             { id: "L2", corner: "LB", a: "/static/bingo/images/SabrinaSitOnMe/lala2.gif", b: "/static/bingo/images/SabrinaSitOnMe/nga2.gif" },
@@ -82,29 +81,22 @@
           TAKEOVER_TEXT: "Cześć… o mój Boże. Potrzebuję pomocy ze wskazaniem dobrego miejsca, w którym mogę usiąść.",
           TAKEOVER_BTN_TEXT: "Tak, tak, tak, proszę mamusiu, pokażę Ci gdzie możesz usiąść.",
 
-          // Sabrina hero (left, after success)
-          TAKEOVER_HERO_LEFT_TEXT: "Lepiej weź głęboki oddech",
-          TAKEOVER_HERO_LEFT_BTN_TEXT: "Dobra, wracamy do gry.",
-
           // Grid 3x3
           GRID_TITLE: "Gdzie Sabrina ma usiąść?",
           GRID_DECOY: "/static/bingo/images/SabrinaSitOnMe/krzeslo.png",
           GRID_CORRECT: "/static/bingo/images/SabrinaSitOnMe/miejsce.png",
 
-          // “background” sequence after correct pick
+          // Background sequence (GOŁE PNG)
           PLACE_W: 280,
           PLACE_H: 280,
-          PLACE_START_Y_RATIO: 0.52, // start from center-ish
+          PLACE_START_Y_RATIO: 0.52,
           PLACE_TARGET_PAD_RIGHT: 18,
           PLACE_TARGET_Y_RATIO: 0.52,
           PLACE_FLY_MS: 950,
 
-          // seating cover slides in AFTER the place arrives
+          // Seating slides in AFTER place arrives and STAYS
           SEATING_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           SEATING_SLIDE_MS: 520,
-
-          // keep seating visible afterwards
-          KEEP_SEATING: true,
         };
 
         // ===== BG LOOP =====
@@ -112,7 +104,7 @@
         let audioUnlocked = false;
 
         function startLoop() {
-          const url = pickOne(sfx?.sabrina);
+          const url = pickOne(sfx?.bg_loop);
           if (!url) return false;
 
           if (bg && !bg.paused) return true;
@@ -152,7 +144,7 @@
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-/* 4 corner columns (each holds 1 slot) */
+/* 4 corners */
 .sabrina-corner {
   position: fixed;
   width: 230px;
@@ -161,7 +153,6 @@
   transition: transform .52s ease, opacity .52s ease;
   opacity: 1;
 }
-
 .sabrina-corner.is-pre { opacity: 0; }
 .sabrina-corner.is-hidden { opacity: 0; }
 
@@ -172,15 +163,10 @@
 
 .sabrina-corner.lt.is-pre, .sabrina-corner.lb.is-pre,
 .sabrina-corner.lt.is-hidden, .sabrina-corner.lb.is-hidden { transform: translateX(-130%); }
-
 .sabrina-corner.rt.is-pre, .sabrina-corner.rb.is-pre,
 .sabrina-corner.rt.is-hidden, .sabrina-corner.rb.is-hidden { transform: translateX(130%); }
 
-.sabrina-slot {
-  width: 210px;
-  pointer-events: auto;
-  display: grid;
-}
+.sabrina-slot { width: 210px; pointer-events: auto; display: grid; }
 
 .sabrina-card {
   width: 210px;
@@ -204,7 +190,7 @@
   will-change: transform, filter;
 }
 
-/* HERO (Sabrina) */
+/* HERO */
 .sabrina-hero {
   position: fixed;
   top: 16px;
@@ -218,35 +204,20 @@
   border: 1px solid rgba(255,255,255,.14);
   box-shadow: 0 24px 90px rgba(0,0,0,.55);
 }
-.sabrina-hero.left {
-  right: auto;
-  left: 16px;
-}
-
-.sabrina-hero-inner{
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
+.sabrina-hero-inner{ display: grid; gap: 10px; padding: 12px; }
 .sabrina-hero-title{
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: .2px;
+  font-weight: 900; font-size: 13px; letter-spacing: .2px;
   color: rgba(255,255,255,.92);
   text-shadow: 0 10px 22px rgba(0,0,0,.55);
 }
-
 .sabrina-hero-imgwrap{
   width: 100%;
   aspect-ratio: 16 / 9;
-  height: auto;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
 }
-
 .sabrina-hero-img{
   width: 100%;
   height: 100%;
@@ -255,9 +226,7 @@
   transform: translateX(120%);
   transition: transform .52s ease;
 }
-.sabrina-hero.left .sabrina-hero-img { transform: translateX(-120%); }
 .sabrina-hero-img.is-in{ transform: translateX(0); }
-
 .sabrina-hero-btn{
   width: 100%;
   border: 0;
@@ -278,7 +247,6 @@
   background: rgba(0,0,0,.35);
   backdrop-filter: blur(6px);
 }
-
 .sabrina-modal-card{
   width: min(520px, 92vw);
   border-radius: 18px;
@@ -287,7 +255,6 @@
   box-shadow: 0 24px 90px rgba(0,0,0,.55);
   padding: 14px;
 }
-
 .sabrina-modal-title{
   color: rgba(255,255,255,.92);
   font-weight: 900;
@@ -295,13 +262,11 @@
   font-size: 14px;
   margin: 0 0 10px;
 }
-
 .sabrina-grid{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
-
 .sabrina-gcell{
   aspect-ratio: 1 / 1;
   border-radius: 14px;
@@ -311,14 +276,12 @@
   cursor: pointer;
   padding: 0;
 }
-
 .sabrina-gcell img{
   width: 100%;
   height: 100%;
   object-fit: cover;
   display:block;
 }
-
 .sabrina-msg{
   margin-top: 10px;
   font-size: 13px;
@@ -326,50 +289,31 @@
   min-height: 18px;
 }
 
-/* Background animation layer: place + seating */
-.sabrina-stage {
+/* ====== GOŁE PNG NA TLE (bez tła/opacity/borderów) ====== */
+.sabrina-bgimg{
   position: fixed;
-  inset: 0;
-  z-index: 2147483646; /* above corners, below hero/modal */
+  z-index: 2147483646; /* nad narożnikami, pod modalem/hero */
   pointer-events: none;
+  width: 280px;
+  height: 280px;
+  object-fit: contain;
+  image-rendering: auto;
 }
 
-.sabrina-place, .sabrina-seating {
-  position: fixed;
-  z-index: 2147483646;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.14);
-  box-shadow: 0 24px 90px rgba(0,0,0,.55);
-  background: rgba(255,255,255,.06);
-}
-.sabrina-place img, .sabrina-seating img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* seating slides from right */
-.sabrina-seating {
+/* seating wjeżdża z prawej */
+.sabrina-seating{
   transform: translateX(120%);
   transition: transform .52s ease;
 }
-.sabrina-seating.is-in { transform: translateX(0); }
+.sabrina-seating.is-in{ transform: translateX(0); }
         `;
         document.head.appendChild(style);
 
-        // ===== Overlay root =====
+        // ===== overlay for corners =====
         const overlay = document.createElement("div");
         overlay.className = "sabrina-overlay";
         root.appendChild(overlay);
 
-        // Stage (background animation layer)
-        const stage = document.createElement("div");
-        stage.className = "sabrina-stage";
-        root.appendChild(stage);
-
-        // 4 corner containers
         const cLT = document.createElement("div");
         cLT.className = "sabrina-corner lt is-pre";
         const cLB = document.createElement("div");
@@ -398,8 +342,9 @@
           timer: null,
           hero: null,
           modal: null,
-          seating: null,
-          lock: false, // prevent double-trigger
+          lock: false,
+          placeEl: null,   // <img> miejsce.png
+          seatingEl: null, // <img> sitting.png
         };
 
         function scheduleTakeover() {
@@ -422,7 +367,6 @@
           if (takeover.active || takeover.lock) return;
           takeover.active = true;
 
-          // slide away corners
           cLT.classList.add("is-hidden");
           cLB.classList.add("is-hidden");
           cRT.classList.add("is-hidden");
@@ -431,11 +375,10 @@
           stopAllSlotAudioAndAnimations();
 
           await sleep(ctx, CFG.TAKEOVER_SLIDE_MS);
-          openHeroRight(); // waits for button click
+          openHero();
         }
 
         async function endTakeover() {
-          // bring back corners
           cLT.classList.remove("is-hidden");
           cLB.classList.remove("is-hidden");
           cRT.classList.remove("is-hidden");
@@ -445,7 +388,7 @@
           scheduleTakeover();
         }
 
-        function openHeroRight() {
+        function openHero() {
           closeHero();
 
           const hero = document.createElement("div");
@@ -490,51 +433,6 @@
           requestAnimationFrame(() => img.classList.add("is-in"));
         }
 
-        function openHeroLeftAfterSuccess() {
-          closeHero();
-
-          const hero = document.createElement("div");
-          hero.className = "sabrina-hero left";
-
-          const inner = document.createElement("div");
-          inner.className = "sabrina-hero-inner";
-
-          const title = document.createElement("div");
-          title.className = "sabrina-hero-title";
-          title.textContent = CFG.TAKEOVER_HERO_LEFT_TEXT;
-
-          const wrap = document.createElement("div");
-          wrap.className = "sabrina-hero-imgwrap";
-
-          const img = document.createElement("img");
-          img.className = "sabrina-hero-img";
-          img.src = CFG.TAKEOVER_HERO_IMG;
-          wrap.appendChild(img);
-
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "sabrina-hero-btn";
-          btn.textContent = CFG.TAKEOVER_HERO_LEFT_BTN_TEXT;
-
-          ctx.on(btn, "click", async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            closeHero();
-            await endTakeover();
-            takeover.lock = false;
-          });
-
-          inner.appendChild(title);
-          inner.appendChild(wrap);
-          inner.appendChild(btn);
-          hero.appendChild(inner);
-
-          root.appendChild(hero);
-          takeover.hero = hero;
-
-          requestAnimationFrame(() => img.classList.add("is-in"));
-        }
-
         function closeHero() {
           if (takeover.hero) {
             try { takeover.hero.remove(); } catch {}
@@ -562,7 +460,6 @@
           msg.className = "sabrina-msg";
           msg.textContent = "";
 
-          // fixed layout: correct always center
           const tiles = [
             CFG.GRID_DECOY, CFG.GRID_DECOY, CFG.GRID_DECOY,
             CFG.GRID_DECOY, CFG.GRID_CORRECT, CFG.GRID_DECOY,
@@ -600,17 +497,19 @@
                 return; // must choose correct
               }
 
-              msg.textContent = "Lepiej weź głęboki oddech :*";
+              msg.textContent = "No. To teraz patrz.";
+
               takeover.lock = true;
 
-              // Zamknij modal od razu -> animacja NA TLE
+              // zamykamy modal -> od teraz wszystko dzieje się NA TLE
               closeGridModal();
 
-              // Sekwencja: miejsce z centrum -> prawa strona, potem seating z prawej
-              await runBackgroundSeatSequence();
+              // miejsce.png z centrum -> prawa
+              await runPlaceThenSeatingSequence();
 
-              // Na końcu pokaż Sabrinę z lewej strony
-              openHeroLeftAfterSuccess();
+              // wracamy do gry (bez żadnych dodatkowych popupów!)
+              await endTakeover();
+              takeover.lock = false;
             });
 
             grid.appendChild(cell);
@@ -635,73 +534,70 @@
           }
         }
 
-        async function runBackgroundSeatSequence() {
-          // remove previous seating if exists and we DON'T want to keep it
-          if (takeover.seating && !CFG.KEEP_SEATING) {
-            try { takeover.seating.remove(); } catch {}
-            takeover.seating = null;
+        async function runPlaceThenSeatingSequence() {
+          // docelowe pozycje
+          const w = CFG.PLACE_W;
+          const h = CFG.PLACE_H;
+
+          const startX = Math.round(window.innerWidth / 2 - w / 2);
+          const startY = Math.round(window.innerHeight * CFG.PLACE_START_Y_RATIO - h / 2);
+
+          const targetX = Math.round(window.innerWidth - w - CFG.PLACE_TARGET_PAD_RIGHT);
+          const targetY = Math.round(window.innerHeight * CFG.PLACE_TARGET_Y_RATIO - h / 2);
+
+          // 1) place (GOŁY IMG) - jeśli już jest, resetuj do środka
+          let place = takeover.placeEl;
+          if (!place) {
+            place = document.createElement("img");
+            place.className = "sabrina-bgimg";
+            place.src = CFG.GRID_CORRECT;
+            place.alt = "miejsce";
+            root.appendChild(place);
+            takeover.placeEl = place;
           }
-
-          // 1) "miejsce.png" appears at CENTER of screen (background)
-          const place = document.createElement("div");
-          place.className = "sabrina-place";
-          place.style.width = `${CFG.PLACE_W}px`;
-          place.style.height = `${CFG.PLACE_H}px`;
-
-          const startX = Math.round(window.innerWidth / 2 - CFG.PLACE_W / 2);
-          const startY = Math.round(window.innerHeight * CFG.PLACE_START_Y_RATIO - CFG.PLACE_H / 2);
-
+          place.style.width = `${w}px`;
+          place.style.height = `${h}px`;
           place.style.left = `${Math.max(0, startX)}px`;
           place.style.top = `${Math.max(0, startY)}px`;
+          place.style.transition = "none";
 
-          const placeImg = document.createElement("img");
-          placeImg.src = CFG.GRID_CORRECT;
-          place.appendChild(placeImg);
-          stage.appendChild(place);
-
-          // 2) Fly it to the RIGHT side (background)
-          const targetX = Math.round(window.innerWidth - CFG.PLACE_W - CFG.PLACE_TARGET_PAD_RIGHT);
-          const targetY = Math.round(window.innerHeight * CFG.PLACE_TARGET_Y_RATIO - CFG.PLACE_H / 2);
-
-          place.style.transition = `left ${CFG.PLACE_FLY_MS}ms ease, top ${CFG.PLACE_FLY_MS}ms ease`;
-
+          // 2) animuj miejsce na prawą stronę
           await sleep(ctx, 30);
+          place.style.transition = `left ${CFG.PLACE_FLY_MS}ms ease, top ${CFG.PLACE_FLY_MS}ms ease`;
           place.style.left = `${Math.max(0, targetX)}px`;
           place.style.top = `${Math.max(0, targetY)}px`;
 
           await sleep(ctx, CFG.PLACE_FLY_MS + 60);
 
-          // 3) THEN seating slides in from RIGHT and covers the place (background)
-          // (seating is same size and positioned same as place)
-          if (takeover.seating) {
-            try { takeover.seating.remove(); } catch {}
-            takeover.seating = null;
+          // 3) seating (GOŁY IMG) wjeżdża z prawej i zostaje
+          let seating = takeover.seatingEl;
+          if (!seating) {
+            seating = document.createElement("img");
+            seating.className = "sabrina-bgimg sabrina-seating";
+            seating.src = CFG.SEATING_IMG;
+            seating.alt = "sitting";
+            root.appendChild(seating);
+            takeover.seatingEl = seating;
+          } else {
+            // reset animacji
+            seating.classList.remove("is-in");
           }
 
-          const seating = document.createElement("div");
-          seating.className = "sabrina-seating";
+          seating.style.width = `${w}px`;
+          seating.style.height = `${h}px`;
           seating.style.left = `${Math.max(0, targetX)}px`;
           seating.style.top = `${Math.max(0, targetY)}px`;
-          seating.style.width = `${CFG.PLACE_W}px`;
-          seating.style.height = `${CFG.PLACE_H}px`;
-
-          const seatingImg = document.createElement("img");
-          seatingImg.src = CFG.SEATING_IMG;
-          seating.appendChild(seatingImg);
-          stage.appendChild(seating);
-          takeover.seating = seating;
 
           await sleep(ctx, 30);
           seating.classList.add("is-in");
 
           await sleep(ctx, CFG.SEATING_SLIDE_MS + 60);
 
-          // place can disappear (covered anyway)
-          try { place.remove(); } catch {}
-
-          // optional SFX on "swap/lock-in"
-          const swapUrl = pickOne(sfx?.hs);
+          // opcjonalny sfx potwierdzenia
+          const swapUrl = pickOne(sfx?.swap);
           if (swapUrl) playManaged(swapUrl, CFG.SFX_VOLUME);
+
+          // UWAGA: NIC nie usuwamy. place i seating zostają.
         }
 
         // ===== Slots =====
@@ -804,7 +700,6 @@
           if (v.corner === "RB") cRB.appendChild(v.wrap);
         });
 
-        // Start bg & schedule takeover
         startLoop();
         scheduleTakeover();
 
@@ -812,12 +707,14 @@
           try { if (takeover.timer) clearTimeout(takeover.timer); } catch {}
           closeHero();
           closeGridModal();
-          try { if (takeover.seating && !CFG.KEEP_SEATING) takeover.seating.remove(); } catch {}
 
           try { overlay.remove(); } catch {}
-          try { stage.remove(); } catch {}
           try { style.remove(); } catch {}
           try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
+
+          // NIE usuwam place/seating na cleanup, ale jak wolisz, odkomentuj:
+          // try { takeover.placeEl?.remove(); } catch {}
+          // try { takeover.seatingEl?.remove(); } catch {}
 
           slotStates.forEach(st => fadeOutAudio(st.currentSfx, 120));
         };
