@@ -1,1 +1,0 @@
-// gra w uderz cwela, będzie zdjęcie cwela i możesz kliknąć żeby go uderzyć z lewej lub z prawej
