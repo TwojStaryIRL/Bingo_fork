@@ -99,7 +99,12 @@ def nataliagl131_func() -> UserPluginConfig:
 def Pesos_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/Pesos.js",
-        sfx={}
+        sfx={
+            "ambient": [
+                static("bingo/sfx/Pemos/number1.mp3"),
+                static("bingo/sfx/Pemos/number2.mp3"),
+                static("bingo/sfx/Pemos/number3.mp3"),
+        ]}
     )
 
 def SabrinaSitOnMe_func() -> UserPluginConfig:
@@ -111,7 +116,8 @@ def SabrinaSitOnMe_func() -> UserPluginConfig:
 def kamiqxx_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/kamiqxx.js",
-        sfx={"ambient": [
+        sfx={
+            "ambient": [
                 static("bingo/sfx/kamiqxx/conangray.mp3"),
                 static("bingo/sfx/kamiqxx/cyberp.mp3"),
                 static("bingo/sfx/kamiqxx/hozier.mp3"),
