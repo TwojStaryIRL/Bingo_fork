@@ -87,16 +87,19 @@
           GRID_CORRECT: "/static/bingo/images/SabrinaSitOnMe/miejsce.png",
 
           // Background sequence (GOŁE PNG)
-          PLACE_TARGET_PAD: 18,
-          PLACE_TARGET_Y_RATIO: 0.52,
-          PLACE_FLY_MS: 950,
+PLACE_W: 180,        // ← MNIEJSZE SIEDZENIE (TU STERUJESZ)
+PLACE_H: 180,        // ← MNIEJSZE SIEDZENIE
+PLACE_TARGET_PAD_RIGHT: 18,
+PLACE_TARGET_Y_RATIO: 0.52,
+PLACE_FLY_MS: 950,
+
 
           // Seating slides in AFTER place arrives and STAYS
           SEATING_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
           SEATING_SLIDE_MS: 520,
-          SEATING_SCALE: 2.3,
-          SEATING_ANCHOR_X: 0.50, // 0..1 (0 = lewa, 1 = prawa)
-          SEATING_ANCHOR_Y: 0.78, // 0..1 (0 = góra, 1 = dół)
+          SEATING_SCALE: 1.67,
+          SEATING_ANCHOR_X: 0.52, // 0..1 (0 = lewa, 1 = prawa)
+          SEATING_ANCHOR_Y: 0.67, // 0..1 (0 = góra, 1 = dół)
 
         };
 
