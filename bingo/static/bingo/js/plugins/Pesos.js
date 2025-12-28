@@ -9,32 +9,95 @@
     }, 40);
   }
 
-  // cfg
   const CFG = {
     MIN_TEXT_LEN: 30,
     DELETE_THRESHOLD: 5,
     IDLE_RESET_MS: 900,
 
-    // visuals
     OPACITY: 0.92,
     SCALE: 0.62,
     ROT_DEG: 0,
     POS: "top-right",
 
-    // audio
-    DEFAULT_VOLUME: 0.25,
-    START_MUTED: false,
+    BG_OPACITY: 0.22,
+
+    MARQUEE_IMGS: [
+      "/static/bingo/images/Pesos/pasek1.jpg",
+      "/static/bingo/images/Pesos/pasek2.jpg",
+      "/static/bingo/images/Pesos/pasek3.jpg",
+      "/static/bingo/images/Pesos/pasek4.jpg",
+      "/static/bingo/images/Pesos/pasek5.jpg",
+    ],
+    ROWS: 6,
+    TILE_H: 140,
+    TILE_GAP: 14,
+
+    // <<< SLOWER (about 2x slower than 18-36)
+    SPEED_MIN: 36,
+    SPEED_MAX: 72,
+
+    MARQUEE_OPACITY: 0.22,
+
+    DEFAULT_VOLUME: 0.18,
+
+    // spam tuning
+    SPAM_MS: 260,          // jak długo obrazek ma być widoczny przy spamie
+    SPAM_COOLDOWN_MS: 140, // min odstęp między kolejnymi pokazaniami
   };
 
   const ASSETS = {
     plusImg: "/static/bingo/images/Pesos/socialcreditplus.gif",
     minusImg: "/static/bingo/images/Pesos/socialcreditminus.jpg",
+    bgImg: "/static/bingo/images/Pesos/background.jpg",
   };
 
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
     if (!el) return fallback;
     try { return JSON.parse(el.textContent || "null"); } catch { return fallback; }
+  }
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function shuffledPool(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  let globalBag = [];
+  let globalK = 0;
+  function nextStripSrc() {
+    if (!CFG.MARQUEE_IMGS.length) return "";
+    if (globalBag.length === 0 || globalK >= globalBag.length) {
+      globalBag = shuffledPool(CFG.MARQUEE_IMGS);
+      globalK = 0;
+    }
+    return globalBag[globalK++];
+  }
+
+  function fillRowNoDup(track, rowW, tileW) {
+    const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
+    for (let i = 0; i < need; i++) {
+      const img = document.createElement("img");
+      img.src = nextStripSrc();
+      img.alt = "pasek";
+      img.draggable = false;
+      img.loading = "lazy";
+      track.appendChild(img);
+    }
   }
 
   function isTypingTarget(el) {
@@ -58,15 +121,6 @@
     return { textarea, select, text, assigned };
   }
 
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
   whenRuntime(() => {
     window.BingoUserPlugin = {
       init(api) {
@@ -74,22 +128,164 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // plugin sfx from backend (json_script id="plugin-sfx")
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
-        // ===== DOM / CSS =====
         const style = document.createElement("style");
         style.textContent = `
+
+body::before,
+body::after{
+  background-image: none !important;
+  opacity: 0 !important;
+  content: "" !important;
+}
+
 #plugin-root { position: relative; z-index: 2147483000; }
 
-.sc-layer{
+/* darken grid/panel (hard mode) */
+.panel.panel--wide{
+  position: relative;
+  background: rgba(0,0,0,.86) !important;
+  outline: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 20px 70px rgba(0,0,0,.70) !important;
+  backdrop-filter: blur(10px) saturate(1.05);
+}
+
+/* dodatkowa "czarna szyba" na panelu (nie dotyka dzieci) */
+.panel.panel--wide::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(0,0,0,.38);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* wszystko w panelu nad tą warstwą */
+.panel.panel--wide > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* tabela i komórki */
+.grid-table{
+  background: rgba(0,0,0,.45);
+  border-radius: 18px;
+}
+
+.grid-table td{
+  background: rgba(0,0,0,.40) !important;
+}
+
+/* same pola tekstowe */
+textarea.grid-cell{
+  background: rgba(0,0,0,.78) !important;
+  color: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+
+textarea.grid-cell::placeholder{
+  color: rgba(255,255,255,.42) !important;
+}
+
+/* Wasz custom dropdown */
+.cell-wrapper.cd .cd__button{
+  background: rgba(0,0,0,.72) !important;
+  color: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+}
+
+.cell-wrapper.cd .cd__list{
+  background: rgba(0,0,0,.92) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+}
+
+.cell-wrapper.cd .cd__option{
+  color: rgba(255,255,255,.92) !important;
+}
+
+.cell-wrapper.cd .cd__option--muted{
+  color: rgba(255,255,255,.55) !important;
+}
+
+/* bg + marquee */
+.ps-bgwrap{
+  position: fixed;
+  inset: 0;
+  z-index: 2147483638;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ps-bgimg{
+  position: absolute;
+  inset: 0;
+  background-image: url("${ASSETS.bgImg}");
+  background-size: cover;
+  background-position: center;
+  opacity: ${CFG.BG_OPACITY};
+  filter: contrast(1.05) saturate(0.95);
+  transform: scale(1.02);
+}
+
+.ps-marquee{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(${CFG.ROWS}, ${CFG.TILE_H}px);
+  gap: ${CFG.TILE_GAP}px;
+  padding: ${CFG.TILE_GAP}px;
+  box-sizing: border-box;
+  opacity: ${CFG.MARQUEE_OPACITY};
+  pointer-events: none;
+  filter: saturate(1.05) contrast(1.03);
+}
+
+.ps-row{
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: rgba(255,255,255,.02);
+  outline: 1px solid rgba(255,255,255,.06);
+}
+
+.ps-track{
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  display: flex;
+  gap: ${CFG.TILE_GAP}px;
+  align-items: center;
+  will-change: transform;
+}
+
+.ps-track img{
+  height: 100%;
+  width: auto;
+  border-radius: 18px;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+@keyframes ps-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
+}
+
+.ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
+.ps-track.reverse{ animation-direction: reverse; }
+
+/* memes */
+.ps-layer{
   position: fixed; inset: 0;
   pointer-events: none;
   z-index: 2147483646;
 }
-
-.sc-img{
+.ps-img{
   position: fixed;
   width: min(34vw, 520px);
   max-width: 520px;
@@ -100,57 +296,90 @@
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
+.ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 
-.sc-img.is-on{ opacity: ${CFG.OPACITY}; }
+/* === zapewnij, że UI gry jest nad pluginem === */
+.page, .hero, .panel{
+  position: relative;
+  z-index: 50;
+}
 
-.sc-audio-ui{
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
-  z-index: 2147483647;
-  background: rgba(10,10,10,.62);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 14px;
-  padding: 10px 12px;
-  color: rgba(255,255,255,.92);
-  font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  display: flex;
-  gap: 10px;
-  align-items: center;
+/* === przyciemnij i odseparuj główny panel od tła === */
+.panel.panel--wide{
+  background: rgba(0,0,0,.68);
   backdrop-filter: blur(8px);
-  pointer-events: auto;
+  -webkit-backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 55px rgba(0,0,0,.55);
 }
 
-.sc-audio-ui button{
-  border: 0;
-  border-radius: 10px;
-  padding: 7px 10px;
-  background: rgba(255,255,255,.12);
+/* opcjonalnie: lekko rozjaśnij pole tekstowe (dla kontrastu na ciemnym panelu) */
+.grid-table textarea.grid-cell{
+  background: rgba(255,255,255,.08);
   color: rgba(255,255,255,.92);
-  cursor: pointer;
+  border-color: rgba(255,255,255,.18);
 }
-.sc-audio-ui button:hover{ background: rgba(255,255,255,.18); }
 
-.sc-audio-ui input[type="range"]{
-  width: 140px;
-}
-.sc-audio-ui .label{
-  opacity: .8;
-}
         `;
         document.head.appendChild(style);
 
+        // BG + marquee
+        const bgwrap = document.createElement("div");
+        bgwrap.className = "ps-bgwrap";
+
+        const bgimg = document.createElement("div");
+        bgimg.className = "ps-bgimg";
+
+        const marquee = document.createElement("div");
+        marquee.className = "ps-marquee";
+
+        const rowEls = [];
+        for (let r = 0; r < CFG.ROWS; r++) {
+          const row = document.createElement("div");
+          row.className = "ps-row";
+
+          const track = document.createElement("div");
+          track.className = "ps-track anim";
+          if (r % 2 === 1) track.classList.add("reverse");
+          track.style.setProperty("--psDur", `${rand(CFG.SPEED_MIN, CFG.SPEED_MAX).toFixed(2)}s`);
+
+          row.appendChild(track);
+          marquee.appendChild(row);
+          rowEls.push({ track });
+        }
+
+        bgwrap.appendChild(bgimg);
+        bgwrap.appendChild(marquee);
+        root.appendChild(bgwrap);
+
+        function layoutFill() {
+          const rowW = (window.innerWidth || 1200);
+          const tileW = (CFG.TILE_H * 1.35) + CFG.TILE_GAP;
+
+          rowEls.forEach(({ track }) => {
+            if (track.__filled) return;
+            fillRowNoDup(track, rowW, tileW);
+            const imgs = Array.from(track.querySelectorAll("img"));
+            imgs.forEach(img => track.appendChild(img.cloneNode(true)));
+            track.__filled = true;
+          });
+        }
+        layoutFill();
+        ctx.on(window, "resize", () => layoutFill());
+
+        // meme layer
         const layer = document.createElement("div");
-        layer.className = "sc-layer";
+        layer.className = "ps-layer";
         root.appendChild(layer);
 
         const imgPlus = document.createElement("img");
-        imgPlus.className = "sc-img";
+        imgPlus.className = "ps-img";
         imgPlus.alt = "";
         imgPlus.src = ASSETS.plusImg;
 
         const imgMinus = document.createElement("img");
-        imgMinus.className = "sc-img";
+        imgMinus.className = "ps-img";
         imgMinus.alt = "";
         imgMinus.src = ASSETS.minusImg;
 
@@ -188,11 +417,9 @@
               img.style.transformOrigin = "top right";
           }
         }
-
         positionImage(imgPlus);
         positionImage(imgMinus);
 
-        // ===== show/hide helpers =====
         let hideTimer = null;
         function show(img, ms = 650) {
           imgPlus.classList.remove("is-on");
@@ -206,20 +433,26 @@
           }, ms);
         }
 
-        // ===== deletion tracking =====
+        // deletion tracking + spam
         let lastLenByTextarea = new WeakMap();
-        let deletedSinceReset = 0;
         let idleResetTimer = null;
+
+        let lastSpamAt = 0;
+        function spam(img) {
+          const now = performance.now();
+          if (now - lastSpamAt < CFG.SPAM_COOLDOWN_MS) return;
+          lastSpamAt = now;
+          show(img, CFG.SPAM_MS);
+        }
 
         function scheduleIdleReset() {
           if (idleResetTimer) ctx.clearTimeoutSafe?.(idleResetTimer);
           idleResetTimer = ctx.setTimeoutSafe(() => {
-            deletedSinceReset = 0;
             idleResetTimer = null;
           }, CFG.IDLE_RESET_MS);
         }
 
-        // ===== audio: shuffle once, then loop in that order =====
+        // audio
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -227,134 +460,90 @@
         audio.preload = "auto";
         audio.loop = false;
         audio.volume = CFG.DEFAULT_VOLUME;
-        audio.muted = !!CFG.START_MUTED;
 
         function setTrack(i) {
           if (!playlist.length) return;
           idx = (i + playlist.length) % playlist.length;
           audio.src = playlist[idx];
         }
-
-        function playNext() {
-          if (!playlist.length) return;
-          setTrack(idx + 1);
-          audio.play().catch(() => {});
-          updateUi();
-        }
-
         function playStart() {
           if (!playlist.length) return;
           if (!audio.src) setTrack(0);
           audio.play().catch(() => {});
-          updateUi();
         }
-
+        function playNext() {
+          if (!playlist.length) return;
+          setTrack(idx + 1);
+          audio.play().catch(() => {});
+        }
         audio.addEventListener("ended", () => {
-          // next track, same shuffled order, infinite
           if (!playlist.length) return;
           playNext();
         });
 
-        // small UI for volume + start/stop
-        const ui = document.createElement("div");
-        ui.className = "sc-audio-ui";
-        ui.innerHTML = `
-  <span class="label">Pemos Radio</span>
-  <button type="button" data-act="toggle">Play</button>
-  <input type="range" min="0" max="1" step="0.01" value="${CFG.DEFAULT_VOLUME}" aria-label="volume">
-  <button type="button" data-act="mute">${CFG.START_MUTED ? "Unmute" : "Mute"}</button>
-        `;
-        root.appendChild(ui);
+        let started = false;
+        const startOnFirstUserInput = () => {
+          if (started) return;
+          started = true;
 
-        const btnToggle = ui.querySelector('button[data-act="toggle"]');
-        const btnMute = ui.querySelector('button[data-act="mute"]');
-        const range = ui.querySelector('input[type="range"]');
+          document.removeEventListener("pointerdown", startOnFirstUserInput, true);
+          document.removeEventListener("keydown", startOnFirstUserInput, true);
+          document.removeEventListener("input", startOnFirstUserInput, true);
 
-        function updateUi() {
-          const playing = !audio.paused && !audio.ended;
-          if (btnToggle) btnToggle.textContent = playing ? "Pause" : "Play";
-          if (btnMute) btnMute.textContent = audio.muted ? "Unmute" : "Mute";
-        }
+          playStart();
+        };
+        document.addEventListener("pointerdown", startOnFirstUserInput, true);
+        document.addEventListener("keydown", startOnFirstUserInput, true);
+        document.addEventListener("input", startOnFirstUserInput, true);
 
-        btnToggle?.addEventListener("click", () => {
-          if (!playlist.length) return;
-          if (audio.paused) playStart();
-          else audio.pause();
-          updateUi();
+        // init lengths
+        document.querySelectorAll("textarea.grid-cell").forEach(t => {
+          lastLenByTextarea.set(t, (t.value ?? "").length);
         });
 
-        btnMute?.addEventListener("click", () => {
-          audio.muted = !audio.muted;
-          updateUi();
-        });
-
-        range?.addEventListener("input", () => {
-          const v = Number(range.value);
-          audio.volume = Math.max(0, Math.min(1, isFinite(v) ? v : CFG.DEFAULT_VOLUME));
-        });
-
-        // ===== core rules =====
-        function maybeShowPlus() {
+        // INPUT: spam + / - based on length diff
+        ctx.on(document, "input", () => {
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
           if (wrapper.classList.contains("plugin-placeholder")) return;
 
-          const { text, assigned } = getCellState(wrapper);
-          const len = (text || "").trim().length;
-
-          if (assigned && len > CFG.MIN_TEXT_LEN) {
-            show(imgPlus, 800);
-          }
-        }
-
-        function updateDeleteCountFromTextarea(textarea) {
+          const { textarea, text, assigned } = getCellState(wrapper);
           if (!textarea) return;
 
           const prev = lastLenByTextarea.get(textarea);
           const cur = (textarea.value ?? "").length;
 
+          // spam logic
           if (typeof prev === "number") {
-            const diff = prev - cur;
+            const diff = cur - prev;
             if (diff > 0) {
-              deletedSinceReset += diff;
+              // typed characters
+              if (assigned) spam(imgPlus); // tylko jak wybrany user (żeby miało sens)
+            } else if (diff < 0) {
+              // deleted characters
+              spam(imgMinus);
               scheduleIdleReset();
-              if (deletedSinceReset >= CFG.DELETE_THRESHOLD) {
-                deletedSinceReset = 0;
-                show(imgMinus, 800);
-              }
             }
           }
 
           lastLenByTextarea.set(textarea, cur);
-        }
 
-        // init lengths for all cells
-        document.querySelectorAll("textarea.grid-cell").forEach(t => {
-          lastLenByTextarea.set(t, (t.value ?? "").length);
+          // dodatkowo: jak już spełnione warunki długości, pokaż plus mocniej
+          const lenTrim = (text || "").trim().length;
+          if (assigned && lenTrim > CFG.MIN_TEXT_LEN) {
+            show(imgPlus, 650);
+          }
         });
 
-        // EVENTS:
-        // 1) input in textarea -> track deletes + maybe plus
-        ctx.on(document, "input", () => {
-          const wrapper = getCellWrapperFromActive();
-          if (!wrapper) return;
-          const { textarea } = getCellState(wrapper);
-          updateDeleteCountFromTextarea(textarea);
-          maybeShowPlus();
-        });
-
-        // 2) keydown specifically for backspace/delete (more responsive)
+        // keydown: tylko po to, żeby łapać kasowanie bardziej responsywnie (ale spam i tak robi input diff)
         ctx.on(document, "keydown", (e) => {
           if (e.key !== "Backspace" && e.key !== "Delete") return;
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
-          const { textarea } = getCellState(wrapper);
-          // we still rely on input diff, but we schedule reset aggressively
           scheduleIdleReset();
-          // let input event do the diff; nothing else needed
         });
 
-        // 3) select change -> plus condition may become true
+        // select change: jeśli tekst już długi -> plus
         ctx.on(document, "change", (e) => {
           const sel = e.target;
           if (!(sel instanceof HTMLElement)) return;
@@ -363,13 +552,11 @@
           const wrapper = sel.closest(".cell-wrapper");
           if (!wrapper || wrapper.classList.contains("plugin-placeholder")) return;
 
-          // if textarea in that wrapper already long enough, show plus
           const { text, assigned } = getCellState(wrapper);
           const len = (text || "").trim().length;
-          if (assigned && len > CFG.MIN_TEXT_LEN) show(imgPlus, 800);
+          if (assigned && len > CFG.MIN_TEXT_LEN) show(imgPlus, 650);
         });
 
-        // UX cleanups
         ctx.on(document, "visibilitychange", () => {
           if (document.hidden) {
             imgPlus.classList.remove("is-on");
@@ -377,26 +564,12 @@
           }
         });
 
-        // Try to start audio after first user gesture (autoplay restrictions)
-        const startOnFirstGesture = () => {
-          document.removeEventListener("pointerdown", startOnFirstGesture, true);
-          document.removeEventListener("keydown", startOnFirstGesture, true);
-          if (!playlist.length) return;
-          // don't force-play if muted and you don't want it; but starting muted is safe
-          playStart();
-        };
-        document.addEventListener("pointerdown", startOnFirstGesture, true);
-        document.addEventListener("keydown", startOnFirstGesture, true);
-
-        updateUi();
-
-        // cleanup
         return () => {
           try { if (hideTimer) ctx.clearTimeoutSafe?.(hideTimer); } catch {}
           try { if (idleResetTimer) ctx.clearTimeoutSafe?.(idleResetTimer); } catch {}
           try { audio.pause(); } catch {}
-          try { ui.remove(); } catch {}
           try { layer.remove(); } catch {}
+          try { bgwrap.remove(); } catch {}
           try { style.remove(); } catch {}
         };
       }

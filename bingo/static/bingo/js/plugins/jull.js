@@ -313,6 +313,56 @@ body::after{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 .jull-pumpbtn:active{ transform: translateY(1px); }
+
+/* === zapewnij, że UI gry jest nad pluginem === */
+.page, .hero, .panel{
+  position: relative;
+  z-index: 50;
+}
+
+/* === przyciemnij i odseparuj główny panel od tła === */
+.panel.panel--wide{
+  background: rgba(0,0,0,.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 55px rgba(0,0,0,.55);
+}
+
+/* opcjonalnie: lekko rozjaśnij pole tekstowe (dla kontrastu na ciemnym panelu) */
+.grid-table textarea.grid-cell{
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.92);
+  border-color: rgba(255,255,255,.18);
+}
+
+
+/* tło kotów – maska: środek prawie niewidoczny, boki pełne */
+.jull-bg{
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.10) 42%,
+    rgba(0,0,0,0.10) 58%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 16%,
+    rgba(0,0,0,0.10) 42%,
+    rgba(0,0,0,0.10) 58%,
+    rgba(0,0,0,1) 84%,
+    rgba(0,0,0,1) 100%
+  );
+}
+
+
+
+
 `;
         document.head.appendChild(style);
 
