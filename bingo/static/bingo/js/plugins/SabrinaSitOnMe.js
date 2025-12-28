@@ -77,26 +77,34 @@
           TAKEOVER_FADE_MS: 650,
           TAKEOVER_SLIDE_MS: 520,
 
-          // Sabrina hero
+          // Sabrina hero (right)
           TAKEOVER_HERO_IMG: "/static/bingo/images/SabrinaSitOnMe/sabrina.png",
           TAKEOVER_TEXT: "Cześć… o mój Boże. Potrzebuję pomocy ze wskazaniem dobrego miejsca, w którym mogę usiąść.",
           TAKEOVER_BTN_TEXT: "Tak, tak, tak, proszę mamusiu, pokażę Ci gdzie możesz usiąść.",
 
+          // Sabrina hero (left, after success)
+          TAKEOVER_HERO_LEFT_TEXT: "Lepiej weź głęboki oddech",
+          TAKEOVER_HERO_LEFT_BTN_TEXT: "Dobra, wracamy do gry.",
+
           // Grid 3x3
           GRID_TITLE: "Gdzie Sabrina ma usiąść?",
-          GRID_DECOY: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
+          GRID_DECOY: "/static/bingo/images/SabrinaSitOnMe/krzeslo.png",
           GRID_CORRECT: "/static/bingo/images/SabrinaSitOnMe/miejsce.png",
 
-          // After correct pick
-          TARGET_PAD_RIGHT: 18,
-          TARGET_Y_RATIO: 0.52,
-          TARGET_W: 210,
-          TARGET_H: 210,
-          CORRECT_FLY_MS: 900,
+          // “background” sequence after correct pick
+          PLACE_W: 280,
+          PLACE_H: 280,
+          PLACE_START_Y_RATIO: 0.52, // start from center-ish
+          PLACE_TARGET_PAD_RIGHT: 18,
+          PLACE_TARGET_Y_RATIO: 0.52,
+          PLACE_FLY_MS: 950,
 
-          // Cover that slides in and stays
-          COVER_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
-          COVER_SLIDE_MS: 520,
+          // seating cover slides in AFTER the place arrives
+          SEATING_IMG: "/static/bingo/images/SabrinaSitOnMe/sitting.png",
+          SEATING_SLIDE_MS: 520,
+
+          // keep seating visible afterwards
+          KEEP_SEATING: true,
         };
 
         // ===== BG LOOP =====
@@ -104,7 +112,7 @@
         let audioUnlocked = false;
 
         function startLoop() {
-          const url = pickOne(sfx?.bg_loop);
+          const url = pickOne(sfx?.sabrina);
           if (!url) return false;
 
           if (bg && !bg.paused) return true;
@@ -162,7 +170,6 @@
 .sabrina-corner.rt { right: 14px; top: 14px; }
 .sabrina-corner.rb { right: 14px; bottom: 14px; }
 
-/* slide in/out direction */
 .sabrina-corner.lt.is-pre, .sabrina-corner.lb.is-pre,
 .sabrina-corner.lt.is-hidden, .sabrina-corner.lb.is-hidden { transform: translateX(-130%); }
 
@@ -211,6 +218,10 @@
   border: 1px solid rgba(255,255,255,.14);
   box-shadow: 0 24px 90px rgba(0,0,0,.55);
 }
+.sabrina-hero.left {
+  right: auto;
+  left: 16px;
+}
 
 .sabrina-hero-inner{
   display: grid;
@@ -244,6 +255,7 @@
   transform: translateX(120%);
   transition: transform .52s ease;
 }
+.sabrina-hero.left .sabrina-hero-img { transform: translateX(-120%); }
 .sabrina-hero-img.is-in{ transform: translateX(0); }
 
 .sabrina-hero-btn{
@@ -314,36 +326,36 @@
   min-height: 18px;
 }
 
-/* flying selected */
-.sabrina-fly{
+/* Background animation layer: place + seating */
+.sabrina-stage {
   position: fixed;
-  z-index: 2147483647;
+  inset: 0;
+  z-index: 2147483646; /* above corners, below hero/modal */
+  pointer-events: none;
+}
+
+.sabrina-place, .sabrina-seating {
+  position: fixed;
+  z-index: 2147483646;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.14);
   box-shadow: 0 24px 90px rgba(0,0,0,.55);
   background: rgba(255,255,255,.06);
 }
-.sabrina-fly img{
+.sabrina-place img, .sabrina-seating img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display:block;
+  display: block;
 }
 
-/* cover slide-in (stays) */
-.sabrina-cover{
-  position: fixed;
-  z-index: 2147483647;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.14);
-  box-shadow: 0 24px 90px rgba(0,0,0,.55);
+/* seating slides from right */
+.sabrina-seating {
   transform: translateX(120%);
   transition: transform .52s ease;
 }
-.sabrina-cover.is-in{ transform: translateX(0); }
-.sabrina-cover img{ width: 100%; height: 100%; object-fit: cover; display:block; }
+.sabrina-seating.is-in { transform: translateX(0); }
         `;
         document.head.appendChild(style);
 
@@ -351,6 +363,11 @@
         const overlay = document.createElement("div");
         overlay.className = "sabrina-overlay";
         root.appendChild(overlay);
+
+        // Stage (background animation layer)
+        const stage = document.createElement("div");
+        stage.className = "sabrina-stage";
+        root.appendChild(stage);
 
         // 4 corner containers
         const cLT = document.createElement("div");
@@ -376,7 +393,14 @@
 
         // ===== State =====
         const slotStates = [];
-        const takeover = { active: false, timer: null, hero: null, modal: null, cover: null };
+        const takeover = {
+          active: false,
+          timer: null,
+          hero: null,
+          modal: null,
+          seating: null,
+          lock: false, // prevent double-trigger
+        };
 
         function scheduleTakeover() {
           const ms = CFG.TAKEOVER_EVERY_MIN_MS +
@@ -395,7 +419,7 @@
         }
 
         async function beginTakeover() {
-          if (takeover.active) return;
+          if (takeover.active || takeover.lock) return;
           takeover.active = true;
 
           // slide away corners
@@ -407,7 +431,7 @@
           stopAllSlotAudioAndAnimations();
 
           await sleep(ctx, CFG.TAKEOVER_SLIDE_MS);
-          openHero(); // waits for button click
+          openHeroRight(); // waits for button click
         }
 
         async function endTakeover() {
@@ -421,7 +445,7 @@
           scheduleTakeover();
         }
 
-        function openHero() {
+        function openHeroRight() {
           closeHero();
 
           const hero = document.createElement("div");
@@ -450,8 +474,54 @@
           ctx.on(btn, "click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            closeHero();      // hero disappears when modal appears
-            openGridModal();  // user must choose correct
+            if (takeover.lock) return;
+            closeHero();
+            openGridModal();
+          });
+
+          inner.appendChild(title);
+          inner.appendChild(wrap);
+          inner.appendChild(btn);
+          hero.appendChild(inner);
+
+          root.appendChild(hero);
+          takeover.hero = hero;
+
+          requestAnimationFrame(() => img.classList.add("is-in"));
+        }
+
+        function openHeroLeftAfterSuccess() {
+          closeHero();
+
+          const hero = document.createElement("div");
+          hero.className = "sabrina-hero left";
+
+          const inner = document.createElement("div");
+          inner.className = "sabrina-hero-inner";
+
+          const title = document.createElement("div");
+          title.className = "sabrina-hero-title";
+          title.textContent = CFG.TAKEOVER_HERO_LEFT_TEXT;
+
+          const wrap = document.createElement("div");
+          wrap.className = "sabrina-hero-imgwrap";
+
+          const img = document.createElement("img");
+          img.className = "sabrina-hero-img";
+          img.src = CFG.TAKEOVER_HERO_IMG;
+          wrap.appendChild(img);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "sabrina-hero-btn";
+          btn.textContent = CFG.TAKEOVER_HERO_LEFT_BTN_TEXT;
+
+          ctx.on(btn, "click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeHero();
+            await endTakeover();
+            takeover.lock = false;
           });
 
           inner.appendChild(title);
@@ -513,24 +583,34 @@
             ctx.on(cell, "click", async (e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (takeover.lock) return;
 
               const ok = (idx === 4);
               if (!ok) {
                 msg.textContent = "Nie będę tu siadała, głuptasku.";
                 cell.animate(
-                  [{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }],
+                  [
+                    { transform: "translateX(0)" },
+                    { transform: "translateX(-6px)" },
+                    { transform: "translateX(6px)" },
+                    { transform: "translateX(0)" }
+                  ],
                   { duration: 220 }
                 );
                 return; // must choose correct
               }
 
               msg.textContent = "Lepiej weź głęboki oddech :*";
+              takeover.lock = true;
 
-              const centerImg = card.querySelector('.sabrina-gcell[data-idx="4"] img');
-              await handleCorrectPick(centerImg);
-
+              // Zamknij modal od razu -> animacja NA TLE
               closeGridModal();
-              await endTakeover();
+
+              // Sekwencja: miejsce z centrum -> prawa strona, potem seating z prawej
+              await runBackgroundSeatSequence();
+
+              // Na końcu pokaż Sabrinę z lewej strony
+              openHeroLeftAfterSuccess();
             });
 
             grid.appendChild(cell);
@@ -555,65 +635,73 @@
           }
         }
 
-        async function handleCorrectPick(centerImgEl) {
-          if (!centerImgEl) return;
-
-          const r = centerImgEl.getBoundingClientRect();
-
-          const fly = document.createElement("div");
-          fly.className = "sabrina-fly";
-          fly.style.left = `${r.left}px`;
-          fly.style.top = `${r.top}px`;
-          fly.style.width = `${r.width}px`;
-          fly.style.height = `${r.height}px`;
-
-          const im = document.createElement("img");
-          im.src = centerImgEl.src;
-          fly.appendChild(im);
-          root.appendChild(fly);
-
-          const targetW = CFG.TARGET_W;
-          const targetH = CFG.TARGET_H;
-          const targetX = window.innerWidth - targetW - CFG.TARGET_PAD_RIGHT;
-          const targetY = window.innerHeight * CFG.TARGET_Y_RATIO - targetH / 2;
-
-          fly.style.transition = `left ${CFG.CORRECT_FLY_MS}ms ease, top ${CFG.CORRECT_FLY_MS}ms ease, width ${CFG.CORRECT_FLY_MS}ms ease, height ${CFG.CORRECT_FLY_MS}ms ease`;
-          await sleep(ctx, 30);
-
-          fly.style.left = `${Math.max(0, targetX)}px`;
-          fly.style.top = `${Math.max(0, targetY)}px`;
-          fly.style.width = `${targetW}px`;
-          fly.style.height = `${targetH}px`;
-
-          await sleep(ctx, CFG.CORRECT_FLY_MS + 60);
-
-          // Create cover (stays)
-          if (takeover.cover) {
-            try { takeover.cover.remove(); } catch {}
-            takeover.cover = null;
+        async function runBackgroundSeatSequence() {
+          // remove previous seating if exists and we DON'T want to keep it
+          if (takeover.seating && !CFG.KEEP_SEATING) {
+            try { takeover.seating.remove(); } catch {}
+            takeover.seating = null;
           }
 
-          const cover = document.createElement("div");
-          cover.className = "sabrina-cover";
-          cover.style.left = `${Math.max(0, targetX)}px`;
-          cover.style.top = `${Math.max(0, targetY)}px`;
-          cover.style.width = `${targetW}px`;
-          cover.style.height = `${targetH}px`;
+          // 1) "miejsce.png" appears at CENTER of screen (background)
+          const place = document.createElement("div");
+          place.className = "sabrina-place";
+          place.style.width = `${CFG.PLACE_W}px`;
+          place.style.height = `${CFG.PLACE_H}px`;
 
-          const coverImg = document.createElement("img");
-          coverImg.src = CFG.COVER_IMG;
-          cover.appendChild(coverImg);
+          const startX = Math.round(window.innerWidth / 2 - CFG.PLACE_W / 2);
+          const startY = Math.round(window.innerHeight * CFG.PLACE_START_Y_RATIO - CFG.PLACE_H / 2);
 
-          root.appendChild(cover);
-          takeover.cover = cover;
+          place.style.left = `${Math.max(0, startX)}px`;
+          place.style.top = `${Math.max(0, startY)}px`;
+
+          const placeImg = document.createElement("img");
+          placeImg.src = CFG.GRID_CORRECT;
+          place.appendChild(placeImg);
+          stage.appendChild(place);
+
+          // 2) Fly it to the RIGHT side (background)
+          const targetX = Math.round(window.innerWidth - CFG.PLACE_W - CFG.PLACE_TARGET_PAD_RIGHT);
+          const targetY = Math.round(window.innerHeight * CFG.PLACE_TARGET_Y_RATIO - CFG.PLACE_H / 2);
+
+          place.style.transition = `left ${CFG.PLACE_FLY_MS}ms ease, top ${CFG.PLACE_FLY_MS}ms ease`;
 
           await sleep(ctx, 30);
-          cover.classList.add("is-in");
+          place.style.left = `${Math.max(0, targetX)}px`;
+          place.style.top = `${Math.max(0, targetY)}px`;
 
-          await sleep(ctx, CFG.COVER_SLIDE_MS + 80);
+          await sleep(ctx, CFG.PLACE_FLY_MS + 60);
 
-          // remove flying image, keep cover
-          try { fly.remove(); } catch {}
+          // 3) THEN seating slides in from RIGHT and covers the place (background)
+          // (seating is same size and positioned same as place)
+          if (takeover.seating) {
+            try { takeover.seating.remove(); } catch {}
+            takeover.seating = null;
+          }
+
+          const seating = document.createElement("div");
+          seating.className = "sabrina-seating";
+          seating.style.left = `${Math.max(0, targetX)}px`;
+          seating.style.top = `${Math.max(0, targetY)}px`;
+          seating.style.width = `${CFG.PLACE_W}px`;
+          seating.style.height = `${CFG.PLACE_H}px`;
+
+          const seatingImg = document.createElement("img");
+          seatingImg.src = CFG.SEATING_IMG;
+          seating.appendChild(seatingImg);
+          stage.appendChild(seating);
+          takeover.seating = seating;
+
+          await sleep(ctx, 30);
+          seating.classList.add("is-in");
+
+          await sleep(ctx, CFG.SEATING_SLIDE_MS + 60);
+
+          // place can disappear (covered anyway)
+          try { place.remove(); } catch {}
+
+          // optional SFX on "swap/lock-in"
+          const swapUrl = pickOne(sfx?.hs);
+          if (swapUrl) playManaged(swapUrl, CFG.SFX_VOLUME);
         }
 
         // ===== Slots =====
@@ -724,9 +812,10 @@
           try { if (takeover.timer) clearTimeout(takeover.timer); } catch {}
           closeHero();
           closeGridModal();
-          try { if (takeover.cover) takeover.cover.remove(); } catch {}
+          try { if (takeover.seating && !CFG.KEEP_SEATING) takeover.seating.remove(); } catch {}
 
           try { overlay.remove(); } catch {}
+          try { stage.remove(); } catch {}
           try { style.remove(); } catch {}
           try { if (bg) { bg.pause(); bg.currentTime = 0; } } catch {}
 
