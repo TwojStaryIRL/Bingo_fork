@@ -141,75 +141,65 @@ body::after{
   content: "" !important;
 }
 
-/* ===== LAYERS: background under UI ===== */
-#plugin-root{
-  position: relative;
-  z-index: 1;
-}
+#plugin-root { position: relative; z-index: 2147483000; }
 
-/* UI bingo nad tłem */
-.page, .hero, .panel{
-  position: relative;
-  z-index: 50;
-}
-
-/* ===== PANEL: mild dark + separation ===== */
+/* darken grid/panel (hard mode) */
 .panel.panel--wide{
   position: relative;
-  background: rgba(0,0,0,.76) !important;      /* umiarkowanie ciemno */
-  border: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
+  background: rgba(0,0,0,.86) !important;
+  outline: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 20px 70px rgba(0,0,0,.70) !important;
   backdrop-filter: blur(10px) saturate(1.05);
-  -webkit-backdrop-filter: blur(10px) saturate(1.05);
 }
 
-/* delikatna “szyba” tylko dla kontrastu */
+/* dodatkowa "czarna szyba" na panelu (nie dotyka dzieci) */
 .panel.panel--wide::before{
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: rgba(0,0,0,.18);
+  background: rgba(0,0,0,.38);
   pointer-events: none;
   z-index: 0;
 }
 
+/* wszystko w panelu nad tą warstwą */
 .panel.panel--wide > *{
   position: relative;
   z-index: 1;
 }
 
-/* ===== GRID: subtle, not destructive ===== */
+/* tabela i komórki */
 .grid-table{
-  background: rgba(0,0,0,.22);
+  background: rgba(0,0,0,.45);
   border-radius: 18px;
 }
 
 .grid-table td{
-  background: rgba(0,0,0,.18) !important;
+  background: rgba(0,0,0,.40) !important;
 }
 
-/* textarea: minimal dark so text pops */
+/* same pola tekstowe */
 textarea.grid-cell{
-  background: rgba(0,0,0,.55) !important;
+  background: rgba(0,0,0,.78) !important;
   color: rgba(255,255,255,.94) !important;
   border: 1px solid rgba(255,255,255,.14) !important;
-  box-shadow: 0 10px 28px rgba(0,0,0,.35);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
 }
 
 textarea.grid-cell::placeholder{
-  color: rgba(255,255,255,.44) !important;
+  color: rgba(255,255,255,.42) !important;
 }
 
-/* custom dropdown (button + list) */
+/* Wasz custom dropdown */
 .cell-wrapper.cd .cd__button{
-  background: rgba(0,0,0,.48) !important;
+  background: rgba(0,0,0,.72) !important;
   color: rgba(255,255,255,.92) !important;
   border: 1px solid rgba(255,255,255,.14) !important;
 }
 
 .cell-wrapper.cd .cd__list{
-  background: rgba(0,0,0,.86) !important;
+  background: rgba(0,0,0,.92) !important;
   border: 1px solid rgba(255,255,255,.12) !important;
 }
 
@@ -218,25 +208,47 @@ textarea.grid-cell::placeholder{
 }
 
 .cell-wrapper.cd .cd__option--muted{
-  color: rgba(255,255,255,.58) !important;
+  color: rgba(255,255,255,.55) !important;
 }
 
-/* ===== BG + MARQUEE: must be UNDER UI ===== */
+/* =========================
+   BG + MARQUEE (ONLY THIS)
+   ========================= */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
-  z-index: 5;            /* klucz: < 50 (UI) */
+  z-index: 2147483638;
   pointer-events: none;
   overflow: hidden;
 }
 
+/* >>> to jest właściwe przyciemnienie tła, bez ruszania UI <<< */
+.ps-bgwrap::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  /* mocne przyciemnienie + lekka winieta */
+  background:
+    radial-gradient(ellipse at center,
+      rgba(0,0,0,.38) 0%,
+      rgba(0,0,0,.55) 60%,
+      rgba(0,0,0,.68) 100%
+    );
+}
+
+/* tło obrazka – zostaje, tylko mniej przebija */
 .ps-bgimg{
   position: absolute;
   inset: 0;
   background-image: url("${ASSETS.bgImg}");
   background-size: cover;
   background-position: center;
-  opacity: ${CFG.BG_OPACITY};
+
+  /* było CFG.BG_OPACITY; dajemy lekko mniej, żeby overlay robił robotę */
+  opacity: calc(${CFG.BG_OPACITY} * 0.75);
+
   filter: contrast(1.05) saturate(0.95);
   transform: scale(1.02);
 }
@@ -249,7 +261,10 @@ textarea.grid-cell::placeholder{
   gap: ${CFG.TILE_GAP}px;
   padding: ${CFG.TILE_GAP}px;
   box-sizing: border-box;
-  opacity: ${CFG.MARQUEE_OPACITY};
+
+  /* było CFG.MARQUEE_OPACITY; minimalnie w dół */
+  opacity: calc(${CFG.MARQUEE_OPACITY} * 0.75);
+
   pointer-events: none;
   filter: saturate(1.05) contrast(1.03);
 }
@@ -282,7 +297,7 @@ textarea.grid-cell::placeholder{
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 
-@keyframes ps-marquee{
+@keyframes ps-marquee {
   0%   { transform: translateX(0); }
   100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
 }
@@ -290,14 +305,12 @@ textarea.grid-cell::placeholder{
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
-/* ===== MEMES: over everything ===== */
+/* memes */
 .ps-layer{
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2147483646;
 }
-
 .ps-img{
   position: fixed;
   width: min(34vw, 520px);
@@ -309,7 +322,6 @@ textarea.grid-cell::placeholder{
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
-
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 
 `;
