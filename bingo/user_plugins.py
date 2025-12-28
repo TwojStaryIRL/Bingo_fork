@@ -101,9 +101,9 @@ def Pesos_func() -> UserPluginConfig:
         js_plugin="bingo/js/plugins/Pesos.js",
         sfx={
             "ambient": [
-                static("bingo/sfx/Pemos/number1.mp3"),
-                static("bingo/sfx/Pemos/number2.mp3"),
-                static("bingo/sfx/Pemos/number3.mp3"),
+                static("bingo/sfx/Pesos/number1.mp3"),
+                static("bingo/sfx/Pesos/number2.mp3"),
+                static("bingo/sfx/Pesos/number3.mp3"),
         ]}
     )
 
