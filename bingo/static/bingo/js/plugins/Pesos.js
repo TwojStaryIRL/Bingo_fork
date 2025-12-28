@@ -141,63 +141,23 @@ body::after{
   content: "" !important;
 }
 
-#plugin-root { position: relative; z-index: 2147483000; }
+/* plugin root nie musi być kosmicznie wysoko */
+#plugin-root { position: relative; z-index: 1; }
 
 /* =========================
-   MAIN GAME PANEL ONLY
-   (like jull)
+   1) TŁO PLUGINU POD UI
    ========================= */
 
-.panel.panel--wide{
-  position: relative;
-
-  /* przyciemnij sam panel, bez ingerencji w dzieci */
-  background: rgba(0,0,0,.70) !important;
-
-  /* odcięcie od tła */
-  border: 1px solid rgba(255,255,255,.10) !important;
-  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
-
-  /* “glass” */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* czarna szyba NA TLE panelu, ale POD jego zawartością */
-.panel.panel--wide::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-
-  /* subtelna winieta – podbija czytelność bez psucia layoutu */
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0,0,0,.18) 0%,
-    rgba(0,0,0,.28) 65%,
-    rgba(0,0,0,.38) 100%
-  );
-}
-
-/* cały content panelu nad szybą */
-.panel.panel--wide > *{
-  position: relative;
-  z-index: 1;
-}
-
-/* =========================
-   BG + MARQUEE (NO CHANGES)
-   ========================= */
-
+/* TŁO (background + marquee) MUSI BYĆ POD panelem gry */
 .ps-bgwrap{
   position: fixed;
   inset: 0;
-  z-index: 2147483638;
+  z-index: 0;                 /* <<< KLUCZ */
   pointer-events: none;
   overflow: hidden;
 }
+
+/* zostawiasz jak było */
 .ps-bgimg{
   position: absolute;
   inset: 0;
@@ -254,19 +214,55 @@ body::after{
   0%   { transform: translateX(0); }
   100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
 }
-
 .ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
 .ps-track.reverse{ animation-direction: reverse; }
 
 /* =========================
-   MEMES (NO CHANGES)
+   2) PRZYCIEMNIJ TYLKO PANEL GRY
+   ========================= */
+
+.panel.panel--wide{
+  position: relative;
+  background: rgba(0,0,0,.70) !important;          /* <<< przyciemnienie */
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 18px 60px rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* szyba pod treścią panelu */
+.panel.panel--wide::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0,0,0,.18) 0%,
+    rgba(0,0,0,.30) 65%,
+    rgba(0,0,0,.42) 100%
+  );
+}
+
+/* treść panelu nad szybą */
+.panel.panel--wide > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================
+   3) MEMY NAD WSZYSTKIM (bez zmian)
    ========================= */
 
 .ps-layer{
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   pointer-events: none;
   z-index: 2147483646;
 }
+
 .ps-img{
   position: fixed;
   width: min(34vw, 520px);
@@ -282,6 +278,7 @@ body::after{
 
 `;
 document.head.appendChild(style);
+
 
 
 
