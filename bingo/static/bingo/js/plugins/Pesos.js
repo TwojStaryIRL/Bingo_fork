@@ -10,33 +10,42 @@
   }
 
   const CFG = {
+    // rules
     MIN_TEXT_LEN: 30,
     DELETE_THRESHOLD: 5,
     IDLE_RESET_MS: 900,
 
-    // visuals
+    // plus/minus visuals
     OPACITY: 0.92,
     SCALE: 0.62,
     ROT_DEG: 0,
     POS: "top-right",
 
     // background
-    BG_OPACITY: 0.22,         // jak mocno tło ma być widoczne
-    BARS_OPACITY: 0.22,       // jak mocne paski "censored"
-    BARS_HEIGHT: 18,          // wysokość paska
-    BARS_GAP: 44,             // odstęp między paskami
-    CCTV_NOISE_OPACITY: 0.07, // delikatny noise
+    BG_OPACITY: 0.22,
+
+    // marquee (Big Brother strips)
+    MARQUEE_IMGS: [
+      "/static/bingo/images/Pesos/pasek1.jpg",
+      "/static/bingo/images/Pesos/pasek2.jpg",
+      "/static/bingo/images/Pesos/pasek3.jpg",
+      "/static/bingo/images/Pesos/pasek4.jpg",
+      "/static/bingo/images/Pesos/pasek5.jpg",
+    ],
+    ROWS: 6,
+    TILE_H: 140,
+    TILE_GAP: 14,
+    SPEED_MIN: 18,
+    SPEED_MAX: 36,
+    MARQUEE_OPACITY: 0.22,
 
     // audio (no UI)
-    DEFAULT_VOLUME: 0.18,     // testuj 0.15–0.20
+    DEFAULT_VOLUME: 0.18,
   };
 
   const ASSETS = {
-    // + / - memes
     plusImg: "/static/bingo/images/Pesos/socialcreditplus.gif",
     minusImg: "/static/bingo/images/Pesos/socialcreditminus.jpg",
-
-    
     bgImg: "/static/bingo/images/Pesos/background.jpg",
   };
 
@@ -44,6 +53,50 @@
     const el = document.getElementById(id);
     if (!el) return fallback;
     try { return JSON.parse(el.textContent || "null"); } catch { return fallback; }
+  }
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // global bag (no duplicates until exhausted) – jak u jull
+  function shuffledPool(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  let globalBag = [];
+  let globalK = 0;
+  function nextStripSrc() {
+    if (!CFG.MARQUEE_IMGS.length) return "";
+    if (globalBag.length === 0 || globalK >= globalBag.length) {
+      globalBag = shuffledPool(CFG.MARQUEE_IMGS);
+      globalK = 0;
+    }
+    return globalBag[globalK++];
+  }
+
+  function fillRowNoDup(track, rowW, tileW) {
+    const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
+
+    for (let i = 0; i < need; i++) {
+      const img = document.createElement("img");
+      img.src = nextStripSrc();
+      img.alt = "pasek";
+      img.draggable = false;
+      img.loading = "lazy";
+      track.appendChild(img);
+    }
   }
 
   function isTypingTarget(el) {
@@ -67,15 +120,6 @@
     return { textarea, select, text, assigned };
   }
 
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = (Math.random() * (i + 1)) | 0;
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
   whenRuntime(() => {
     window.BingoUserPlugin = {
       init(api) {
@@ -83,24 +127,25 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // plugin sfx from backend (json_script id="plugin-sfx")
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
-        // ===== DOM / CSS =====
+        // ===== style =====
         const style = document.createElement("style");
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
 
-/* ===== background layer ===== */
-.sc-bg{
-  position: fixed; inset: 0;
+/* ===== background image ===== */
+.ps-bgwrap{
+  position: fixed;
+  inset: 0;
+  z-index: 2147483638;
   pointer-events: none;
-  z-index: 2147483640;
   overflow: hidden;
 }
-.sc-bg__img{
-  position: absolute; inset: 0;
+.ps-bgimg{
+  position: absolute;
+  inset: 0;
   background-image: url("${ASSETS.bgImg}");
   background-size: cover;
   background-position: center;
@@ -109,39 +154,64 @@
   transform: scale(1.02);
 }
 
-/* ===== censor bars overlay ===== */
-.sc-bg__bars{
-  position: absolute; inset: 0;
-  opacity: ${CFG.BARS_OPACITY};
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0,0,0,0.92) 0px,
-    rgba(0,0,0,0.92) ${CFG.BARS_HEIGHT}px,
-    rgba(0,0,0,0.0) ${CFG.BARS_HEIGHT}px,
-    rgba(0,0,0,0.0) ${CFG.BARS_GAP}px
-  );
-  mix-blend-mode: multiply;
+/* ===== marquee layer (like jull) ===== */
+.ps-marquee{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(${CFG.ROWS}, ${CFG.TILE_H}px);
+  gap: ${CFG.TILE_GAP}px;
+  padding: ${CFG.TILE_GAP}px;
+  box-sizing: border-box;
+  opacity: ${CFG.MARQUEE_OPACITY};
+  pointer-events: none;
+  filter: saturate(1.05) contrast(1.03);
 }
 
-/* ===== subtle CCTV noise ===== */
-.sc-bg__noise{
-  position: absolute; inset: -40px;
-  opacity: ${CFG.CCTV_NOISE_OPACITY};
-  background-image:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,0) 1px 3px);
-  mix-blend-mode: overlay;
-  animation: sc-noiseMove 7s linear infinite;
+.ps-row{
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: rgba(255,255,255,.02);
+  outline: 1px solid rgba(255,255,255,.06);
 }
-@keyframes sc-noiseMove{ to { transform: translate3d(0, 40px, 0); } }
+
+.ps-track{
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  display: flex;
+  gap: ${CFG.TILE_GAP}px;
+  align-items: center;
+  will-change: transform;
+}
+
+.ps-track img{
+  height: 100%;
+  width: auto;
+  border-radius: 18px;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+@keyframes ps-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
+}
+
+.ps-track.anim{ animation: ps-marquee var(--psDur, 26s) linear infinite; }
+.ps-track.reverse{ animation-direction: reverse; }
 
 /* ===== meme layer ===== */
-.sc-layer{
+.ps-layer{
   position: fixed; inset: 0;
   pointer-events: none;
   z-index: 2147483646;
 }
 
-.sc-img{
+.ps-img{
   position: fixed;
   width: min(34vw, 520px);
   max-width: 520px;
@@ -152,32 +222,67 @@
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
-.sc-img.is-on{ opacity: ${CFG.OPACITY}; }
+.ps-img.is-on{ opacity: ${CFG.OPACITY}; }
         `;
         document.head.appendChild(style);
 
-        // ===== background mount =====
-        const bg = document.createElement("div");
-        bg.className = "sc-bg";
-        bg.innerHTML = `
-  <div class="sc-bg__img"></div>
-  <div class="sc-bg__bars"></div>
-  <div class="sc-bg__noise"></div>
-        `;
-        root.appendChild(bg);
+        // ===== mount BG + marquee =====
+        const bgwrap = document.createElement("div");
+        bgwrap.className = "ps-bgwrap";
+
+        const bgimg = document.createElement("div");
+        bgimg.className = "ps-bgimg";
+
+        const marquee = document.createElement("div");
+        marquee.className = "ps-marquee";
+
+        const rowEls = [];
+        for (let r = 0; r < CFG.ROWS; r++) {
+          const row = document.createElement("div");
+          row.className = "ps-row";
+
+          const track = document.createElement("div");
+          track.className = "ps-track anim";
+          if (r % 2 === 1) track.classList.add("reverse");
+          track.style.setProperty("--psDur", `${rand(CFG.SPEED_MIN, CFG.SPEED_MAX).toFixed(2)}s`);
+
+          row.appendChild(track);
+          marquee.appendChild(row);
+          rowEls.push({ track });
+        }
+
+        bgwrap.appendChild(bgimg);
+        bgwrap.appendChild(marquee);
+        root.appendChild(bgwrap);
+
+        // fill marquee (like jull)
+        function layoutFill() {
+          const rowW = (window.innerWidth || 1200);
+          const tileW = (CFG.TILE_H * 1.35) + CFG.TILE_GAP;
+
+          rowEls.forEach(({ track }) => {
+            if (track.__filled) return;
+            fillRowNoDup(track, rowW, tileW);
+            const imgs = Array.from(track.querySelectorAll("img"));
+            imgs.forEach(img => track.appendChild(img.cloneNode(true)));
+            track.__filled = true;
+          });
+        }
+        layoutFill();
+        ctx.on(window, "resize", () => layoutFill());
 
         // ===== meme layer =====
         const layer = document.createElement("div");
-        layer.className = "sc-layer";
+        layer.className = "ps-layer";
         root.appendChild(layer);
 
         const imgPlus = document.createElement("img");
-        imgPlus.className = "sc-img";
+        imgPlus.className = "ps-img";
         imgPlus.alt = "";
         imgPlus.src = ASSETS.plusImg;
 
         const imgMinus = document.createElement("img");
-        imgMinus.className = "sc-img";
+        imgMinus.className = "ps-img";
         imgMinus.alt = "";
         imgMinus.src = ASSETS.minusImg;
 
@@ -218,7 +323,7 @@
         positionImage(imgPlus);
         positionImage(imgMinus);
 
-        // ===== show/hide helpers =====
+        // show/hide
         let hideTimer = null;
         function show(img, ms = 650) {
           imgPlus.classList.remove("is-on");
@@ -232,7 +337,7 @@
           }, ms);
         }
 
-        // ===== deletion tracking =====
+        // deletion tracking
         let lastLenByTextarea = new WeakMap();
         let deletedSinceReset = 0;
         let idleResetTimer = null;
@@ -245,7 +350,7 @@
           }, CFG.IDLE_RESET_MS);
         }
 
-        // ===== audio: start on first user input, loop playlist, NO UI =====
+        // audio: first gesture start, loop playlist, no UI
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -259,19 +364,16 @@
           idx = (i + playlist.length) % playlist.length;
           audio.src = playlist[idx];
         }
-
         function playStart() {
           if (!playlist.length) return;
           if (!audio.src) setTrack(0);
           audio.play().catch(() => {});
         }
-
         function playNext() {
           if (!playlist.length) return;
           setTrack(idx + 1);
           audio.play().catch(() => {});
         }
-
         audio.addEventListener("ended", () => {
           if (!playlist.length) return;
           playNext();
@@ -288,13 +390,11 @@
 
           playStart();
         };
-
-        // "first user input" = jakikolwiek gesture lub input
         document.addEventListener("pointerdown", startOnFirstUserInput, true);
         document.addEventListener("keydown", startOnFirstUserInput, true);
         document.addEventListener("input", startOnFirstUserInput, true);
 
-        // ===== core rules =====
+        // rules
         function maybeShowPlus() {
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
@@ -325,16 +425,13 @@
               }
             }
           }
-
           lastLenByTextarea.set(textarea, cur);
         }
 
-        // init lengths for all cells
         document.querySelectorAll("textarea.grid-cell").forEach(t => {
           lastLenByTextarea.set(t, (t.value ?? "").length);
         });
 
-        // EVENTS:
         ctx.on(document, "input", () => {
           const wrapper = getCellWrapperFromActive();
           if (!wrapper) return;
@@ -367,7 +464,6 @@
           if (document.hidden) {
             imgPlus.classList.remove("is-on");
             imgMinus.classList.remove("is-on");
-            // audio nie pauzuję — ma grać permanentnie (tak chciałeś)
           }
         });
 
@@ -376,8 +472,8 @@
           try { if (hideTimer) ctx.clearTimeoutSafe?.(hideTimer); } catch {}
           try { if (idleResetTimer) ctx.clearTimeoutSafe?.(idleResetTimer); } catch {}
           try { audio.pause(); } catch {}
-          try { bg.remove(); } catch {}
           try { layer.remove(); } catch {}
+          try { bgwrap.remove(); } catch {}
           try { style.remove(); } catch {}
         };
       }
