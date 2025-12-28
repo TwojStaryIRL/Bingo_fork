@@ -55,6 +55,9 @@ def Drymastero103_func() -> UserPluginConfig:
             "tung": [
                 static("bingo/sfx/Drymastero103/tung.mp3")
             ],
+            "bonk": [
+                static("bingo/sfx/Drymastero103/bonk.mp3")
+            ],
         }
     )
 

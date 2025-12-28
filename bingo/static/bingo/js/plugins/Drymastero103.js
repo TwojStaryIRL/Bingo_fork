@@ -8,6 +8,7 @@
     // fallback audio (jeśli api.sfx nie poda)
     BG_LOOP_URL: "/static/bingo/sfx/Drymastero103/gag.mp3",
     SFX_UNLOCK_URL: "/static/bingo/sfx/Drymastero103/tung.mp3",
+    HAMMER_SFX_URL: "/static/bingo/sfx/Drymastero103/bonk.mp3",
 
     BG_VOLUME: 0.35,
     SFX_VOLUME: 0.50,
@@ -326,13 +327,21 @@ body.dry-hammer-active * {
           hammer.classList.add("is-flipping");
 
           // dźwięk na każdy "hit"
-          playOneShot();
+          playHammerHit();
 
           setTimeout(() => {
             hammer.classList.remove("is-flipping");
             st.flipping = false;
           }, CFG.HAMMER_FLIP_MS + 40);
         }
+        function playHammerHit() {
+          const url = CFG.HAMMER_SFX_URL;
+          if (!url) return;
+          const a = new Audio(url);
+          a.volume = clamp01(CFG.SFX_VOLUME);
+          a.currentTime = 0;
+          a.play().catch(() => {});
+}
 
         // pointermove do aktualizacji pozycji młotka
         function onPointerMove(e) {
@@ -367,7 +376,7 @@ body.dry-hammer-active * {
           // usuń prawy obrazek z boku (żeby był tylko "kursor")
           try { eggRight.remove(); } catch {}
 
-          showMsg("Masz młotek. Klikaj gdziekolwiek, a żeby zakończyć – traf w lewy obrazek.");
+          showMsg("Ciekawe kto ci mogl zabrać te pola...");
         }
 
         // ===== Trafienie lewego obrazka młotkiem =====
