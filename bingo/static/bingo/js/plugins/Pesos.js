@@ -297,6 +297,30 @@ textarea.grid-cell::placeholder{
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
+
+/* === zapewnij, że UI gry jest nad pluginem === */
+.page, .hero, .panel{
+  position: relative;
+  z-index: 50;
+}
+
+/* === przyciemnij i odseparuj główny panel od tła === */
+.panel.panel--wide{
+  background: rgba(0,0,0,.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 55px rgba(0,0,0,.55);
+}
+
+/* opcjonalnie: lekko rozjaśnij pole tekstowe (dla kontrastu na ciemnym panelu) */
+.grid-table textarea.grid-cell{
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.92);
+  border-color: rgba(255,255,255,.18);
+}
+
         `;
         document.head.appendChild(style);
 
