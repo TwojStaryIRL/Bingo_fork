@@ -131,6 +131,8 @@
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
 
+         const style = document.createElement("style");
+
         style.textContent = `
 body::before,
 body::after{
