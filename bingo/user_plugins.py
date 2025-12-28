@@ -104,6 +104,9 @@ def Pesos_func() -> UserPluginConfig:
                 static("bingo/sfx/Pesos/number1.mp3"),
                 static("bingo/sfx/Pesos/number2.mp3"),
                 static("bingo/sfx/Pesos/number3.mp3"),
+                static("bingo/sfx/Pesos/number4.mp3"),
+                static("bingo/sfx/Pesos/number5.mp3"),
+                static("bingo/sfx/Pesos/number6.mp3"),
         ]}
     )
 
