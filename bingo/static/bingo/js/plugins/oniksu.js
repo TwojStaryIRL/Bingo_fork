@@ -18,14 +18,272 @@ window.BingoUserPlugin.init = function (api) {
     bottomPad: 10,
   };
 
-  // ===== SPACEGLIDING TOGGLE =====
-  const MUSIC_URL = "/static/bingo/sfx/oniksu/everything_black.mp3"; 
+   // ===== SPACEGLIDING TOGGLE (self-contained, bez ruszania style.css) =====
+  const SPACE = {
+    GIF_URL: "/static/bingo/images/spacegliding.gif",
+    GIF_OPACITY: 0.25,
+    GIF_SIZE: 200,
+
+    ROWS: 6,
+    TILE_H: 140,
+    TILE_GAP: 14,
+    SPEED_MIN: 36,
+    SPEED_MAX: 72,
+    MARQUEE_OPACITY: 0.12,
+
+    AUDIO_VOL: 0.35,
+  };
+
+  function getJSONScript(id, fallback = null) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    try { return JSON.parse(el.textContent || "null"); } catch { return fallback; }
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
   let spaceOn = false;
 
-  const music = new Audio(MUSIC_URL);
-  music.loop = true;
-  music.preload = "auto";
-  music.volume = 0.35; // 
+  // ---- pobieramy sfx z runtime (jak Pesos) ----
+  const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
+  const ambientList = Array.isArray(pluginSfx?.ambient) ? pluginSfx.ambient.filter(Boolean) : [];
+  const stripList   = Array.isArray(pluginSfx?.strips)  ? pluginSfx.strips.filter(Boolean)  : [];
+
+  // ---- AUDIO (tylko Spaceglide, start po user gesture) ----
+  const playlist = shuffle(ambientList);
+  let aIdx = 0;
+
+  const audio = document.createElement("audio");
+  audio.preload = "auto";
+  audio.loop = false;
+  audio.volume = SPACE.AUDIO_VOL;
+
+  function setTrack(i) {
+    if (!playlist.length) return;
+    aIdx = (i + playlist.length) % playlist.length;
+    audio.src = playlist[aIdx];
+  }
+  function playCurrent() {
+    if (!playlist.length) return;
+    if (!audio.src) setTrack(0);
+    return audio.play().catch(() => {});
+  }
+  function playNext() {
+    if (!playlist.length) return;
+    setTrack(aIdx + 1);
+    playCurrent();
+  }
+  audio.addEventListener("ended", () => {
+    if (!spaceOn) return;
+    playNext();
+  });
+
+  
+
+  // ---- MARQUEE + GIF overlay (tylko Spaceglide) ----
+  let sgStyle = null;
+  let sgWrap = null;
+  let sgBgGif = null;
+  let rowEls = null;
+
+  // losowanie stripów bez dupli w “paczce”
+  let stripBag = [];
+  let stripK = 0;
+  function nextStripSrc() {
+    if (!stripList.length) return "";
+    if (stripBag.length === 0 || stripK >= stripBag.length) {
+      stripBag = shuffle(stripList);
+      stripK = 0;
+    }
+    return stripBag[stripK++];
+  }
+
+  function fillRowNoDup(track, rowW, tileW) {
+    const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
+    for (let i = 0; i < need; i++) {
+      const img = document.createElement("img");
+      img.src = nextStripSrc();
+      img.alt = "strip";
+      img.draggable = false;
+      img.loading = "lazy";
+      track.appendChild(img);
+    }
+  }
+
+  function ensureSpaceUI() {
+    if (sgWrap) return;
+
+    // 1) runtime “reset” tła z CSS (bez edycji style.css)
+    //    -> żeby nie mieć GIF-na-GIF, robimy inline override
+    document.body.style.backgroundImage = "none";
+
+    // 2) GIF overlay
+    sgBgGif = document.createElement("div");
+    sgBgGif.style.position = "fixed";
+    sgBgGif.style.inset = "0";
+    sgBgGif.style.zIndex = "0";
+    sgBgGif.style.pointerEvents = "none";
+    sgBgGif.style.backgroundImage = `url("${SPACE.GIF_URL}")`;
+    sgBgGif.style.backgroundRepeat = "repeat";
+    sgBgGif.style.backgroundSize = `${SPACE.GIF_SIZE}px ${SPACE.GIF_SIZE}px`;
+    sgBgGif.style.opacity = "0";
+    sgBgGif.style.transition = "opacity 450ms ease";
+    document.body.appendChild(sgBgGif);
+    requestAnimationFrame(() => { if (sgBgGif) sgBgGif.style.opacity = String(SPACE.GIF_OPACITY); });
+
+    // 3) marquee style (własne, self-contained)
+    sgStyle = document.createElement("style");
+    sgStyle.textContent = `
+      .sg-bgwrap{
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .sg-marquee{
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-rows: repeat(${SPACE.ROWS}, ${SPACE.TILE_H}px);
+        gap: ${SPACE.TILE_GAP}px;
+        padding: ${SPACE.TILE_GAP}px;
+        box-sizing: border-box;
+        opacity: ${SPACE.MARQUEE_OPACITY};
+        pointer-events: none;
+
+        -webkit-mask-image: linear-gradient(
+          to right,
+          rgba(0,0,0,1) 0%,
+          rgba(0,0,0,1) 16%,
+          rgba(0,0,0,0.10) 42%,
+          rgba(0,0,0,0.10) 58%,
+          rgba(0,0,0,1) 84%,
+          rgba(0,0,0,1) 100%
+        );
+        mask-image: linear-gradient(
+          to right,
+          rgba(0,0,0,1) 0%,
+          rgba(0,0,0,1) 16%,
+          rgba(0,0,0,0.10) 42%,
+          rgba(0,0,0,0.10) 58%,
+          rgba(0,0,0,1) 84%,
+          rgba(0,0,0,1) 100%
+        );
+      }
+      .sg-row{
+        position: relative;
+        overflow: hidden;
+        border-radius: 18px;
+        background: rgba(255,255,255,.02);
+        outline: 1px solid rgba(255,255,255,.06);
+      }
+      .sg-track{
+        position: absolute;
+        top: 0; left: 0;
+        height: 100%;
+        display: flex;
+        gap: ${SPACE.TILE_GAP}px;
+        align-items: center;
+        will-change: transform;
+      }
+      .sg-track img{
+        height: 100%;
+        width: auto;
+        border-radius: 18px;
+        object-fit: cover;
+        user-select: none;
+        pointer-events: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      }
+      @keyframes sg-marquee {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(calc(-50% - (${SPACE.TILE_GAP}px / 2))); }
+      }
+      .sg-track.anim{ animation: sg-marquee var(--sgDur, 26s) linear infinite; }
+      .sg-track.reverse{ animation-direction: reverse; }
+
+      /* UI nad efektami */
+      .page, .hero, .panel{ position: relative; z-index: 50; }
+    `;
+    document.head.appendChild(sgStyle);
+
+    // 4) DOM marquee
+    const root = document.getElementById("plugin-root") || document.body;
+
+    sgWrap = document.createElement("div");
+    sgWrap.className = "sg-bgwrap";
+
+    const marquee = document.createElement("div");
+    marquee.className = "sg-marquee";
+
+    rowEls = [];
+    for (let r = 0; r < SPACE.ROWS; r++) {
+      const row = document.createElement("div");
+      row.className = "sg-row";
+
+      const track = document.createElement("div");
+      track.className = "sg-track anim";
+      if (r % 2 === 1) track.classList.add("reverse");
+      track.style.setProperty("--sgDur", `${rand(SPACE.SPEED_MIN, SPACE.SPEED_MAX).toFixed(2)}s`);
+
+      row.appendChild(track);
+      marquee.appendChild(row);
+      rowEls.push({ track });
+    }
+
+    sgWrap.appendChild(marquee);
+    root.appendChild(sgWrap);
+
+    // fill (raz) + clone (jak w Pesos)
+    function layoutFill() {
+      const rowW = (window.innerWidth || 1200);
+      const tileW = (SPACE.TILE_H * 1.35) + SPACE.TILE_GAP;
+
+      rowEls.forEach(({ track }) => {
+        if (track.__filled) return;
+        fillRowNoDup(track, rowW, tileW);
+        const imgs = Array.from(track.querySelectorAll("img"));
+        imgs.forEach(img => track.appendChild(img.cloneNode(true)));
+        track.__filled = true;
+      });
+    }
+    layoutFill();
+
+    api.ctx.on(window, "resize", () => {
+      if (!spaceOn) return;
+      layoutFill();
+    });
+  }
+
+  function teardownSpaceUI() {
+    // remove marquee + style
+    try { if (sgWrap) sgWrap.remove(); } catch {}
+    sgWrap = null;
+    rowEls = null;
+
+    try { if (sgStyle) sgStyle.remove(); } catch {}
+    sgStyle = null;
+
+    // fade-out gif i remove
+    if (sgBgGif) {
+      try { sgBgGif.style.opacity = "0"; } catch {}
+      api.ctx.setTimeoutSafe(() => {
+        try { sgBgGif.remove(); } catch {}
+        sgBgGif = null;
+      }, 500);
+    }
+
+    // oddaj kontrolę background do CSS (czyli wraca jak było)
+    document.body.style.backgroundImage = "";
+  }
 
   function updateBtn() {
     btn.dataset.on = spaceOn ? "1" : "0";
@@ -35,26 +293,33 @@ window.BingoUserPlugin.init = function (api) {
   async function setSpace(on) {
     spaceOn = !!on;
     updateBtn();
-
     document.body.classList.toggle("spaceglide", spaceOn);
 
     if (spaceOn) {
-      // play() może zwrócić promise i czasem się wywali — łapiemy
-      try { await music.play(); } catch (e) { console.log("[space] play blocked:", e?.name); }
+      ensureSpaceUI();
+
+      // audio tylko w Spaceglide
+      if (playlist.length) {
+        try { await playCurrent(); } catch {}
+      }
+
     } else {
-      music.pause();
-      music.currentTime = 0;
+
+      // stop audio
+      try { audio.pause(); } catch {}
+      try { audio.currentTime = 0; } catch {}
+
+      teardownSpaceUI();
     }
   }
 
-  // UI - przycisk manualnie dodany do strony
+  // UI - przycisk
   const root = document.getElementById("plugin-root") || document.body;
 
   const wrap = document.createElement("div");
   const btn = document.createElement("button");
   btn.type = "button";
 
-  // ===== STYLE: ŚRODEK EKRANU =====
   wrap.style.position = "fixed";
   wrap.style.left = "50%";
   wrap.style.top = "4%";
@@ -77,15 +342,8 @@ window.BingoUserPlugin.init = function (api) {
   wrap.appendChild(btn);
   root.appendChild(wrap);
 
-  // default OFF
   updateBtn();
-
-//   // opcjonalnie: komenda w konsoli
-//   window.testinguser1 = window.testinguser1 || {};
-//   window.testinguser1.space = (on) => setSpace(on);
   // ===== END SPACEGLIDING =====
-
-
 
 
 
@@ -244,8 +502,10 @@ function randomSidePos() {
 
 
   return () => {
-  try { style.remove(); } catch {}
+  try { setSpace(false); } catch {}
+  try { wrap.remove(); } catch {}
   api.ctx.destroy();
 };
+
 
 };

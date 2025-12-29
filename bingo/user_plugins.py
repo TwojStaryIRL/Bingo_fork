@@ -29,6 +29,16 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/sfx/oniksu/twitch_on_reveal_4.mp3"),
                 static("bingo/sfx/oniksu/twitch_on_reveal_5.mp3"),
             ],
+            "ambient": [
+                static("bingo/sfx/oniksu/everything_black.mp3"),
+            ],
+            "strips": [
+                static("bingo/images/oniksu/spinningrat1.gif"),
+                static("bingo/images/oniksu/spinningrat2.gif"),
+                static("bingo/images/oniksu/spinningrat3.gif"),
+                static("bingo/images/oniksu/spinningrat4.gif"),
+                static("bingo/images/oniksu/spinningrat5.gif"),
+            ],
         }
     )
 
