@@ -132,7 +132,7 @@
         badgeShuffle.textContent = String(Math.max(0, shufflesLeft));
         badgeShuffle.classList.toggle("btn-badge--disabled", shufflesLeft <= 0);
       }
-      if (btnReroll) btnReroll.disabled = (rerollsLeft <= 0);
+      if (btnReroll) btnReroll.disabled = false; // unlock nie zależy od rerollsLeft
 
       // shuffle/pick bez planszy = off
       if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length <= 0);
@@ -284,31 +284,49 @@
       });
     }
 
-    // ========= PICK =========
+    // ===== PICK (save active board to DB) =====
     if (btnPick) {
-      btnPick.addEventListener("click", () => {
+      btnPick.addEventListener("click", async () => {
+        // musimy mieć jakąkolwiek planszę w DOM
         const board = boards[active];
-        if (!board) return;
-
-        const texts = Array.from(board.querySelectorAll(".raffle-text"))
-          .map(el => (el.textContent || "").trim());
-
-        const grid2d = [];
-        for (let r = 0; r < size; r++) {
-          grid2d.push(texts.slice(r * size, r * size + size));
+        if (!board) {
+          showToast?.("Nie ma aktywnej planszy do zapisu.", "error", 1800);
+          return;
         }
 
-        console.log(JSON.stringify({
-          active_grid_index: active,
-          size,
-          generated_at: new Date().toISOString(),
-          grid: grid2d,
-          flat: texts
-        }, null, 2));
+        btnPick.disabled = true;
 
-        showToast?.("Grid JSON w konsoli ✅", "success", 1600);
+        try {
+          const form = new FormData();
+          form.append("grid", String(active)); // zapisujemy aktualny focus
+
+          const { data } = await fetchJsonSafe(endpoints.pick, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-CSRFToken": csrftoken },
+            body: form,
+          });
+
+          if (!data?.ok) {
+            showToast?.(data?.error || "Zapis nieudany", "error", 2200);
+            return;
+          }
+
+          showToast?.("Zapisano planszę w bazie ✅", "success", 1800);
+
+          // opcjonalnie: log dla weryfikacji w konsoli
+          console.log("[pick] saved:", data);
+
+        } catch (e) {
+          console.error("[pick] error:", e);
+          if (e && e.status) console.error("[pick] status/body:", e.status, e.body);
+          hardError("Pick: błąd serwera/CSRF — sprawdź konsolę (Network).");
+        } finally {
+          btnPick.disabled = false;
+        }
       });
     }
+
   }
 
   if (document.readyState === "loading") {

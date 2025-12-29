@@ -335,3 +335,64 @@ def raffle_shuffle_use(request):
             "rerolls_left": state.rerolls_left,
             "shuffles_used": payload["raffle_shuffles_used"],
         }, status=200)
+
+
+@login_required
+@require_POST
+def raffle_pick_save(request):
+    """
+    Zapisuje do DB aktualnie wybrany (aktywny) grid z raffle jako JSON w BingoBoard.grid.
+    """
+    with transaction.atomic():
+        # stan losowania
+        state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
+        payload = dict(state.generated_board_payload or {})
+
+        grids_2d = payload.get("grids_2d")
+        if not isinstance(grids_2d, list) or len(grids_2d) == 0:
+            return JsonResponse({"ok": False, "error": "Not initialized. Use init first."}, status=409)
+
+        try:
+            grid_idx = int(request.POST.get("grid"))
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "Bad grid index"}, status=400)
+
+        unlocked = int(payload.get("unlocked_grids") or 0)
+        if grid_idx < 0 or grid_idx >= unlocked:
+            return JsonResponse({"ok": False, "error": "Grid not unlocked yet."}, status=409)
+
+        grid = grids_2d[grid_idx]
+        if not isinstance(grid, list):
+            return JsonResponse({"ok": False, "error": "Bad grid payload"}, status=409)
+
+        size = int(payload.get("size") or 5)
+
+        # WYCIĄGAMY SAME TEKSTY (czysty bingo-board)
+        picked_grid = []
+        for row in grid:
+            if not isinstance(row, list) or len(row) != size:
+                return JsonResponse({"ok": False, "error": "Bad grid shape"}, status=409)
+
+            picked_row = []
+            for cell in row:
+                # cell jest dict z .text (u Ciebie tak jest w DB)
+                if isinstance(cell, dict):
+                    picked_row.append((cell.get("text") or "—").strip())
+                else:
+                    picked_row.append("—")
+            picked_grid.append(picked_row)
+
+        # zapis jako JSON w BingoBoard.grid (ten sam model co save_board używa)
+        picked_payload = {
+            "source": "raffle_pick",
+            "size": size,
+            "picked_grid_index": grid_idx,
+            "grid": picked_grid,
+        }
+
+        BingoBoard.objects.update_or_create(
+            user=request.user,
+            defaults={"email": (request.user.email or "").strip(), "grid": picked_payload},
+        )
+
+        return JsonResponse({"ok": True, "saved": True, "picked_grid_index": grid_idx}, status=200)

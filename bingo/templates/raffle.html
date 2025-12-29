@@ -83,7 +83,8 @@
         "shuffle": "{% url 'raffle_shuffle_use' %}",
         "reroll": "{% url 'raffle_reroll_all' %}",
         "unlock": "{% url 'raffle_unlock_next' %}",
-        "init": "{% url 'raffle_init' %}"
+        "init": "{% url 'raffle_init' %}",
+        "pick": "{% url 'raffle_pick_save' %}",
       },
       "gridSize": {{ grid_size|default:5 }},
       "audio": { "rerollId": "rerollSound" }
