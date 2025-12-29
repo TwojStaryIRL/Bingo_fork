@@ -155,6 +155,10 @@
       if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0);
     }
 
+      // backend -> liczniki 
+    syncCountersFromServer(data);
+
+    // jeżeli backend odblokował nowy board -> reload, bo Django dopiero wtedy wyrenderuje HTML
     const unlocked = Number(data.unlocked_grids);
     if (Number.isFinite(unlocked)) {
       const boardsNow = document.querySelectorAll(".raffle-board--set").length;
@@ -163,6 +167,7 @@
         return;
       }
     }
+
 
     function syncCountersFromServer(data) {
       if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
