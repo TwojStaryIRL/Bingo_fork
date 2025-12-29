@@ -173,94 +173,91 @@
     applyClasses();
     paintBadges();
 
-    // ===== SHUFFLE =====
-    if (btnShuffle) {
-      btnShuffle.addEventListener("click", async () => {
-        if (btnShuffle.disabled) return;
+// SHUFFLE
 
-        const board = boards[active];
-        const gridEl = board?.querySelector(".raffle-grid");
-        const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
-        const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
-        if (!gridEl || tiles.length !== targetTiles) return;
+btnShuffle.addEventListener("click", async () => {
+  if (btnShuffle.disabled) return;
 
-        btnShuffle.disabled = true;
+  const board = boards[active];
+  const gridEl = board?.querySelector(".raffle-grid");
+  const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
+  const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
+  if (!gridEl || tiles.length !== targetTiles) return;
 
-        const form = new FormData();
-        form.append("grid", String(active));
+  btnShuffle.disabled = true;
 
-        const { data } = await fetchJsonSafe(endpoints.shuffle, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "X-CSRFToken": csrftoken },
-          body: form,
-        });
+  const form = new FormData();
+  form.append("grid", String(active));
 
+  try {
+    const { data } = await fetchJsonSafe(endpoints.shuffle, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": csrftoken },
+      body: form,
+    });
 
-
-          if (!data.ok) {
-            syncCountersFromServer(data);
-            showToast?.(data.error || "Shuffle blocked", "error", 2200);
-            return;
-          }
-
-          syncCountersFromServer(data);
-
-          const first = tiles.map(t => t.getBoundingClientRect());
-          const centerRect = gridEl.getBoundingClientRect();
-          const cx = centerRect.left + centerRect.width / 2;
-          const cy = centerRect.top + centerRect.height / 2;
-
-          gridEl.classList.add("is-shuffling");
-
-          const toCenterAnims = tiles.map((tile, i) => {
-            const r = first[i];
-            const tx = cx - (r.left + r.width / 2);
-            const ty = cy - (r.top + r.height / 2);
-            return tile.animate(
-              [{ transform: "translate(0,0) scale(1)" }, { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }],
-              { duration: 180, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
-            );
-          });
-
-          await Promise.allSettled(toCenterAnims.map(a => a.finished));
-
-          if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
-            hardError(`Shuffle: serwer nie zwrócił cells[${targetTiles}].`);
-            return;
-          }
-
-          textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
-
-
-          toCenterAnims.forEach(a => a.cancel());
-
-          const last = tiles.map(t => t.getBoundingClientRect());
-          const fromCenterToCellAnims = tiles.map((tile, i) => {
-            const r = last[i];
-            const tx = cx - (r.left + r.width / 2);
-            const ty = cy - (r.top + r.height / 2);
-            return tile.animate(
-              [{ transform: `translate(${tx}px, ${ty}px) scale(0.92)` }, { transform: "translate(0,0) scale(1)" }],
-              { duration: 260, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
-            );
-          });
-
-          await Promise.allSettled(fromCenterToCellAnims.map(a => a.finished));
-          fromCenterToCellAnims.forEach(a => a.cancel());
-          gridEl.classList.remove("is-shuffling");
-
-        } catch (e) {
-          console.error("[shuffle] error:", e);
-          if (e && e.status) console.error("[shuffle] status/body:", e.status, e.body);
-          hardError("Shuffle: błąd serwera/CSRF — sprawdź konsolę (Network).");
-          gridEl?.classList.remove("is-shuffling");
-        } finally {
-          paintBadges();
-          btnShuffle.disabled = (shufflesLeft <= 0);
-        }
-      });
+    if (!data.ok) {
+      syncCountersFromServer(data);
+      showToast?.(data.error || "Shuffle blocked", "error", 2200);
+      return;
     }
+
+    syncCountersFromServer(data);
+
+    const first = tiles.map(t => t.getBoundingClientRect());
+    const centerRect = gridEl.getBoundingClientRect();
+    const cx = centerRect.left + centerRect.width / 2;
+    const cy = centerRect.top + centerRect.height / 2;
+
+    gridEl.classList.add("is-shuffling");
+
+    const toCenterAnims = tiles.map((tile, i) => {
+      const r = first[i];
+      const tx = cx - (r.left + r.width / 2);
+      const ty = cy - (r.top + r.height / 2);
+      return tile.animate(
+        [{ transform: "translate(0,0) scale(1)" }, { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }],
+        { duration: 180, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
+      );
+    });
+
+    await Promise.allSettled(toCenterAnims.map(a => a.finished));
+
+    if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
+      hardError(`Shuffle: serwer nie zwrócił cells[${targetTiles}].`);
+      return;
+    }
+
+    textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
+
+    toCenterAnims.forEach(a => a.cancel());
+
+    const last = tiles.map(t => t.getBoundingClientRect());
+    const fromCenterToCellAnims = tiles.map((tile, i) => {
+      const r = last[i];
+      const tx = cx - (r.left + r.width / 2);
+      const ty = cy - (r.top + r.height / 2);
+      return tile.animate(
+        [{ transform: `translate(${tx}px, ${ty}px) scale(0.92)` }, { transform: "translate(0,0) scale(1)" }],
+        { duration: 260, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
+      );
+    });
+
+    await Promise.allSettled(fromCenterToCellAnims.map(a => a.finished));
+    fromCenterToCellAnims.forEach(a => a.cancel());
+    gridEl.classList.remove("is-shuffling");
+
+  } catch (e) {
+    console.error("[shuffle] error:", e);
+    if (e && e.status) console.error("[shuffle] status/body:", e.status, e.body);
+    hardError("Shuffle: błąd serwera/CSRF — sprawdź konsolę (Network).");
+    gridEl?.classList.remove("is-shuffling");
+  } finally {
+    paintBadges();
+    btnShuffle.disabled = (shufflesLeft <= 0);
+  }
+});
 
     // ===== REROLL =====
     if (btnReroll) {
