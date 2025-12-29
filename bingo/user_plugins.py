@@ -32,6 +32,8 @@ def oniksu_func() -> UserPluginConfig:
             "ambient": [
                 static("bingo/sfx/oniksu/everything_black.mp3"),
                 static("bingo/sfx/oniksu/mywiferecentlyleftme.mp3"),
+                static("bingo/sfx/oniksu/iwillnotspaceglide.mp3"),
+                static("bingo/sfx/oniksu/untouched.mp3"),
             ],
             "strips": [
                 static("bingo/images/oniksu/spinningrat1.gif"),
@@ -42,6 +44,8 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/images/oniksu/spinningrat6.jpg"),
                 static("bingo/images/oniksu/spinningrat7.jpg"),
                 static("bingo/images/oniksu/spinningrat8.jpg"),
+                static("bingo/images/oniksu/spinningrat9.jpg"),
+                static("bingo/images/oniksu/spinningrat10.jpg"),
             ],
         }
     )
