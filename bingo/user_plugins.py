@@ -46,6 +46,7 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/images/oniksu/spinningrat8.jpg"),
                 static("bingo/images/oniksu/spinningrat9.jpg"),
                 static("bingo/images/oniksu/spinningrat10.jpg"),
+                static("bingo/images/oniksu/spinningrat11.jpg"),
             ],
         }
     )
