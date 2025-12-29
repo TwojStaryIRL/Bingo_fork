@@ -198,12 +198,14 @@
       }
 
       if (!UNLIMITED_USERS.has(v)) {
-      const c = countPicks().get(v) || 0;
-      if (v && c > MAX_PER_USER) {
-        changedSelect.value = prevValue || "";
-        changedSelect.dispatchEvent(new Event("change", { bubbles: true }));
-        showToast?.(`Nick "${v}" może być przypisany maksymalnie ${MAX_PER_USER} razy.`, "error", 2800);
-        return;
+        const c = countPicks().get(v) || 0;
+        if (v && c > MAX_PER_USER) {
+          changedSelect.value = prevValue || "";
+          changedSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          showToast?.(`Nick "${v}" może być przypisany maksymalnie ${MAX_PER_USER} razy.`, "error", 2800);
+          return;
+        }
+
       }
     }
   }
