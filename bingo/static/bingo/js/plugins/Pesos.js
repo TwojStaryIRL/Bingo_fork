@@ -495,9 +495,9 @@ document.documentElement.style.setProperty("--ps-rot-deg", "-8deg");
 
           lastLenByTextarea.set(textarea, cur);
 
-          // dodatkowo: jak już spełnione warunki długości, pokaż plus mocniej
-          const lenTrim = (text || "").trim().length;
-          if (assigned && lenTrim > CFG.MIN_TEXT_LEN) {
+          // fix backspace
+          const lenTrim = (textarea.value || "").trim().length;
+          if (assigned && lenTrim > CFG.MIN_TEXT_LEN && (typeof prev !== "number" || cur >= prev)) {
             show(imgPlus, 650);
           }
         });
