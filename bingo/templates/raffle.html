@@ -11,6 +11,10 @@
 
       <div class="panel__top">
         <span class="panel__pill">Losowanie Bingo</span>
+          <form method="post" action="{% url 'logout' %}" class="logout-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--danger">Wyloguj</button>
+        </form>
       </div>
 
       <div class="raffle-shell">
