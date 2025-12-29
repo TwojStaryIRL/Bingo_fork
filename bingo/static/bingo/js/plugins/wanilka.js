@@ -27,10 +27,10 @@
     HOLE_EAT_MS: 3000,
 
     // po ilu ms od eksplozji podmienić stronę na kotki
-    SWITCH_TO_POSTAPO_MS: 1200,
+    SWITCH_TO_POSTAPO_MS: 700,
 
     // ile kafli GIF na ekranie (większa wartość = mniejsze kafle)
-    POSTAPO_TILE: 220,
+    POSTAPO_TILE: 215,
   };
 
   // ====== assety 
