@@ -189,13 +189,13 @@
         const form = new FormData();
         form.append("grid", String(active));
 
-        try {
-          const { data } = await fetchJsonSafe(endpoints.shuffle, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "X-CSRFToken": csrftoken },
-            body: form,
-          });
+        const { data } = await fetchJsonSafe(endpoints.shuffle, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-CSRFToken": csrftoken },
+          body: form,
+        });
+
 
 
           if (!data.ok) {

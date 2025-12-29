@@ -214,20 +214,17 @@ def to_grids_2d(raffle_grids, size=4):
         out.append(rows)
     return out
 
-def normalize_grids(grids: Any, grids_count: int = 3) -> Optional[List[List[Optional[PoolItem]]]]:
-    """Sprawdza czy grids z session wygląda poprawnie."""
-    if not isinstance(grids, list) or len(grids) != grids_count:
+def normalize_grids(grids: Any) -> Optional[List[List[Optional[PoolItem]]]]:
+    if not isinstance(grids, list) or len(grids) < 1:
         return None
     return grids
 
-
 def parse_grid_idx(value: Any) -> Optional[int]:
-    """Bezpieczne parsowanie grid_idx (musi być 0/1/2)."""
     try:
-        idx = int(value)
+        return int(value)
     except (TypeError, ValueError):
         return None
-    return idx if idx in (0, 1, 2) else None
+
 
 
 @dataclass(frozen=True)
