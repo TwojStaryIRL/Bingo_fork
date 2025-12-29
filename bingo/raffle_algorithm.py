@@ -296,6 +296,9 @@ def reroll_one_grid(current_user, session_data: dict, post_data: dict, size: int
         return False, 400, {"ok": False, "error": "Bad grid index"}, {}
 
     grids = normalize_grids(session_data.get("raffle_grids"))
+    if grid_idx < 0 or grid_idx >= len(grids):
+        return False, 400, {"ok": False, "error": "Bad grid index"}, {}
+
     if grids is None:
         return False, 409, {"ok": False, "error": "Session expired. Refresh."}, {}
 
