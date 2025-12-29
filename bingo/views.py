@@ -58,16 +58,28 @@ def game(request):
 
 
     # render jak wcześniej
+    # return render(request, "game.html", {
+    #     "rows": range(4),   # albo to co masz obecnie
+    #     "cols": range(4),
+    #     "usernames": list(users),
+    #     "saved_grid": saved_grid,
+    #     "plugin_path": plugin_path,
+    #     "plugin_sfx": plugin_sfx,
+    # })
+    board = BingoBoard.objects.filter(user=request.user).first()
+    saved_grid = board.grid if board else {}
+
+    size = int(saved_grid.get("size") or 4)
+
     return render(request, "game.html", {
-        "rows": range(4),   # albo to co masz obecnie
-        "cols": range(4),
+        "rows": range(size),
+        "cols": range(size),
+        "grid_size": size,
         "usernames": list(users),
         "saved_grid": saved_grid,
         "plugin_path": plugin_path,
         "plugin_sfx": plugin_sfx,
     })
-    # old code
-    # return render(request, "game.html", {"rows": range(4), "cols": range(4)})
 
 
 #!SECTION - zapis do bay danych - jako user + email + json z tą tabelką 4x4
