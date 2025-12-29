@@ -95,31 +95,26 @@ def save_board(request):
 
 @login_required
 def raffle(request):
-    state, _ = RaffleState.objects.get_or_create(user=request.user)
-
-    payload = state.generated_board_payload or {}
-    grids_2d = payload.get("grids_2d")
-    SIZE = 5
-    GRIDS_COUNT = 3
-
-    # dodatkowo: jeśli raffle_grids jest złe (np. 2D), też regeneruj
     from .raffle_algorithm import normalize_grids
 
-    raffle_grids_ok = normalize_grids(payload.get("raffle_grids")) is not None
-    # stare gridy 4x4
-    payload_size = int(payload.get("size") or 0)
-    if payload_size != SIZE:
-        raffle_grids_ok = False
+    SIZE = 5
+    INITIAL_GRIDS = 1       
+    MAX_GRIDS = 3           
 
-    if not (isinstance(grids_2d, list) and grids_2d) or not raffle_grids_ok:
-        # session_patch, grids_2d = generate_initial_state(request.user, grids_count=3, size=4)
-        session_patch, grids_2d = generate_initial_state(request.user, grids_count=GRIDS_COUNT, size=SIZE)
+
+    state, _ = RaffleState.objects.get_or_create(user=request.user)
+    payload = state.generated_board_payload or {}
+    grids_2d = payload.get("grids_2d")
+
+    if not (isinstance(grids_2d, list) and grids_2d):
+        session_patch, grids_2d = generate_initial_state(request.user, grids_count=INITIAL_GRIDS, size=SIZE)
 
         state.generated_board_payload = {
             **session_patch,
             "grids_2d": grids_2d,
             "size": SIZE,
-            "grids_count": GRIDS_COUNT,
+            "grids_count": MAX_GRIDS,          
+            "unlocked_grids": INITIAL_GRIDS,   
         }
         state.save(update_fields=["generated_board_payload", "updated_at"])
 
