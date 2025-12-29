@@ -22,11 +22,14 @@
     BG_OPACITY: 0.22,
 
     MARQUEE_IMGS: [
-      "/static/bingo/images/Pesos/pasek1.jpg",
       "/static/bingo/images/Pesos/pasek2.jpg",
       "/static/bingo/images/Pesos/pasek3.jpg",
       "/static/bingo/images/Pesos/pasek4.jpg",
       "/static/bingo/images/Pesos/pasek5.jpg",
+      "/static/bingo/images/Pesos/pasek6.jpg",
+      "/static/bingo/images/Pesos/pasek7.jpg",
+      "/static/bingo/images/Pesos/pasek8.jpg",
+      "/static/bingo/images/Pesos/pasek9.jpg",
     ],
     ROWS: 6,
     TILE_H: 140,
