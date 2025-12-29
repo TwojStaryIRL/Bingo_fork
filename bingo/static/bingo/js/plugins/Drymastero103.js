@@ -365,55 +365,51 @@ body.dry-hammer-active * {
 
           unlockAudioOnce();
 
-          // aktywuj młotek jako kursor
+
           setHammerActive(true);
 
-          // ustaw pozycję młotka na aktualnym kliknięciu
           const x = e.clientX ?? (window.innerWidth / 2);
           const y = e.clientY ?? (window.innerHeight / 2);
           updateHammerPos(x, y);
 
-          // usuń prawy obrazek z boku (żeby był tylko "kursor")
+
           try { eggRight.remove(); } catch {}
 
           showMsg("Ciekawe kto ci mogl zabrać te pola...");
         }
 
-        // ===== Trafienie lewego obrazka młotkiem =====
-        function onLeftClick(e) {
-          e.preventDefault();
-          e.stopPropagation();
+function onLeftClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
 
-          unlockAudioOnce();
+  unlockAudioOnce();
 
-          // lewy ma reagować TYLKO gdy młotek jest aktywny
-          if (!st.hammerActive) return;
-          if (st.unlocked) return;
+  if (!st.hammerActive) return;
+  if (st.unlocked) return;
 
-          st.unlocked = true;
+  st.unlocked = true;
 
-          // flip + dźwięk przy trafieniu
-          doHammerFlip();
 
-          // lewy staje się 3. obrazkiem (Twoja poprzednia funkcja)
-          eggLeft.src = CFG.IMG_THIRD;
+  doHammerFlip();
+  playOneShot();
 
-          // odblokuj środek
-          lockCenter4(false);
+  eggLeft.src = CFG.IMG_THIRD;
 
-          showMsg("Widziałem jak coś ci ukradł - trzymaj !");
+  lockCenter4(false);
 
-          // młotek znika dopiero po trafieniu w lewy
-          setHammerActive(false);
+  showMsg("Widziałem jak coś ci ukradł - trzymaj !");
 
-          if (msgTimer) clearTimeout(msgTimer);
-          msgTimer = ctx.setTimeoutSafe(() => {
-            try { eggLeft.remove(); } catch {}
-            try { if (msgEl) msgEl.remove(); } catch {}
-            msgEl = null;
-            msgTimer = null;
-          }, CFG.HIDE_AFTER_MS);
-        }
+  setHammerActive(false);
+
+  if (msgTimer) clearTimeout(msgTimer);
+  msgTimer = ctx.setTimeoutSafe(() => {
+    try { eggLeft.remove(); } catch {}
+    try { if (msgEl) msgEl.remove(); } catch {}
+    msgEl = null;
+    msgTimer = null;
+  }, CFG.HIDE_AFTER_MS);
+}
+
 
         ctx.on(eggRight, "click", onRightClick);
         ctx.on(eggLeft, "click", onLeftClick);
