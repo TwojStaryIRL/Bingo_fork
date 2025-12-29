@@ -35,8 +35,10 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/sfx/oniksu/iwillnotspaceglide.mp3"),
                 static("bingo/sfx/oniksu/untouched.mp3"),
                 static("bingo/sfx/oniksu/idkatp.mp3"),
+                static("bingo/sfx/oniksu/bubblegumbitch.mp3"),
             ],
             "strips": [
+                static("bingo/images/spacegliding.gif"),
                 static("bingo/images/oniksu/spinningrat1.gif"),
                 static("bingo/images/oniksu/spinningrat2.gif"),
                 static("bingo/images/oniksu/spinningrat3.gif"),
@@ -48,6 +50,7 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/images/oniksu/spinningrat9.jpg"),
                 static("bingo/images/oniksu/spinningrat10.jpg"),
                 static("bingo/images/oniksu/spinningrat11.jpg"),
+                static("bingo/images/oniksu/spinningrat12.gif"),
             ],
         }
     )
