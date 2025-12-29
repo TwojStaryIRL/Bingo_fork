@@ -186,12 +186,17 @@
 
         btnShuffle.disabled = true;
 
+        const form = new FormData();
+        form.append("grid", String(active));
+
         try {
           const { data } = await fetchJsonSafe(endpoints.shuffle, {
             method: "POST",
             credentials: "same-origin",
             headers: { "X-CSRFToken": csrftoken },
+            body: form,
           });
+
 
           if (!data.ok) {
             syncCountersFromServer(data);
@@ -220,9 +225,13 @@
 
           await Promise.allSettled(toCenterAnims.map(a => a.finished));
 
-          const texts = textsEls.map(t => t.textContent);
-          const shuffledTexts = shuffleArray(texts);
-          textsEls.forEach((t, i) => { t.textContent = shuffledTexts[i]; });
+          if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
+            hardError(`Shuffle: serwer nie zwrócił cells[${targetTiles}].`);
+            return;
+          }
+
+          textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
+
 
           toCenterAnims.forEach(a => a.cancel());
 
@@ -292,7 +301,7 @@
             return;
           }
 
-          // backend -> liczniki (DB jest źródłem prawdy)
+          // backend -> liczniki 
           syncCountersFromServer(data);
 
           if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
