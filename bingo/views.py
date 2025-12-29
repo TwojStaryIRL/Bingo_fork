@@ -194,6 +194,9 @@ def raffle_reroll_all(request):
 @login_required
 @require_POST
 def raffle_shuffle_use(request):
+    import random
+    from .raffle_algorithm import to_grids_2d
+
     with transaction.atomic():
         state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
 
@@ -205,20 +208,42 @@ def raffle_shuffle_use(request):
                 "shuffles_left": 0,
             }, status=429)
 
-        # sukces: odejmij limit w DB
+        payload = dict(state.generated_board_payload or {})
+        size = int(payload.get("size") or 5)
+
+        try:
+            grid_idx = int(request.POST.get("grid"))
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "Bad grid index"}, status=400)
+
+        raffle_grids = payload.get("raffle_grids")
+        if not isinstance(raffle_grids, list) or grid_idx < 0 or grid_idx >= len(raffle_grids):
+            return JsonResponse({"ok": False, "error": "Session expired. Refresh."}, status=409)
+
+        grid = raffle_grids[grid_idx]
+        if not isinstance(grid, list) or len(grid) != size * size:
+            return JsonResponse({"ok": False, "error": "Bad grid payload"}, status=409)
+
+        # tasuj i zapisz do db
+        random.shuffle(grid)
+        raffle_grids[grid_idx] = grid
+        payload["raffle_grids"] = raffle_grids
+        payload["grids_2d"] = to_grids_2d(raffle_grids, size=size)
+
+        # liczniki
         state.shuffles_left = max(0, state.shuffles_left - 1)
+        payload["raffle_shuffles_used"] = int(payload.get("raffle_shuffles_used") or 0) + 1
 
-        # (opcjonalnie) zapisz licznik techniczny do payloadu, jeśli chcesz go trzymać
-        new_payload = dict(state.generated_board_payload or {})
-        used = int(new_payload.get("raffle_shuffles_used") or 0) + 1
-        new_payload["raffle_shuffles_used"] = used
-
-        state.generated_board_payload = new_payload
+        state.generated_board_payload = payload
         state.save(update_fields=["shuffles_left", "generated_board_payload", "updated_at"])
+
+        cells = [(item.get("text") or "").strip() if isinstance(item, dict) else "—" for item in grid]
 
         return JsonResponse({
             "ok": True,
+            "grid": grid_idx,
+            "cells": cells,
             "shuffles_left": state.shuffles_left,
             "rerolls_left": state.rerolls_left,
-            "shuffles_used": used,  # tylko informacyjnie
+            "shuffles_used": payload["raffle_shuffles_used"],
         }, status=200)
