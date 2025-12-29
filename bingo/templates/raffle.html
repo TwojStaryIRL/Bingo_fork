@@ -44,6 +44,7 @@
           {% endfor %}
         </div>
       </div>
+<div id="raffle-has-state" data-has="{{ has_state|yesno:'1,0' }}"></div>
 
       <div class="raffle-actions">
         <div class="btn-wrap">
@@ -74,8 +75,8 @@
       "endpoints": {
         "shuffle": "{% url 'raffle_shuffle_use' %}",
         "reroll": "{% url 'raffle_reroll_all' %}",
-        "unlock": "{% url 'raffle_unlock_next' %}"
-
+        "unlock": "{% url 'raffle_unlock_next' %}",
+        "init": "{% url 'raffle_init' %}"
       },
       "gridSize": {{ grid_size|default:5 }},
       "audio": { "rerollId": "rerollSound" }

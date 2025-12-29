@@ -95,47 +95,86 @@ def save_board(request):
 
 @login_required
 def raffle(request):
-    from .raffle_algorithm import normalize_grids
-
     SIZE = 5
-    INITIAL_GRIDS = 1       
-    MAX_GRIDS = 3           
-
-
+    INITIAL_GRIDS = 1
     state, _ = RaffleState.objects.get_or_create(user=request.user)
-    payload = state.generated_board_payload or {}
 
-    
+    payload = state.generated_board_payload or {}
     grids_2d = payload.get("grids_2d")
 
-    #  to tylko jesli userzy mają stare gridy, lub coś się zbuguje, to można zregenerować bez ingerencji admina
-    needs_regen = not (isinstance(grids_2d, list) and grids_2d)
-    needs_expand = isinstance(grids_2d, list) and len(grids_2d) < MAX_GRIDS
+    has_state = isinstance(grids_2d, list) and len(grids_2d) > 0
+    unlocked = int(payload.get("unlocked_grids") or 0)  # 0 dopóki nie wygenerowane
 
-    if needs_regen or needs_expand:
-        session_patch, grids_2d = generate_initial_state(request.user, grids_count=MAX_GRIDS, size=SIZE)
-        payload = {
-            **session_patch,
-            "grids_2d": grids_2d,
-            "size": SIZE,
-            "grids_count": MAX_GRIDS,
-            "unlocked_grids": int(payload.get("unlocked_grids") or INITIAL_GRIDS),
-        }
-        state.generated_board_payload = payload
-        state.save(update_fields=["generated_board_payload", "updated_at"])
-
-
-
-    unlocked = int((state.generated_board_payload or {}).get("unlocked_grids") or INITIAL_GRIDS)
-    grids_2d = (state.generated_board_payload or {}).get("grids_2d") or []
-    grids_2d = grids_2d[:unlocked]
+    visible_grids = grids_2d[:unlocked] if has_state else []
 
     return render(request, "raffle.html", {
-        "grids": grids_2d,
+        "grids": visible_grids,
+        "has_state": has_state,
+        "unlocked_grids": unlocked,
         "rerolls_left": state.rerolls_left,
         "shuffles_left": state.shuffles_left,
-        "grid_size": int((state.generated_board_payload or {}).get("size") or SIZE),
+        "grid_size": int(payload.get("size") or SIZE),
     })
+
+
+@login_required
+@require_POST
+def raffle_init(request):
+    from .raffle_algorithm import generate_initial_state
+
+    SIZE = 5
+    MAX_GRIDS = 3
+    INITIAL_UNLOCK = 1
+
+    with transaction.atomic():
+        state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
+        payload = dict(state.generated_board_payload or {})
+
+        grids_2d = payload.get("grids_2d")
+        has_state = isinstance(grids_2d, list) and len(grids_2d) == MAX_GRIDS
+
+        # jeśli już jest stan -> nic nie generuj drugi raz
+        if has_state:
+            payload.setdefault("unlocked_grids", INITIAL_UNLOCK)
+            payload.setdefault("grids_count", MAX_GRIDS)
+            payload.setdefault("size", SIZE)
+
+            state.generated_board_payload = payload
+            state.save(update_fields=["generated_board_payload", "updated_at"])
+
+            return JsonResponse({
+                "ok": True,
+                "already": True,
+                "unlocked_grids": int(payload.get("unlocked_grids") or INITIAL_UNLOCK),
+                "grids_count": int(payload.get("grids_count") or MAX_GRIDS),
+                "rerolls_left": state.rerolls_left,
+                "shuffles_left": state.shuffles_left,
+            }, status=200)
+
+        session_patch, grids_2d_new = generate_initial_state(request.user, grids_count=MAX_GRIDS, size=SIZE)
+
+        new_payload = {
+            **payload,
+            **session_patch,
+            "grids_2d": grids_2d_new,
+            "size": SIZE,
+            "grids_count": MAX_GRIDS,
+            "unlocked_grids": INITIAL_UNLOCK,
+        }
+
+        state.generated_board_payload = new_payload
+        state.save(update_fields=["generated_board_payload", "updated_at"])
+
+        return JsonResponse({
+            "ok": True,
+            "already": False,
+            "unlocked_grids": INITIAL_UNLOCK,
+            "grids_count": MAX_GRIDS,
+            "rerolls_left": state.rerolls_left,
+            "shuffles_left": state.shuffles_left,
+        }, status=200)
+
+
 
 # odblokowywanie gridów 
 @login_required
@@ -175,6 +214,18 @@ def raffle_reroll_all(request):
             }, status=429)
 
         current_payload = state.generated_board_payload or {}
+        if not isinstance(current_payload.get("raffle_grids"), list):
+            return JsonResponse({"ok": False, "error": "Not initialized. Use generate first."}, status=409)
+        if state.rerolls_left <= 0:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "Out of rolls!",
+                    "rerolls_left": 0,
+                    "shuffles_left": state.shuffles_left,
+                },
+                status=429,
+            )
         size = int(current_payload.get("size") or 5)
 
         ok, status, payload, patch = reroll_one_grid(
@@ -205,8 +256,8 @@ def raffle_reroll_all(request):
         max_grids = int(new_payload.get("grids_count") or 3)
         unlocked = int(new_payload.get("unlocked_grids") or 1)
 
-        if unlocked < max_grids:
-            new_payload["unlocked_grids"] = unlocked + 1
+        # if unlocked < max_grids:
+        #     new_payload["unlocked_grids"] = unlocked + 1
 
         # kluczowe: przelicz raffle_grids -> grids_2d, żeby GET /raffle/ renderował aktualny stan
         size = int(new_payload.get("size") or 5)

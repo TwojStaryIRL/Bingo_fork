@@ -23,6 +23,8 @@ from bingo.views import raffle
 from bingo.views import raffle_reroll_all
 from bingo.views import raffle_shuffle_use
 from bingo.views import raffle_unlock_next
+from bingo.views import raffle_init
+
 
 
 
@@ -37,5 +39,6 @@ urlpatterns = [
     path("raffle/reroll/", raffle_reroll_all, name="raffle_reroll_all"),
     path("raffle/shuffle/", raffle_shuffle_use, name="raffle_shuffle_use"),
     path("raffle/unlock/", raffle_unlock_next, name="raffle_unlock_next"),
+    path("raffle/init/", raffle_init, name="raffle_init"),
 ]
 
