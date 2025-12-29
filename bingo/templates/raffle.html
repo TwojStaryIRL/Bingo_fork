@@ -74,22 +74,23 @@
   </div>
 </div>
 
+<script id="raffle-config" type="application/json">
+  {
+    "endpoints": {
+      "shuffle": "{% url 'raffle_shuffle_use' %}",
+      "reroll": "{% url 'raffle_reroll_all' %}",
+      "unlock": "{% url 'raffle_unlock_next' %}",
+      "init": "{% url 'raffle_init' %}",
+      "pick": "{% url 'raffle_pick_save' %}"
+    },
+    "gridSize": {{ grid_size|default:5 }},
+    "audio": { "rerollId": "rerollSound" }
+  }
+</script>
+
 {% endblock %}
 
 {% block scripts %}
-  <script id="raffle-config" type="application/json">
-    {
-      "endpoints": {
-        "shuffle": "{% url 'raffle_shuffle_use' %}",
-        "reroll": "{% url 'raffle_reroll_all' %}",
-        "unlock": "{% url 'raffle_unlock_next' %}",
-        "init": "{% url 'raffle_init' %}",
-        "pick": "{% url 'raffle_pick_save' %}",
-      },
-      "gridSize": {{ grid_size|default:5 }},
-      "audio": { "rerollId": "rerollSound" }
-    }
-  </script>
 
   {# jeśli raffle.js korzysta z window.Bingo.getCookie/showToast, runtime musi być pierwszy #}
   <script defer src="{% static 'bingo/js/plugin_runtime.js' %}"></script>
