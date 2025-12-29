@@ -34,6 +34,7 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/sfx/oniksu/mywiferecentlyleftme.mp3"),
                 static("bingo/sfx/oniksu/iwillnotspaceglide.mp3"),
                 static("bingo/sfx/oniksu/untouched.mp3"),
+                static("bingo/sfx/oniksu/idkatp.mp3"),
             ],
             "strips": [
                 static("bingo/images/oniksu/spinningrat1.gif"),
