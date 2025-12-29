@@ -124,6 +124,9 @@
     const badgeShuffle = document.getElementById("badgeShuffle");
 
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
+// === INIT STATE FLAG
+    const hasStateEl = document.getElementById("raffle-has-state");
+    const hasState = (hasStateEl?.dataset?.has === "1");
 
     // ✅ Jedyny startowy stan: z HTML (czyli z DB przez render)
     let rerollsLeft = readInt(badgeReroll, 3);
@@ -260,10 +263,49 @@ btnShuffle.addEventListener("click", async () => {
   }
 });
 
+
+
+
+    // ===== REROLL =====
     // ===== REROLL =====
     if (btnReroll) {
       btnReroll.addEventListener("click", async () => {
         if (btnReroll.disabled) return;
+
+        // === FIRST CLICK DOES INIT (no reroll wasted) ===
+        if (!hasState) {
+          btnReroll.disabled = true;
+          try {
+            const { data } = await fetchJsonSafe(endpoints.init, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "X-CSRFToken": csrftoken },
+              body: new FormData(),
+            });
+
+            if (!data || !data.ok) {
+              syncCountersFromServer(data);
+              showToast?.(data?.error || "Init failed", "error", 2200);
+              return;
+            }
+
+            // po init Django musi wyrenderować plansze
+            location.reload();
+            return;
+
+          } catch (e) {
+            console.error("[init] error:", e);
+            if (e && e.status) console.error("[init] status/body:", e.status, e.body);
+            hardError("Init: błąd serwera/CSRF — sprawdź konsolę (Network).");
+            return;
+
+          } finally {
+            // i tak zwykle nastąpi reload, ale zachowujemy porządek
+            paintBadges();
+            btnReroll.disabled = (rerollsLeft <= 0);
+          }
+        }
+        // === END INIT BLOCK ===
 
         const board = boards[active];
 
@@ -311,7 +353,6 @@ btnShuffle.addEventListener("click", async () => {
             }
           }
 
-
           if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
             hardError(`Reroll: serwer nie zwrócił cells[${targetTiles}].`);
             return;
@@ -336,6 +377,7 @@ btnShuffle.addEventListener("click", async () => {
         }
       });
     }
+
 
     // ===== PICK =====
     if (btnPick) {
