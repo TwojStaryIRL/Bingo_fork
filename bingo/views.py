@@ -344,7 +344,6 @@ def raffle_pick_save(request):
     Zapisuje do DB aktualnie wybrany (aktywny) grid z raffle jako JSON w BingoBoard.grid.
     """
     with transaction.atomic():
-        # stan losowania
         state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
         payload = dict(state.generated_board_payload or {})
 
@@ -367,27 +366,25 @@ def raffle_pick_save(request):
 
         size = int(payload.get("size") or 5)
 
-        # WYCIĄGAMY SAME TEKSTY (czysty bingo-board)
-        picked_grid = []
-        for row in grid:
+        # zapis w schemacie zgodnym z extract_pool_for_user(): grid = list[dict]
+        picked_cells = []
+        for r, row in enumerate(grid):
             if not isinstance(row, list) or len(row) != size:
                 return JsonResponse({"ok": False, "error": "Bad grid shape"}, status=409)
 
-            picked_row = []
-            for cell in row:
-                # cell jest dict z .text (u Ciebie tak jest w DB)
-                if isinstance(cell, dict):
-                    picked_row.append((cell.get("text") or "—").strip())
-                else:
-                    picked_row.append("—")
-            picked_grid.append(picked_row)
+            for c, cell in enumerate(row):
+                text = (cell.get("text") or "—").strip() if isinstance(cell, dict) else "—"
+                picked_cells.append({
+                    "cell": r * size + c,
+                    "text": text,
+                    "assigned_user": request.user.username,  # albo "" jeśli wolisz
+                })
 
-        # zapis jako JSON w BingoBoard.grid (ten sam model co save_board używa)
         picked_payload = {
             "source": "raffle_pick",
             "size": size,
             "picked_grid_index": grid_idx,
-            "grid": picked_grid,
+            "grid": picked_cells,
         }
 
         BingoBoard.objects.update_or_create(
