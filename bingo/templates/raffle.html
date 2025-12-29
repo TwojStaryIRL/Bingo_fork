@@ -11,40 +11,47 @@
 
       <div class="panel__top">
         <span class="panel__pill">Losowanie Bingo</span>
-          <form method="post" action="{% url 'logout' %}" class="logout-form">
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
           {% csrf_token %}
           <button type="submit" class="btn btn--danger">Wyloguj</button>
         </form>
       </div>
 
       <div class="raffle-shell">
-        <button class="raffle-nav raffle-nav--left" type="button" aria-label="Poprzedni grid">‹</button>
-        <button class="raffle-nav raffle-nav--right" type="button" aria-label="Następny grid">›</button>
+        {% if grids|length > 1 %}
+          <button class="raffle-nav raffle-nav--left" type="button" aria-label="Poprzedni grid">‹</button>
+          <button class="raffle-nav raffle-nav--right" type="button" aria-label="Następny grid">›</button>
+        {% endif %}
 
         <div class="raffle-stage">
+
+          {# placeholder: overlay działa nawet gdy grids=[] (0 plansz na starcie) #}
+          <div class="raffle-board raffle-board--set raffle-board--placeholder" data-grid="0">
+            <div class="reroll-overlay" hidden>
+              <img src="{% static 'bingo/images/cat-gambling.gif' %}" alt="cat reroll" />
+            </div>
+          </div>
+
           {% for grid in grids %}
             <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}">
-  <div class="raffle-grid" style="--grid-size: {{ grid_size|default:5 }};">
-    {% for row in grid %}
-      {% for cell in row %}
-        <div class="raffle-tile">
-          <div class="raffle-text">
-            {% if cell %}{{ cell.text }}{% else %}—{% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    {% endfor %}
-  </div>
-
-  <!-- overlay tylko dla reroll -->
-  <div class="reroll-overlay" hidden>
-    <img src="{% static 'bingo/images/cat-gambling.gif' %}" alt="cat reroll" />
-  </div>
-</div>
+              <div class="raffle-grid" style="--grid-size: {{ grid_size|default:5 }};">
+                {% for row in grid %}
+                  {% for cell in row %}
+                    <div class="raffle-tile">
+                      <div class="raffle-text">
+                        {% if cell %}{{ cell.text }}{% else %}—{% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% endfor %}
+              </div>
+            </div>
           {% endfor %}
+
         </div>
       </div>
-<div id="raffle-has-state" data-has="{{ has_state|yesno:'1,0' }}"></div>
+
+      <div id="raffle-has-state" data-has="{{ has_state|yesno:'1,0' }}"></div>
 
       <div class="raffle-actions">
         <div class="btn-wrap">

@@ -1,3 +1,12 @@
+/* bingo/js/raffle.js
+   Flow:
+   - user wchodzi -> 0 plansz
+   - 1 klik przycisku (ten sam) -> init (generuje 3 w DB, unlocked=0) + unlock (0->1) + reload
+   - 2 klik -> unlock (1->2) + reload
+   - 3 klik -> unlock (2->3) + reload
+   - brak prawdziwego reroll-losowania
+   - audio + overlay zostają (triggerują się przy każdym kliknięciu przycisku)
+*/
 (() => {
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
@@ -15,21 +24,6 @@
     return "";
   }
 
-  function shuffleArray(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  function playAudioById(id) {
-    const audio = document.getElementById(id);
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  }
   function showRerollOverlayForBoard(boardEl) {
     const overlay = boardEl?.querySelector(".reroll-overlay");
     if (!overlay) return null;
@@ -61,17 +55,13 @@
 
     const cleanup = () => hideRerollOverlay(overlay);
 
-    // kluczowe: znika dokładnie gdy audio się skończy
+    // znika dokładnie gdy audio się skończy
     audio.addEventListener("ended", cleanup, { once: true });
-
-    // awaryjnie gdyby play nie ruszył / był błąd
     audio.addEventListener("error", cleanup, { once: true });
 
     const p = audio.play();
     if (p && typeof p.catch === "function") p.catch(() => cleanup());
   }
-
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   async function fetchJsonSafe(url, opts) {
     const res = await fetch(url, opts);
@@ -95,7 +85,6 @@
   function hardError(msg) {
     console.error(msg);
     showToast?.(msg, "error", 2800);
-    // jeśli showToast nie działa, pokaż chociaż alert raz:
     try { alert(msg); } catch {}
   }
 
@@ -112,6 +101,7 @@
 
     const csrftoken = getCsrfToken();
 
+    // widoczne boards (z renderu Django) — mogą być 0
     const boards = Array.from(document.querySelectorAll(".raffle-board--set"));
     const left = document.querySelector(".raffle-nav--left");
     const right = document.querySelector(".raffle-nav--right");
@@ -124,11 +114,13 @@
     const badgeShuffle = document.getElementById("badgeShuffle");
 
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
-// === INIT STATE FLAG
-    const hasStateEl = document.getElementById("raffle-has-state");
-    const hasState = (hasStateEl?.dataset?.has === "1");
 
-    // ✅ Jedyny startowy stan: z HTML (czyli z DB przez render)
+    // flag: czy są jakiekolwiek widoczne plansze (has_state w Django: grids_2d istnieje, ale my renderujemy 0..unlocked)
+    // UWAGA: tutaj używamy Twojego elementu #raffle-has-state, ale bez polegania na nim do unlock-flow
+    const hasStateEl = document.getElementById("raffle-has-state");
+    const hasAnyGeneratedState = (hasStateEl?.dataset?.has === "1");
+
+    // liczniki z HTML (nie są kluczowe dla unlock-flow, ale zostawiamy)
     let rerollsLeft = readInt(badgeReroll, 3);
     let shufflesLeft = readInt(badgeShuffle, 3);
 
@@ -154,10 +146,11 @@
         badgeShuffle.textContent = String(Math.max(0, shufflesLeft));
         badgeShuffle.classList.toggle("btn-badge--disabled", shufflesLeft <= 0);
       }
-      if (btnReroll) btnReroll.disabled = (rerollsLeft <= 0);
-      if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0);
-    }
 
+      // W unlock-only flow NIE BLOKUJEMY przycisku “reroll/unlock” licznikiem.
+      // Reroll badge może zostać dla wyglądu, ale przycisk ma działać aż do 3 unlocków.
+      if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length === 0);
+    }
 
     function syncCountersFromServer(data) {
       if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
@@ -177,209 +170,164 @@
     applyClasses();
     paintBadges();
 
-// SHUFFLE
+    // -------------------------
+    // SHUFFLE (działa tylko gdy jest widoczna plansza)
+    // -------------------------
+    if (btnShuffle) {
+      btnShuffle.addEventListener("click", async () => {
+        if (btnShuffle.disabled) return;
 
-btnShuffle.addEventListener("click", async () => {
-  if (btnShuffle.disabled) return;
+        const board = boards[active];
+        const gridEl = board?.querySelector(".raffle-grid");
+        const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
+        const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
+        if (!gridEl || tiles.length !== targetTiles) return;
 
-  const board = boards[active];
-  const gridEl = board?.querySelector(".raffle-grid");
-  const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
-  const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
-  if (!gridEl || tiles.length !== targetTiles) return;
+        btnShuffle.disabled = true;
 
-  btnShuffle.disabled = true;
+        const form = new FormData();
+        form.append("grid", String(active));
 
-  const form = new FormData();
-  form.append("grid", String(active));
+        try {
+          const { data } = await fetchJsonSafe(endpoints.shuffle, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "X-CSRFToken": csrftoken },
+            body: form,
+          });
 
-  try {
-    const { data } = await fetchJsonSafe(endpoints.shuffle, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "X-CSRFToken": csrftoken },
-      body: form,
-    });
+          if (!data.ok) {
+            syncCountersFromServer(data);
+            showToast?.(data.error || "Shuffle blocked", "error", 2200);
+            return;
+          }
 
-    if (!data.ok) {
-      syncCountersFromServer(data);
-      showToast?.(data.error || "Shuffle blocked", "error", 2200);
-      return;
+          syncCountersFromServer(data);
+
+          // prosty update tekstów (animacje zostawiamy jak było)
+          if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
+            hardError(`Shuffle: serwer nie zwrócił cells[${targetTiles}].`);
+            return;
+          }
+
+          textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
+
+        } catch (e) {
+          console.error("[shuffle] error:", e);
+          if (e && e.status) console.error("[shuffle] status/body:", e.status, e.body);
+          hardError("Shuffle: błąd serwera/CSRF — sprawdź konsolę (Network).");
+        } finally {
+          paintBadges();
+          btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length === 0);
+        }
+      });
     }
 
-    syncCountersFromServer(data);
-
-    const first = tiles.map(t => t.getBoundingClientRect());
-    const centerRect = gridEl.getBoundingClientRect();
-    const cx = centerRect.left + centerRect.width / 2;
-    const cy = centerRect.top + centerRect.height / 2;
-
-    gridEl.classList.add("is-shuffling");
-
-    const toCenterAnims = tiles.map((tile, i) => {
-      const r = first[i];
-      const tx = cx - (r.left + r.width / 2);
-      const ty = cy - (r.top + r.height / 2);
-      return tile.animate(
-        [{ transform: "translate(0,0) scale(1)" }, { transform: `translate(${tx}px, ${ty}px) scale(0.92)` }],
-        { duration: 180, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
-      );
-    });
-
-    await Promise.allSettled(toCenterAnims.map(a => a.finished));
-
-    if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
-      hardError(`Shuffle: serwer nie zwrócił cells[${targetTiles}].`);
-      return;
-    }
-
-    textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
-
-    toCenterAnims.forEach(a => a.cancel());
-
-    const last = tiles.map(t => t.getBoundingClientRect());
-    const fromCenterToCellAnims = tiles.map((tile, i) => {
-      const r = last[i];
-      const tx = cx - (r.left + r.width / 2);
-      const ty = cy - (r.top + r.height / 2);
-      return tile.animate(
-        [{ transform: `translate(${tx}px, ${ty}px) scale(0.92)` }, { transform: "translate(0,0) scale(1)" }],
-        { duration: 260, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" }
-      );
-    });
-
-    await Promise.allSettled(fromCenterToCellAnims.map(a => a.finished));
-    fromCenterToCellAnims.forEach(a => a.cancel());
-    gridEl.classList.remove("is-shuffling");
-
-  } catch (e) {
-    console.error("[shuffle] error:", e);
-    if (e && e.status) console.error("[shuffle] status/body:", e.status, e.body);
-    hardError("Shuffle: błąd serwera/CSRF — sprawdź konsolę (Network).");
-    gridEl?.classList.remove("is-shuffling");
-  } finally {
-    paintBadges();
-    btnShuffle.disabled = (shufflesLeft <= 0);
-  }
-});
-
-
-
-
-    // ===== REROLL =====
-    // ===== REROLL =====
+    // -------------------------
+    // UNLOCK FLOW NA PRZYCISKU REROLL (audio+overlay zostają)
+    // -------------------------
     if (btnReroll) {
+      // ustaw etykietę na starcie
+      // 0 widocznych -> "UNLOCK"
+      // >=1 widoczna -> "REROLL" (ale robi unlock kolejnej)
+      btnReroll.textContent = (boards.length === 0) ? "UNLOCK" : "REROLL";
+
       btnReroll.addEventListener("click", async () => {
         if (btnReroll.disabled) return;
 
-        // === FIRST CLICK DOES INIT (no reroll wasted) ===
-        if (!hasState) {
-          btnReroll.disabled = true;
-          try {
-            const { data } = await fetchJsonSafe(endpoints.init, {
+        // overlay+audio: jeśli nie ma boarda (0 widocznych), overlay pokażemy na całej scenie nie mamy gdzie.
+        // więc: overlay tylko gdy istnieje aktywny board.
+        const board = boards[active] || null;
+        const overlay = board ? showRerollOverlayForBoard(board) : null;
+        if (overlay) playRerollSoundAndBindOverlay(audioRerollId, overlay);
+        // fallback dźwięk bez overlay, gdy 0 plansz:
+        if (!overlay) {
+          const audio = document.getElementById(audioRerollId);
+          if (audio) { try { audio.currentTime = 0; } catch {} audio.play().catch(() => {}); }
+        }
+
+        // efekt CSS (jeśli board istnieje)
+        const gridEl = board ? board.querySelector(".raffle-grid") : null;
+        if (gridEl) gridEl.classList.add("is-rerolling");
+
+        btnReroll.disabled = true;
+
+        try {
+          // CASE 1: 0 widocznych plansz -> init + unlock(1) + reload
+          // rozpoznajemy po tym, że w DOM nie ma żadnego .raffle-board--set
+          if (boards.length === 0) {
+            // init (generuje 3 w DB, unlocked=0)
+            const initRes = await fetchJsonSafe(endpoints.init, {
               method: "POST",
               credentials: "same-origin",
               headers: { "X-CSRFToken": csrftoken },
               body: new FormData(),
             });
 
-            if (!data || !data.ok) {
-              syncCountersFromServer(data);
-              showToast?.(data?.error || "Init failed", "error", 2200);
+            console.log("[init] response:", initRes.data);
+
+            if (!initRes.data?.ok) {
+              syncCountersFromServer(initRes.data);
+              showToast?.(initRes.data?.error || "Init failed", "error", 2200);
               return;
             }
 
-            // po init Django musi wyrenderować plansze
+            // unlock first (0->1)
+            const unlockRes = await fetchJsonSafe(endpoints.unlock, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "X-CSRFToken": csrftoken },
+              body: new FormData(),
+            });
+
+            console.log("[unlock#1] response:", unlockRes.data);
+
+            if (!unlockRes.data?.ok) {
+              showToast?.(unlockRes.data?.error || "Unlock failed", "error", 2200);
+              return;
+            }
+
             location.reload();
             return;
-
-          } catch (e) {
-            console.error("[init] error:", e);
-            if (e && e.status) console.error("[init] status/body:", e.status, e.body);
-            hardError("Init: błąd serwera/CSRF — sprawdź konsolę (Network).");
-            return;
-
-          } finally {
-            // i tak zwykle nastąpi reload, ale zachowujemy porządek
-            paintBadges();
-            btnReroll.disabled = (rerollsLeft <= 0);
           }
-        }
-        // === END INIT BLOCK ===
 
-        const board = boards[active];
-
-        // pokaż overlay TYLKO dla REROLL
-        const overlay = showRerollOverlayForBoard(board);
-
-        // audio + schowanie overlay po końcu dźwięku
-        playRerollSoundAndBindOverlay(audioRerollId, overlay);
-
-        const gridEl = board ? board.querySelector(".raffle-grid") : null;
-        const tiles = Array.from(board?.querySelectorAll(".raffle-text") || []);
-        if (!board || tiles.length !== targetTiles) return;
-
-        const form = new FormData();
-        form.append("grid", String(active));
-
-        if (gridEl) gridEl.classList.add("is-rerolling");
-        btnReroll.disabled = true;
-
-        try {
-          const { data } = await fetchJsonSafe(endpoints.reroll, {
+          // CASE 2: >=1 widoczna plansza -> tylko unlock kolejnej
+          const { data } = await fetchJsonSafe(endpoints.unlock, {
             method: "POST",
             credentials: "same-origin",
             headers: { "X-CSRFToken": csrftoken },
-            body: form
+            body: new FormData(),
           });
 
-          console.log("[reroll] response:", data);
+          console.log("[unlock] response:", data);
 
-          if (!data.ok) {
-            syncCountersFromServer(data);
-            showToast?.(data.error || "Reroll blocked", "error", 2200);
+          if (!data?.ok) {
+            showToast?.(data?.error || "All unlocked", "error", 1800);
             return;
           }
 
-          // backend -> liczniki 
-          syncCountersFromServer(data);
-          // jeśli backend odblokował nowy board -> reload, bo Django dopiero wtedy wyrenderuje HTML
-          const unlocked = Number(data.unlocked_grids);
-          if (Number.isFinite(unlocked)) {
-            const boardsNow = document.querySelectorAll(".raffle-board--set").length;
-            if (unlocked > boardsNow) {
-              location.reload();
-              return;
-            }
-          }
-
-          if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
-            hardError(`Reroll: serwer nie zwrócił cells[${targetTiles}].`);
-            return;
-          }
-
-          await sleep(150);
-          data.cells.forEach((txt, i) => {
-            if (tiles[i]) tiles[i].textContent = (txt ?? "—");
-          });
+          // po unlock zawsze reload, bo Django musi wyrenderować nową planszę
+          location.reload();
+          return;
 
         } catch (e) {
-          console.error("[reroll] error:", e);
-          if (e && e.status) console.error("[reroll] status/body:", e.status, e.body);
-          hardError("Reroll: błąd serwera/CSRF — sprawdź konsolę (Network).");
+          console.error("[btnReroll unlock-flow] error:", e);
+          if (e && e.status) console.error("[btnReroll unlock-flow] status/body:", e.status, e.body);
+          hardError("Unlock: błąd serwera/CSRF — sprawdź konsolę (Network).");
         } finally {
           setTimeout(() => {
             if (gridEl) gridEl.classList.remove("is-rerolling");
           }, 260);
 
           paintBadges();
-          btnReroll.disabled = (rerollsLeft <= 0);
+          btnReroll.disabled = false;
         }
       });
     }
 
-
-    // ===== PICK =====
+    // -------------------------
+    // PICK (zawsze bierze board w focusie)
+    // -------------------------
     if (btnPick) {
       btnPick.addEventListener("click", () => {
         const board = boards[active];

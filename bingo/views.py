@@ -101,11 +101,12 @@ def raffle(request):
 
     payload = state.generated_board_payload or {}
     grids_2d = payload.get("grids_2d")
+    max_grids = int(payload.get("grids_count") or 0)
+    has_state = isinstance(grids_2d, list) and (len(grids_2d) == max_grids) and max_grids > 0
 
-    has_state = isinstance(grids_2d, list) and len(grids_2d) > 0
-    unlocked = int(payload.get("unlocked_grids") or 0)  # 0 dopóki nie wygenerowane
-
+    unlocked = int(payload.get("unlocked_grids") or 0)
     visible_grids = grids_2d[:unlocked] if has_state else []
+
 
     return render(request, "raffle.html", {
         "grids": visible_grids,
@@ -124,7 +125,7 @@ def raffle_init(request):
 
     SIZE = 5
     MAX_GRIDS = 3
-    INITIAL_UNLOCK = 1
+    INITIAL_UNLOCK = 0
 
     with transaction.atomic():
         state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
@@ -183,9 +184,11 @@ def raffle_unlock_next(request):
     with transaction.atomic():
         state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
         payload = dict(state.generated_board_payload or {})
+        if not isinstance(payload.get("grids_2d"), list) or not payload.get("grids_count"):
+            return JsonResponse({"ok": False, "error": "Not initialized. Use init first."}, status=409)
 
         max_grids = int(payload.get("grids_count") or 3)
-        unlocked = int(payload.get("unlocked_grids") or 1)
+        unlocked = int(payload.get("unlocked_grids") or 0)
 
         # nic do zrobienia
         if unlocked >= max_grids:
