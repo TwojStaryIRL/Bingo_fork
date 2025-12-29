@@ -267,15 +267,21 @@ body::after{
 
 .ps-img{
   position: fixed;
-  width: min(34vw, 520px);
-  max-width: 520px;
+  left: 50%;
+  top: 10px;                
+  transform: translateX(-50%) scale(var(--ps-scale)) rotate(var(--ps-rot-deg));
+  transform-origin: top center;
+
+  width: min(70vw, 920px);   
+  max-width: 920px;
   height: auto;
+
   user-select: none;
   opacity: 0;
-  transform: scale(var(--ps-scale)) rotate(var(--ps-rot-deg));
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
+
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 `;
 
@@ -495,7 +501,7 @@ document.documentElement.style.setProperty("--ps-rot-deg", "-8deg");
 
           lastLenByTextarea.set(textarea, cur);
 
-          // fix backspace
+          // dodatkowo: jak już spełnione warunki długości, pokaż plus mocniej
           const lenTrim = (textarea.value || "").trim().length;
           if (assigned && lenTrim > CFG.MIN_TEXT_LEN && (typeof prev !== "number" || cur >= prev)) {
             show(imgPlus, 650);
