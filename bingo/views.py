@@ -99,28 +99,39 @@ def raffle(request):
 
     payload = state.generated_board_payload or {}
     grids_2d = payload.get("grids_2d")
+    SIZE = 5
+    GRIDS_COUNT = 3
 
     # dodatkowo: jeśli raffle_grids jest złe (np. 2D), też regeneruj
     from .raffle_algorithm import normalize_grids
 
     raffle_grids_ok = normalize_grids(payload.get("raffle_grids")) is not None
+    # stare gridy 4x4
+    payload_size = int(payload.get("size") or 0)
+    if payload_size != SIZE:
+        raffle_grids_ok = False
 
     if not (isinstance(grids_2d, list) and grids_2d) or not raffle_grids_ok:
-        session_patch, grids_2d = generate_initial_state(request.user, grids_count=3, size=4)
+        # session_patch, grids_2d = generate_initial_state(request.user, grids_count=3, size=4)
+        session_patch, grids_2d = generate_initial_state(request.user, grids_count=GRIDS_COUNT, size=SIZE)
 
         state.generated_board_payload = {
-            **session_patch,      # ✅ raffle_grids (flat), raffle_used_sets, raffle_rerolls_used, raffle_shuffles_used
-            "grids_2d": grids_2d, # ✅ do rendera w HTML
-            "size": 4,
-            "grids_count": 3,
+            **session_patch,
+            "grids_2d": grids_2d,
+            "size": SIZE,
+            "grids_count": GRIDS_COUNT,
         }
         state.save(update_fields=["generated_board_payload", "updated_at"])
 
+
+
     return render(request, "raffle.html", {
-        "grids": grids_2d,
-        "rerolls_left": state.rerolls_left,
-        "shuffles_left": state.shuffles_left,
-    })
+    "grids": grids_2d,
+    "rerolls_left": state.rerolls_left,
+    "shuffles_left": state.shuffles_left,
+    "grid_size": int((state.generated_board_payload or {}).get("size") or SIZE),
+})
+
 
 
 
@@ -138,12 +149,16 @@ def raffle_reroll_all(request):
                 "shuffles_left": state.shuffles_left,
             }, status=429)
 
+        current_payload = state.generated_board_payload or {}
+        size = int(current_payload.get("size") or 5)
+
         ok, status, payload, patch = reroll_one_grid(
             current_user=request.user,
-            session_data=state.generated_board_payload or {},
+            session_data=current_payload,
             post_data=request.POST,
-            size=4,
+            size=size,
         )
+
 
         if not isinstance(payload, dict):
             payload = {"ok": False, "error": "Invalid server payload"}
@@ -163,7 +178,7 @@ def raffle_reroll_all(request):
             new_payload.update(patch)
 
         # kluczowe: przelicz raffle_grids -> grids_2d, żeby GET /raffle/ renderował aktualny stan
-        size = int(new_payload.get("size") or 4)
+        size = int(new_payload.get("size") or 5)
         if isinstance(new_payload.get("raffle_grids"), list):
             new_payload["grids_2d"] = to_grids_2d(new_payload["raffle_grids"], size=size)
 

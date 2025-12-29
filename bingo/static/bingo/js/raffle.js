@@ -296,7 +296,7 @@
           syncCountersFromServer(data);
 
           if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
-            hardError("Reroll: serwer nie zwrócił cells[16].");
+            hardError(`Reroll: serwer nie zwrócił cells[${targetTiles}].`);
             return;
           }
 

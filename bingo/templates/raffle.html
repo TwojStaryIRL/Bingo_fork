@@ -24,7 +24,7 @@
         <div class="raffle-stage">
           {% for grid in grids %}
             <div class="raffle-board raffle-board--set" data-grid="{{ forloop.counter0 }}">
-  <div class="raffle-grid">
+  <div class="raffle-grid" style="--grid-size: {{ grid_size|default:5 }};">
     {% for row in grid %}
       {% for cell in row %}
         <div class="raffle-tile">
@@ -70,15 +70,15 @@
 
 {% block scripts %}
   <script id="raffle-config" type="application/json">
-{
-  "endpoints": {
-    "shuffle": "{% url 'raffle_shuffle_use' %}",
-    "reroll": "{% url 'raffle_reroll_all' %}"
-  },
-  "gridSize": 4,
-  "audio": { "rerollId": "rerollSound" }
-}
-</script>
+    {
+      "endpoints": {
+        "shuffle": "{% url 'raffle_shuffle_use' %}",
+        "reroll": "{% url 'raffle_reroll_all' %}"
+      },
+      "gridSize": {{ grid_size|default:5 }},
+      "audio": { "rerollId": "rerollSound" }
+    }
+  </script>
 
   {# jeśli raffle.js korzysta z window.Bingo.getCookie/showToast, runtime musi być pierwszy #}
   <script defer src="{% static 'bingo/js/plugin_runtime.js' %}"></script>

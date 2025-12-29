@@ -631,12 +631,13 @@ body::after{
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--grid-size, 5), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--grid-size, 5), minmax(0, 1fr));
   gap: 12px;
   padding: 0;
   box-sizing: border-box;
 }
+
 
 .raffle-tile{
   width: 100%;
@@ -739,6 +740,7 @@ body::after{
   overflow: visible;
   animation: raffle-pop 520ms cubic-bezier(.2,.9,.2,1) both;
 }
+/* .raffle-shell{ width: min(720px, 92vw); }  <- mniejsze kratki */
 
 @keyframes raffle-pop{
   from{ transform: translateY(22px); opacity: 0; }
