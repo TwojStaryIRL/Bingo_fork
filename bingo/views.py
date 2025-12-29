@@ -107,18 +107,19 @@ def raffle(request):
     grids_2d = payload.get("grids_2d")
 
     if not (isinstance(grids_2d, list) and grids_2d):
+        session_patch, grids_2d = generate_initial_state(request.user, grids_count=INITIAL_GRIDS, size=SIZE)
 
-        session_patch, grids_2d = generate_initial_state(request.user,grids_count=INITIAL_GRIDS,size=SIZE)
-        state.generated_board_payload = {
+        payload = {
             **session_patch,
             "grids_2d": grids_2d,
             "size": SIZE,
-            "grids_count": MAX_GRIDS,          
-            "unlocked_grids": INITIAL_GRIDS,   
+            "grids_count": MAX_GRIDS,
+            "unlocked_grids": INITIAL_GRIDS,
         }
 
         state.generated_board_payload = payload
         state.save(update_fields=["generated_board_payload", "updated_at"])
+
 
     unlocked = int((state.generated_board_payload or {}).get("unlocked_grids") or INITIAL_GRIDS)
     grids_2d = (state.generated_board_payload or {}).get("grids_2d") or []
