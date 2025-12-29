@@ -30,12 +30,15 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/sfx/oniksu/twitch_on_reveal_5.mp3"),
             ],
             "ambient": [
-                static("bingo/sfx/oniksu/everything_black.mp3"),
-                static("bingo/sfx/oniksu/mywiferecentlyleftme.mp3"),
-                static("bingo/sfx/oniksu/iwillnotspaceglide.mp3"),
-                static("bingo/sfx/oniksu/untouched.mp3"),
-                static("bingo/sfx/oniksu/idkatp.mp3"),
-                static("bingo/sfx/oniksu/bubblegumbitch.mp3"),
+                static("bingo/sfx/oniksu/spacegliding1.mp3"),
+                static("bingo/sfx/oniksu/spacegliding2.mp3"),
+                static("bingo/sfx/oniksu/spacegliding3.mp3"),
+                static("bingo/sfx/oniksu/spacegliding4.mp3"),
+                static("bingo/sfx/oniksu/spacegliding5.mp3"),
+                static("bingo/sfx/oniksu/spacegliding6.mp3"),
+                static("bingo/sfx/oniksu/spacegliding7.mp3"),
+                static("bingo/sfx/oniksu/spacegliding8.mp3"),
+                static("bingo/sfx/oniksu/spacegliding9.mp3"),
             ],
             "strips": [
                 static("bingo/images/spacegliding.gif"),
@@ -51,6 +54,7 @@ def oniksu_func() -> UserPluginConfig:
                 static("bingo/images/oniksu/spinningrat10.jpg"),
                 static("bingo/images/oniksu/spinningrat11.jpg"),
                 static("bingo/images/oniksu/spinningrat12.gif"),
+                static("bingo/images/oniksu/spinningrat13.gif"),
             ],
         }
     )
