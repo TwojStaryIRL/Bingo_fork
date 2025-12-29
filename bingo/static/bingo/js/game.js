@@ -155,6 +155,8 @@
     optDiv.setAttribute("aria-disabled", disabled ? "true" : "false");
   }
 
+  const UNLIMITED_USERS = new Set(["Ktoś", "Event"]);
+
   function applyUserPickRules({ toastOnViolation = false, changedSelect = null, prevValue = "" } = {}) {
     const counts = countPicks();
     const selects = getActiveSelects();
@@ -169,9 +171,11 @@
 
         const isSelf = (val === CURRENT_USER);
         const picked = counts.get(val) || 0;
+        const isUnlimited = UNLIMITED_USERS.has(val);
 
-        // 
-        const shouldDisableByLimit = (picked >= MAX_PER_USER) && (sel.value !== val);
+        const shouldDisableByLimit =
+        !isUnlimited && (picked >= MAX_PER_USER) && (sel.value !== val);
+        // const shouldDisableByLimit = (picked >= MAX_PER_USER) && (sel.value !== val);
 
         const disabled = isSelf || shouldDisableByLimit;
 
@@ -193,6 +197,7 @@
         return;
       }
 
+      if (!UNLIMITED_USERS.has(v)) {
       const c = countPicks().get(v) || 0;
       if (v && c > MAX_PER_USER) {
         changedSelect.value = prevValue || "";
