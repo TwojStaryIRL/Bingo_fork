@@ -267,20 +267,18 @@ body::after{
 
 .ps-img{
   position: fixed;
-  left: 50%;
-  top: 10px;                
-  transform: translateX(-50%) scale(var(--ps-scale)) rotate(var(--ps-rot-deg));
-  transform-origin: top center;
-
-  width: min(70vw, 920px);   
-  max-width: 920px;
+  width: min(34vw, 520px);
+  right: 30%;
+  top: 20px; 
+  max-width: 520px;
   height: auto;
-
   user-select: none;
   opacity: 0;
+  transform: scale(var(--ps-scale)) rotate(var(--ps-rot-deg));
   transition: opacity 120ms ease;
   filter: drop-shadow(0 16px 30px rgba(0,0,0,.45));
 }
+
 
 .ps-img.is-on{ opacity: ${CFG.OPACITY}; }
 `;
@@ -491,7 +489,7 @@ document.documentElement.style.setProperty("--ps-rot-deg", "-8deg");
             const diff = cur - prev;
             if (diff > 0) {
               // typed characters
-              if (assigned) spam(imgPlus); // tylko jak wybrany user (żeby miało sens)
+            spam(imgPlus); // bez wybrania usera, whatever
             } else if (diff < 0) {
               // deleted characters
               spam(imgMinus);
@@ -503,9 +501,10 @@ document.documentElement.style.setProperty("--ps-rot-deg", "-8deg");
 
           // dodatkowo: jak już spełnione warunki długości, pokaż plus mocniej
           const lenTrim = (textarea.value || "").trim().length;
-          if (assigned && lenTrim > CFG.MIN_TEXT_LEN && (typeof prev !== "number" || cur >= prev)) {
+          if (typeof prev === "number" && lenTrim > CFG.MIN_TEXT_LEN && cur >= prev) {
             show(imgPlus, 650);
           }
+
         });
 
         // keydown: tylko po to, żeby łapać kasowanie bardziej responsywnie (ale spam i tak robi input diff)
