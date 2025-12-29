@@ -123,21 +123,21 @@ window.BingoUserPlugin.init = function (api) {
     // 1) runtime “reset” tła z CSS (bez edycji style.css)
     //    -> żeby nie mieć GIF-na-GIF, robimy inline override
     document.body.style.backgroundImage = "none";
-
+    document.body.style.backgroundColor = "#000";
     // 2) GIF overlay
-    sgBgGif = document.createElement("div");
-    sgBgGif.style.position = "fixed";
-    sgBgGif.style.inset = "0";
-    sgBgGif.style.zIndex = "0";
-    sgBgGif.style.pointerEvents = "none";
-    sgBgGif.style.backgroundImage = `url("${SPACE.GIF_URL}")`;
-    sgBgGif.style.backgroundRepeat = "repeat";
-    sgBgGif.style.backgroundSize = `${SPACE.GIF_SIZE}px ${SPACE.GIF_SIZE}px`;
-    sgBgGif.style.opacity = "0";
-    sgBgGif.style.transition = "opacity 450ms ease";
-    document.body.appendChild(sgBgGif);
-    requestAnimationFrame(() => { if (sgBgGif) sgBgGif.style.opacity = String(SPACE.GIF_OPACITY); });
-
+    // sgBgGif = document.createElement("div");
+    // sgBgGif.style.position = "fixed";
+    // sgBgGif.style.inset = "0";
+    // sgBgGif.style.zIndex = "0";
+    // sgBgGif.style.pointerEvents = "none";
+    // sgBgGif.style.backgroundImage = `url("${SPACE.GIF_URL}")`;
+    // sgBgGif.style.backgroundRepeat = "repeat";
+    // sgBgGif.style.backgroundSize = `${SPACE.GIF_SIZE}px ${SPACE.GIF_SIZE}px`;
+    // sgBgGif.style.opacity = "0";
+    // sgBgGif.style.transition = "opacity 450ms ease";
+    // document.body.appendChild(sgBgGif);
+    // requestAnimationFrame(() => { if (sgBgGif) sgBgGif.style.opacity = String(SPACE.GIF_OPACITY); });
+    
     // 3) marquee style (własne, self-contained)
     sgStyle = document.createElement("style");
     sgStyle.textContent = `
@@ -281,8 +281,10 @@ window.BingoUserPlugin.init = function (api) {
       }, 500);
     }
 
-    // oddaj kontrolę background do CSS (czyli wraca jak było)
+    // post glide - back to normal
     document.body.style.backgroundImage = "";
+    document.body.style.backgroundColor = "";
+
   }
 
   function updateBtn() {
