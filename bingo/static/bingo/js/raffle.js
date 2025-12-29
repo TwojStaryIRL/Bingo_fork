@@ -1,12 +1,3 @@
-/* bingo/js/raffle.js
-   Flow:
-   - user wchodzi -> 0 plansz
-   - 1 klik przycisku (ten sam) -> init (generuje 3 w DB, unlocked=0) + unlock (0->1) + reload
-   - 2 klik -> unlock (1->2) + reload
-   - 3 klik -> unlock (2->3) + reload
-   - brak prawdziwego reroll-losowania
-   - audio + overlay zostają (triggerują się przy każdym kliknięciu przycisku)
-*/
 (() => {
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
@@ -50,12 +41,9 @@
       return;
     }
 
-    // od początku
     try { audio.currentTime = 0; } catch {}
-
     const cleanup = () => hideRerollOverlay(overlay);
 
-    // znika dokładnie gdy audio się skończy
     audio.addEventListener("ended", cleanup, { once: true });
     audio.addEventListener("error", cleanup, { once: true });
 
@@ -96,13 +84,15 @@
     }
 
     const endpoints = cfg.endpoints || {};
-    const size = cfg.gridSize || 4;
+    const size = cfg.gridSize || 5;
     const targetTiles = size * size;
 
     const csrftoken = getCsrfToken();
 
-    // widoczne boards (z renderu Django) — mogą być 0
-    const boards = Array.from(document.querySelectorAll(".raffle-board--set"));
+    // ✅ REAL boards (bez placeholdera)
+    const boards = Array.from(document.querySelectorAll(".raffle-board--set:not(.raffle-board--placeholder)"));
+    const placeholderBoard = document.querySelector(".raffle-board--placeholder") || null;
+
     const left = document.querySelector(".raffle-nav--left");
     const right = document.querySelector(".raffle-nav--right");
 
@@ -115,19 +105,15 @@
 
     const audioRerollId = (cfg.audio && cfg.audio.rerollId) || "rerollSound";
 
-    // flag: czy są jakiekolwiek widoczne plansze (has_state w Django: grids_2d istnieje, ale my renderujemy 0..unlocked)
-    // UWAGA: tutaj używamy Twojego elementu #raffle-has-state, ale bez polegania na nim do unlock-flow
-    const hasStateEl = document.getElementById("raffle-has-state");
-    const hasAnyGeneratedState = (hasStateEl?.dataset?.has === "1");
-
-    // liczniki z HTML (nie są kluczowe dla unlock-flow, ale zostawiamy)
     let rerollsLeft = readInt(badgeReroll, 3);
     let shufflesLeft = readInt(badgeShuffle, 3);
 
     let active = 0;
 
     function applyClasses() {
+      // jeśli nie ma real boards, nic nie pokazujemy – placeholder zostaje
       if (!boards.length) return;
+
       boards.forEach((b, i) => {
         b.classList.remove("raffle-board--active", "raffle-board--prev", "raffle-board--next", "raffle-board--hidden");
         if (i === active) b.classList.add("raffle-board--active");
@@ -146,16 +132,11 @@
         badgeShuffle.textContent = String(Math.max(0, shufflesLeft));
         badgeShuffle.classList.toggle("btn-badge--disabled", shufflesLeft <= 0);
       }
+      if (btnReroll) btnReroll.disabled = (rerollsLeft <= 0);
 
-      // W unlock-only flow NIE BLOKUJEMY przycisku “reroll/unlock” licznikiem.
-      // Reroll badge może zostać dla wyglądu, ale przycisk ma działać aż do 3 unlocków.
-      if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length === 0);
-    }
-
-    function syncCountersFromServer(data) {
-      if (data && typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
-      if (data && typeof data.shuffles_left === "number") shufflesLeft = data.shuffles_left;
-      paintBadges();
+      // shuffle/pick bez planszy = off
+      if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length <= 0);
+      if (btnPick) btnPick.disabled = (boards.length <= 0);
     }
 
     function show(n) {
@@ -170,17 +151,16 @@
     applyClasses();
     paintBadges();
 
-    // -------------------------
-    // SHUFFLE (działa tylko gdy jest widoczna plansza)
-    // -------------------------
+    // ========= SHUFFLE (działa tylko gdy jest aktywna plansza) =========
     if (btnShuffle) {
       btnShuffle.addEventListener("click", async () => {
         if (btnShuffle.disabled) return;
-
         const board = boards[active];
-        const gridEl = board?.querySelector(".raffle-grid");
-        const tiles = Array.from(board?.querySelectorAll(".raffle-tile") || []);
-        const textsEls = Array.from(board?.querySelectorAll(".raffle-text") || []);
+        if (!board) return;
+
+        const gridEl = board.querySelector(".raffle-grid");
+        const tiles = Array.from(board.querySelectorAll(".raffle-tile") || []);
+        const textsEls = Array.from(board.querySelectorAll(".raffle-text") || []);
         if (!gridEl || tiles.length !== targetTiles) return;
 
         btnShuffle.disabled = true;
@@ -197,19 +177,20 @@
           });
 
           if (!data.ok) {
-            syncCountersFromServer(data);
             showToast?.(data.error || "Shuffle blocked", "error", 2200);
             return;
           }
 
-          syncCountersFromServer(data);
+          if (typeof data.shuffles_left === "number") shufflesLeft = data.shuffles_left;
+          if (typeof data.rerolls_left === "number") rerollsLeft = data.rerolls_left;
+          paintBadges();
 
-          // prosty update tekstów (animacje zostawiamy jak było)
           if (!Array.isArray(data.cells) || data.cells.length !== targetTiles) {
             hardError(`Shuffle: serwer nie zwrócił cells[${targetTiles}].`);
             return;
           }
 
+          // prosto, bez animacji – bo Ty masz animację, ale nie chcę Ci jej rozwalić
           textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
 
         } catch (e) {
@@ -218,116 +199,92 @@
           hardError("Shuffle: błąd serwera/CSRF — sprawdź konsolę (Network).");
         } finally {
           paintBadges();
-          btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length === 0);
+          btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length <= 0);
         }
       });
     }
 
-    // -------------------------
-    // UNLOCK FLOW NA PRZYCISKU REROLL (audio+overlay zostają)
-    // -------------------------
-    if (btnReroll) {
-      // ustaw etykietę na starcie
-      // 0 widocznych -> "UNLOCK"
-      // >=1 widoczna -> "REROLL" (ale robi unlock kolejnej)
-      btnReroll.textContent = (boards.length === 0) ? "UNLOCK" : "REROLL";
+    // ========= UNLOCK FLOW pod btnReroll (bez prawdziwego rerolla) =========
+    async function initThenUnlockOnce() {
+      // 1) init
+      const initRes = await fetchJsonSafe(endpoints.init, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrftoken },
+        body: new FormData(),
+      });
+      if (!initRes.data?.ok) return { ok: false, step: "init", data: initRes.data };
 
+      // 2) unlock 1 planszę
+      const unlockRes = await fetchJsonSafe(endpoints.unlock, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrftoken },
+        body: new FormData(),
+      });
+      if (!unlockRes.data?.ok) return { ok: false, step: "unlock", data: unlockRes.data };
+
+      return { ok: true, data: unlockRes.data };
+    }
+
+    async function unlockOnce() {
+      const unlockRes = await fetchJsonSafe(endpoints.unlock, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrftoken },
+        body: new FormData(),
+      });
+      return unlockRes;
+    }
+
+    if (btnReroll) {
       btnReroll.addEventListener("click", async () => {
         if (btnReroll.disabled) return;
 
-        // overlay+audio: jeśli nie ma boarda (0 widocznych), overlay pokażemy na całej scenie nie mamy gdzie.
-        // więc: overlay tylko gdy istnieje aktywny board.
-        const board = boards[active] || null;
-        const overlay = board ? showRerollOverlayForBoard(board) : null;
-        if (overlay) playRerollSoundAndBindOverlay(audioRerollId, overlay);
-        // fallback dźwięk bez overlay, gdy 0 plansz:
-        if (!overlay) {
-          const audio = document.getElementById(audioRerollId);
-          if (audio) { try { audio.currentTime = 0; } catch {} audio.play().catch(() => {}); }
-        }
-
-        // efekt CSS (jeśli board istnieje)
-        const gridEl = board ? board.querySelector(".raffle-grid") : null;
-        if (gridEl) gridEl.classList.add("is-rerolling");
+        // overlay+audio zawsze (nawet przy 0 plansz)
+        const boardForFx = boards[active] || placeholderBoard;
+        const overlay = showRerollOverlayForBoard(boardForFx);
+        playRerollSoundAndBindOverlay(audioRerollId, overlay);
 
         btnReroll.disabled = true;
 
         try {
-          // CASE 1: 0 widocznych plansz -> init + unlock(1) + reload
-          // rozpoznajemy po tym, że w DOM nie ma żadnego .raffle-board--set
-          if (boards.length === 0) {
-            // init (generuje 3 w DB, unlocked=0)
-            const initRes = await fetchJsonSafe(endpoints.init, {
-              method: "POST",
-              credentials: "same-origin",
-              headers: { "X-CSRFToken": csrftoken },
-              body: new FormData(),
-            });
+          // najpierw próbujemy unlock
+          let { res, data } = await unlockOnce();
 
-            console.log("[init] response:", initRes.data);
-
-            if (!initRes.data?.ok) {
-              syncCountersFromServer(initRes.data);
-              showToast?.(initRes.data?.error || "Init failed", "error", 2200);
+          // jeśli server mówi „nie zainicjalizowano” -> init + unlock
+          if (!data?.ok && res.status === 409 && String(data?.error || "").toLowerCase().includes("not initialized")) {
+            const result = await initThenUnlockOnce();
+            if (!result.ok) {
+              showToast?.(result.data?.error || "Init/Unlock failed", "error", 2200);
               return;
             }
-
-            // unlock first (0->1)
-            const unlockRes = await fetchJsonSafe(endpoints.unlock, {
-              method: "POST",
-              credentials: "same-origin",
-              headers: { "X-CSRFToken": csrftoken },
-              body: new FormData(),
-            });
-
-            console.log("[unlock#1] response:", unlockRes.data);
-
-            if (!unlockRes.data?.ok) {
-              showToast?.(unlockRes.data?.error || "Unlock failed", "error", 2200);
-              return;
-            }
-
             location.reload();
             return;
           }
 
-          // CASE 2: >=1 widoczna plansza -> tylko unlock kolejnej
-          const { data } = await fetchJsonSafe(endpoints.unlock, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "X-CSRFToken": csrftoken },
-            body: new FormData(),
-          });
-
-          console.log("[unlock] response:", data);
-
+          // normalny unlock
           if (!data?.ok) {
             showToast?.(data?.error || "All unlocked", "error", 1800);
             return;
           }
 
-          // po unlock zawsze reload, bo Django musi wyrenderować nową planszę
+          // stan się zmienił -> render po stronie Django
           location.reload();
           return;
 
         } catch (e) {
-          console.error("[btnReroll unlock-flow] error:", e);
-          if (e && e.status) console.error("[btnReroll unlock-flow] status/body:", e.status, e.body);
+          console.error("[unlock-flow] error:", e);
+          if (e && e.status) console.error("[unlock-flow] status/body:", e.status, e.body);
           hardError("Unlock: błąd serwera/CSRF — sprawdź konsolę (Network).");
         } finally {
-          setTimeout(() => {
-            if (gridEl) gridEl.classList.remove("is-rerolling");
-          }, 260);
-
-          paintBadges();
-          btnReroll.disabled = false;
+          // nie zdążysz tego zobaczyć gdy jest reload, ale porządek musi być
+          btnReroll.disabled = (rerollsLeft <= 0);
         }
       });
     }
 
-    // -------------------------
-    // PICK (zawsze bierze board w focusie)
-    // -------------------------
+    // ========= PICK =========
     if (btnPick) {
       btnPick.addEventListener("click", () => {
         const board = boards[active];
