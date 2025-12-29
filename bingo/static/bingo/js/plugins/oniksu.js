@@ -29,7 +29,7 @@ window.BingoUserPlugin.init = function (api) {
     TILE_GAP: 14,
     SPEED_MIN: 36,
     SPEED_MAX: 72,
-    MARQUEE_OPACITY: 0.42,
+    MARQUEE_OPACITY: 0.82,
 
     AUDIO_VOL: 0.35,
   };
