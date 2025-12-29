@@ -31,6 +31,7 @@ def oniksu_func() -> UserPluginConfig:
             ],
             "ambient": [
                 static("bingo/sfx/oniksu/everything_black.mp3"),
+                static("bingo/sfx/oniksu/mywiferecentlyleftme.mp3"),
             ],
             "strips": [
                 static("bingo/images/oniksu/spinningrat1.gif"),
