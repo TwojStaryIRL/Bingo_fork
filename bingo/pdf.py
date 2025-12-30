@@ -1,21 +1,47 @@
 from io import BytesIO
+from pathlib import Path
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+
+# ===== Font registration (Unicode/PL) =====
+BASE_DIR = Path(__file__).resolve().parent
+FONTS_DIR = BASE_DIR / "fonts"
+
+FONT_REGULAR = FONTS_DIR / "DejaVuSans.ttf"
+FONT_BOLD = FONTS_DIR / "DejaVuSans-Bold.ttf"
+
+# Rejestruj tylko jeśli plik istnieje (na deployu ma być w repo!)
+if FONT_REGULAR.exists():
+    pdfmetrics.registerFont(TTFont("DejaVuSans", str(FONT_REGULAR)))
+else:
+    # awaryjnie — bez tego będą kwadraty dla PL znaków
+    # (zostawiamy fallback do Helvetica)
+    pass
+
+if FONT_BOLD.exists():
+    pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", str(FONT_BOLD)))
+
+# Helper: wybór fontów z fallbackiem
+def _font(name: str) -> str:
+    # jeśli zarejestrowany, używaj; inaczej fallback na Helvetica
+    try:
+        pdfmetrics.getFont(name)
+        return name
+    except Exception:
+        return {
+            "DejaVuSans": "Helvetica",
+            "DejaVuSans-Bold": "Helvetica-Bold",
+        }.get(name, "Helvetica")
+
 
 def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
-    """
-    payload = RaffleState.saved_board_payload
-    {
-        "size": 5,
-        "grid": [
-            {"cell": 0, "text": "...", "assigned_user": "..."},
-            ...
-        ]
-    }
-    """
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -24,7 +50,7 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
     grid = payload.get("grid", [])
 
     # ===== HEADER =====
-    c.setFont("Helvetica-Bold", 20)
+    c.setFont(_font("DejaVuSans-Bold"), 20)
     c.drawCentredString(width / 2, height - 2 * cm, f"BINGO – {username}")
 
     # ===== GRID SETUP =====
@@ -34,7 +60,6 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
     start_x = (width - grid_size_cm * cm) / 2
     start_y = height - 4 * cm
 
-    # map: index -> cell data
     by_index = {item.get("cell"): item for item in grid if isinstance(item, dict)}
 
     for idx in range(size * size):
@@ -49,26 +74,28 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
 
         item = by_index.get(idx, {})
         text = (item.get("text") or "—").strip()
-        user = (item.get("assigned_user") or "").strip()
+        assigned_user = (item.get("assigned_user") or "").strip()
 
         # ===== TEXT =====
-        c.setFont("Helvetica", 9)
-
+        c.setFont(_font("DejaVuSans"), 9)
         max_width = cell_cm * cm - 8
-        lines = simpleSplit(text, "Helvetica", 9, max_width)
+
+        # simpleSplit MUSI dostać nazwę fonta, którego używasz
+        font_name = _font("DejaVuSans")
+        lines = simpleSplit(text, font_name, 9, max_width)
 
         text_y = y - 14
-        for line in lines[:5]:  # max 5 linii
+        for line in lines[:5]:
             c.drawString(x + 4, text_y, line)
             text_y -= 11
 
         # ===== USER FOOTER =====
-        if user:
-            c.setFont("Helvetica-Oblique", 7)
+        if assigned_user:
+            c.setFont(_font("DejaVuSans"), 7)
             c.drawRightString(
                 x + cell_cm * cm - 4,
                 y - cell_cm * cm + 6,
-                user
+                assigned_user
             )
 
     c.showPage()
