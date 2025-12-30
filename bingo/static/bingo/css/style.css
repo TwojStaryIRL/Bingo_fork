@@ -1180,3 +1180,33 @@ body::after{
 .raffle-nav--right{
   right: 58px !important;  /* było -58 */
 }
+
+/* === REROLL OVERLAY FIX (przycinanie + brak wyjazdów poza planszę) === */
+
+.raffle-board--set{
+  position: absolute;           /* u Ciebie już jest, ale tu “cementujemy” */
+  overflow: hidden;             /* TO UCINA GIF */
+  border-radius: 22px;          /* żeby overlay miał ładne rogi */
+}
+
+.reroll-overlay{
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.reroll-overlay[hidden]{
+  display: none !important;
+}
+
+.reroll-overlay img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}

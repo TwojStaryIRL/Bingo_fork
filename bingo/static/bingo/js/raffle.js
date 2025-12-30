@@ -65,7 +65,7 @@
     return { res, data };
   }
 
-  function waitForAudioEnd(audioId, fallbackMs = 900) {
+  function waitForAudioEnd(audioId, fallbackMs = 1900) {
   return new Promise((resolve) => {
     const audio = document.getElementById(audioId);
     if (!audio) return resolve();
