@@ -351,8 +351,9 @@ def raffle_shuffle_use(request):
         if not isinstance(grid, list) or len(grid) != size * size:
             return JsonResponse({"ok": False, "error": "Bad grid payload"}, status=409)
 
-        # tasuj i zapisz do db
+        #tasuj dicty (text + assigned_user idą razem)
         random.shuffle(grid)
+
         raffle_grids[grid_idx] = grid
         payload["raffle_grids"] = raffle_grids
         payload["grids_2d"] = to_grids_2d(raffle_grids, size=size)
@@ -364,12 +365,22 @@ def raffle_shuffle_use(request):
         state.generated_board_payload = payload
         state.save(update_fields=["shuffles_left", "generated_board_payload", "updated_at"])
 
-        cells = [(item.get("text") or "").strip() if isinstance(item, dict) else "—" for item in grid]
+        # ✅ zwróć teksty + usery w tej samej kolejności
+        cells = []
+        users = []
+        for item in grid:
+            if isinstance(item, dict):
+                cells.append((item.get("text") or "—").strip() or "—")
+                users.append((item.get("assigned_user") or "").strip())
+            else:
+                cells.append("—")
+                users.append("")
 
         return JsonResponse({
             "ok": True,
             "grid": grid_idx,
             "cells": cells,
+            "users": users,  # new
             "shuffles_left": state.shuffles_left,
             "rerolls_left": state.rerolls_left,
             "shuffles_used": payload["raffle_shuffles_used"],
