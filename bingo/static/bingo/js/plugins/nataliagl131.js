@@ -18,6 +18,21 @@
 
     // === audio (jak u Pesosa) ===
     DEFAULT_VOLUME: 0.18,
+
+    // === "Pesos vibe" – przyciemnij UI ===
+    DIM_BODY_SIGMAS: true,
+    PANEL_BG: "rgba(0,0,0,.68)",
+    PANEL_BORDER: "rgba(255,255,255,.10)",
+    PANEL_SHADOW: "0 18px 55px rgba(0,0,0,.55)",
+
+    // === puppies in bottom half (STATIC per page load) ===
+    PUPPY_COUNT: 10,            // ile piesków renderować na dole
+    PUPPY_SCALE_MIN: 0.22,      // skala pojedynczego pieska
+    PUPPY_SCALE_MAX: 0.48,
+    PUPPY_OPACITY: 0.18,
+    PUPPY_ROT_MIN: -10,
+    PUPPY_ROT_MAX: 10,
+    PUPPY_PAD: 18,              // margines od krawędzi
   };
 
   const ASSETS = {
@@ -25,7 +40,7 @@
       "/static/bingo/images/nataliagl131/astarion1.gif",
       "/static/bingo/images/nataliagl131/astarion2.gif",
       "/static/bingo/images/nataliagl131/astarion3.gif",
-      "/static/bingo/images/nataliagl131/astarion5.gif",
+      "/static/bingo/images/nataliogl131/astarion5.gif",
       "/static/bingo/images/nataliagl131/astarion6.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.jpg",
@@ -34,12 +49,10 @@
     ],
   };
 
-  // tło: góra = Astarion, dół = losowe "puppy" z ASSETS.images
+  // tło: góra = Astarion, dół = losowo poustawiane pieski (raz na load)
   const BG = {
     TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
     BOTTOM_POOL: ASSETS.images.filter(x => /puppy/i.test(x)),
-    PUPPY_ROTATE_MS: 900,
-    PUPPY_TILE: 240,
   };
 
   function getJSONScript(id, fallback = null) {
@@ -74,7 +87,7 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // === ambient playlist z <script id="plugin-sfx"> jak u Pesosa ===
+        // === ambient playlist z <script id="plugin-sfx"> ===
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient)
           ? pluginSfx.ambient.filter(Boolean)
@@ -84,15 +97,40 @@
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
 
-/* ===== background split (TOP/BOTTOM) ===== */
+/* (opcjonalnie) wyłącz "2 sigmy" z body */
+${CFG.DIM_BODY_SIGMAS ? `
+body::before,
+body::after{
+  background-image: none !important;
+  opacity: 0 !important;
+  content: "" !important;
+}
+` : ""}
+
+/* przyciemnij UI jak u Pesosa */
+.page, .hero, .panel{
+  position: relative;
+  z-index: 50;
+}
+.panel{
+  background: ${CFG.PANEL_BG} !important;
+  border: 1px solid ${CFG.PANEL_BORDER} !important;
+  box-shadow: ${CFG.PANEL_SHADOW} !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.grid-cell, .cell-wrapper, .raffle-tile{
+  background: rgba(0,0,0,.28) !important;
+  border-color: rgba(255,255,255,.10) !important;
+}
+
+/* ===== background split ===== */
 .ast-bg{
   position: fixed;
   inset: 0;
   z-index: 2147483644;
   pointer-events: none;
 }
-
-/* góra: NIE ucinamy – rozciągamy na 50vh */
 .ast-bg::before{
   content: "";
   position: absolute;
@@ -103,27 +141,32 @@
   background-repeat: no-repeat;
   background-position: center top;
 
-  /* rozciąga w pion/poziom, nie ucina */
+  /* rozciąga na całą górną połówkę, nie ucina */
   background-size: 100% 100%;
-
   opacity: 0.35;
 }
 
-/* dół: puppy pattern (rotowany losowo) */
-.ast-bg::after{
-  content: "";
+/* dolna połówka – kontener na "statyczne pieski" */
+.ast-puppyfield{
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  left: 0; right: 0; bottom: 0;
   height: 50vh;
-
-  background-image: var(--puppy-bg);
-  background-repeat: repeat;
-  background-size: var(--puppy-tile) var(--puppy-tile);
-
-  opacity: 0.30;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-/* ===== floating images ===== */
+/* pojedynczy piesek */
+.ast-puppy{
+  position: absolute;
+  left: 0; top: 0;
+  opacity: var(--po);
+  transform: translate(var(--px), var(--py)) scale(var(--ps)) rotate(var(--pr));
+  will-change: transform;
+  filter: drop-shadow(0 12px 26px rgba(0,0,0,.35));
+  user-select: none;
+}
+
+/* ===== floating images (typing wave) ===== */
 .ast-layer{
   position: fixed; inset: 0;
   pointer-events: none;
@@ -145,62 +188,76 @@
         `;
         document.head.appendChild(style);
 
-        // background layer (pod gifami)
+        // background layer
         const bg = document.createElement("div");
         bg.className = "ast-bg";
         root.appendChild(bg);
 
-        // floating layer (gify)
+        // górny gif
+        bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
+
+        // dolny "field" na pieski
+        const puppyField = document.createElement("div");
+        puppyField.className = "ast-puppyfield";
+        bg.appendChild(puppyField);
+
+        // floating layer (gify podczas typing)
         const layer = document.createElement("div");
         layer.className = "ast-layer";
         root.appendChild(layer);
 
-        // ustaw TOP bg + tile size
-        bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
-        bg.style.setProperty("--puppy-tile", `${BG.PUPPY_TILE}px`);
+        // === statyczne losowanie piesków (RAZ na load) ===
+        const puppyEls = [];
 
-        // ===== losowe pieski na dole (rotacja co N ms) =====
-        let puppyTimer = null;
-        let lastPuppy = null;
+        function placePuppy(el) {
+          const pad = CFG.PUPPY_PAD;
+          const w = Math.max(1, window.innerWidth);
+          const h = Math.max(1, Math.floor(window.innerHeight * 0.5)); // dolna połówka
 
-        function setRandomPuppyBG() {
+          // rozkład: x pełna szerokość, y tylko w dolnej połówce (field ma własne 0..50vh)
+          const x = Math.floor(rand(pad, Math.max(pad + 1, w - pad)));
+          const y = Math.floor(rand(pad, Math.max(pad + 1, h - pad)));
+
+          const s = rand(CFG.PUPPY_SCALE_MIN, CFG.PUPPY_SCALE_MAX);
+          const r = Math.floor(rand(CFG.PUPPY_ROT_MIN, CFG.PUPPY_ROT_MAX)) + "deg";
+
+          el.style.setProperty("--px", `${x}px`);
+          el.style.setProperty("--py", `${y}px`);
+          el.style.setProperty("--ps", `${s}`);
+          el.style.setProperty("--pr", r);
+          el.style.setProperty("--po", `${CFG.PUPPY_OPACITY}`);
+        }
+
+        function buildStaticPuppies() {
+          // wyczyść stare
+          puppyField.textContent = "";
+          puppyEls.length = 0;
+
           if (!BG.BOTTOM_POOL.length) return;
 
-          if (BG.BOTTOM_POOL.length === 1) {
-            lastPuppy = BG.BOTTOM_POOL[0];
-            bg.style.setProperty("--puppy-bg", `url("${lastPuppy}")`);
-            return;
+          const n = Math.max(1, CFG.PUPPY_COUNT);
+          for (let i = 0; i < n; i++) {
+            const img = document.createElement("img");
+            img.className = "ast-puppy";
+            img.alt = "";
+            img.draggable = false;
+            img.loading = "lazy";
+            img.src = pickOne(BG.BOTTOM_POOL);
+            placePuppy(img);
+
+            puppyEls.push(img);
+            puppyField.appendChild(img);
           }
-
-          let img = pickOne(BG.BOTTOM_POOL);
-          let guard = 0;
-          while (img === lastPuppy && guard++ < 12) img = pickOne(BG.BOTTOM_POOL);
-
-          lastPuppy = img;
-          bg.style.setProperty("--puppy-bg", `url("${img}")`);
         }
 
-        function startPuppyRotation() {
-          setRandomPuppyBG();
-          if (puppyTimer) {
-            if (ctx.clearIntervalSafe) ctx.clearIntervalSafe(puppyTimer);
-            else clearInterval(puppyTimer);
-          }
-          puppyTimer = ctx.setIntervalSafe
-            ? ctx.setIntervalSafe(setRandomPuppyBG, BG.PUPPY_ROTATE_MS)
-            : setInterval(setRandomPuppyBG, BG.PUPPY_ROTATE_MS);
-        }
+        buildStaticPuppies();
 
-        function stopPuppyRotation() {
-          if (!puppyTimer) return;
-          if (ctx.clearIntervalSafe) ctx.clearIntervalSafe(puppyTimer);
-          else clearInterval(puppyTimer);
-          puppyTimer = null;
-        }
+        // na resize tylko PRZEUSTAW — bez zmiany src (zero migania)
+        ctx.on(window, "resize", () => {
+          for (const el of puppyEls) placePuppy(el);
+        });
 
-        startPuppyRotation();
-
-        // ===== AUDIO: identyczna mechanika jak u Pesosa (start po pierwszym klik/klawisz/input) =====
+        // ===== AUDIO: mechanika jak u Pesosa (start po pierwszym klik/klawisz/input) =====
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -244,7 +301,6 @@
           playStart();
         };
 
-        // start po interakcji usera (autoplay policy)
         document.addEventListener("pointerdown", startOnFirstUserInput, true);
         document.addEventListener("keydown", startOnFirstUserInput, true);
         document.addEventListener("input", startOnFirstUserInput, true);
@@ -382,25 +438,14 @@
           if (document.hidden) {
             for (const img of imgs) img.classList.remove("is-on");
             isOn = false;
-
-            // mniej mieli CPU jak karta ukryta
-            stopPuppyRotation();
-
-            // audio pauza jak karta w tle
             try { audio.pause(); } catch {}
           } else {
-            startPuppyRotation();
-
-            // jeśli user już zainicjował audio wcześniej, to wróć do grania
-            if (started && playlist.length) {
-              audio.play().catch(() => {});
-            }
+            if (started && playlist.length) audio.play().catch(() => {});
           }
         });
 
         return () => {
           try { if (idleTimer) clearTimeout(idleTimer); } catch {}
-          try { stopPuppyRotation(); } catch {}
 
           // audio cleanup
           try {

@@ -126,6 +126,9 @@ def nataliagl131_func() -> UserPluginConfig:
         sfx={
             "ambient": [
                 static("bingo/sfx/nataliagl131/bg1.mp3"),
+                static("bingo/sfx/nataliagl131/bg2.mp3"),
+                static("bingo/sfx/nataliagl131/bg3.mp3"),
+                static("bingo/sfx/nataliagl131/bg4.mp3"),
             ],
 
         }
