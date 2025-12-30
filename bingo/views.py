@@ -547,10 +547,7 @@ def export_all_bingo_pdfs(request):
             username=user.username
         )
 
-        # ===== ZAPISZ DO MODELU =====
-        zip_file.writestr(f"{user.username}-bingo.pdf", pdf_buffer.getvalue())
-
-        # =====  DORZUĆ DO ZIP =====
+        # =====  DO ZIP =====
         zip_file.writestr(
             f"{user.username}-bingo.pdf",
             pdf_buffer.getvalue()
