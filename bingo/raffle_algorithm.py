@@ -98,11 +98,14 @@ def build_grid_two_phase(
             u = uniq_key(item)
             if u in used_local:
                 return False
+
             assigned = (item.get("assigned_user") or "").strip()
             if assigned:
                 user_limit = PLACEHOLDER_LIMIT if assigned in PLACEHOLDERS else limit
                 if counts[assigned] >= user_limit:
                     return False
+
+            return True
 
 
         def take(item: PoolItem):
