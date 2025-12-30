@@ -399,6 +399,9 @@ def raffle_pick_save(request):
             "grid": picked_cells,
         }
 
+        state.saved_board_payload = picked_payload
+        state.save(update_fields=["saved_board_payload", "updated_at"])
+
         BingoBoard.objects.update_or_create(
             user=request.user,
             defaults={"email": (request.user.email or "").strip(), "grid": picked_payload},
