@@ -1068,3 +1068,148 @@ body::after{
   }
 }
 
+/* ===========================
+   RAFFLE – HARD OVERRIDES (paste at end)
+   =========================== */
+
+/* Zmienna rozmiaru kafelków – łatwo dopasujesz jednym miejscem */
+:root{
+  --raffle-tile: clamp(92px, 10.5vw, 150px);
+  --raffle-gap: 14px;
+}
+
+/* Scena: daj więcej miejsca na planszę */
+.raffle-shell,
+.raffle-stage{
+  width: 100% !important;
+}
+
+.raffle-stage{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 18px 12px 10px !important;
+  min-height: 64vh !important; /* żeby kafle nie robiły się “pyci tyci” */
+}
+
+/* Boardy – niech nie zwężają grida w dziwny sposób */
+.raffle-board.raffle-board--set{
+  width: auto !important;
+  max-width: none !important;
+}
+
+/* GRID – wymuś prawdziwe N x N (z inline --grid-size) */
+.raffle-board.raffle-board--set .raffle-grid{
+  --grid-size: var(--grid-size, 5);
+
+  display: grid !important;
+  grid-template-columns: repeat(var(--grid-size), var(--raffle-tile)) !important;
+  grid-auto-rows: var(--raffle-tile) !important;
+
+  gap: var(--raffle-gap) !important;
+
+  /* wyśrodkowanie */
+  justify-content: center !important;
+  align-content: center !important;
+
+  /* zabezpieczenie, żeby nie rozjechało layoutu */
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+/* TILE – normalny kafelek (a nie “piguła”) */
+.raffle-board.raffle-board--set .raffle-tile{
+  width: var(--raffle-tile) !important;
+  height: var(--raffle-tile) !important;
+
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+
+  background: rgba(10, 14, 22, .42) !important;
+  backdrop-filter: blur(10px) !important;
+
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+
+  box-shadow: 0 10px 26px rgba(0,0,0,.30) !important;
+  overflow: hidden !important;
+}
+
+/* Ubij WSZYSTKIE “pigułowe” tła/bordery wewnątrz kafla */
+.raffle-board.raffle-board--set .raffle-tile .raffle-text,
+.raffle-board.raffle-board--set .raffle-tile .raffle-text *{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Tekst w kaflu – podział: góra (tekst), dół (user) */
+.raffle-board.raffle-board--set .raffle-tile .raffle-text{
+  width: 100% !important;
+  height: 100% !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+
+  padding: 12px 12px 10px !important;
+}
+
+/* Główny tekst (cell-text) – max 4 linie */
+.raffle-board.raffle-board--set .raffle-tile .cell-text{
+  color: rgba(255,255,255,.92) !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  line-height: 1.15 !important;
+
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 4 !important; /* <-- max 4 linie */
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+
+  word-break: break-word !important;
+}
+
+/* Nick/user na dole – “badge” na całą szerokość */
+.raffle-board.raffle-board--set .raffle-tile .cell-user{
+  margin-top: auto !important;
+
+  padding: 7px 10px !important;
+  border-radius: 999px !important;
+
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+
+  color: rgba(255,255,255,.90) !important;
+  font-weight: 650 !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Placeholder board: niech ma sensowny rozmiar */
+.raffle-board--placeholder{
+  width: calc(var(--raffle-tile) * 5 + var(--raffle-gap) * 4) !important;
+  height: calc(var(--raffle-tile) * 5 + var(--raffle-gap) * 4) !important;
+  border-radius: 22px !important;
+}
+
+/* Nawigacja – ustaw tak, żeby nie wchodziła na grid */
+.raffle-nav{
+  z-index: 5 !important;
+}
+
+/* Jakby ktoś miał super-wąski ekran: niech grid się skaluje w dół */
+@media (max-width: 900px){
+  :root{
+    --raffle-tile: clamp(74px, 14vw, 120px);
+    --raffle-gap: 10px;
+  }
+}
