@@ -1150,9 +1150,10 @@ body::after{
   width: 100% !important;
   min-width: 0 !important;
 
+
   white-space: nowrap !important;
   overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  text-overflow: clip !important;
 }
 
 /* dodatkowe zabezpieczenie na wrapper */
@@ -1173,9 +1174,9 @@ body::after{
    ========================= */
 
 .raffle-nav--left{
-  left: -28px !important;   /* było -58 */
+  left: 38px !important;   /* było -58 */
 }
 
 .raffle-nav--right{
-  right: -28px !important;  /* było -58 */
+  right: 38px !important;  /* było -58 */
 }
