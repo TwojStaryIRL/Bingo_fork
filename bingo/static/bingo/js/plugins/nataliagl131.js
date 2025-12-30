@@ -11,10 +11,10 @@
 
   const CFG = {
     IDLE_MS: 500,
-    MAX_ON_SCREEN: 8,
-    SCALE_MIN: 0.36,
+    MAX_ON_SCREEN: 10,
+    SCALE_MIN: 0.42,
     SCALE_MAX: 0.77,
-    OPACITY: 0.7,
+    OPACITY: 0.6,
   };
 
   const ASSETS = {
@@ -22,11 +22,12 @@
       "/static/bingo/images/nataliagl131/astarion1.gif",
       "/static/bingo/images/nataliagl131/astarion2.gif",
       "/static/bingo/images/nataliagl131/astarion3.gif",
-      "/static/bingo/images/nataliagl131/astarion4.jpg",
       "/static/bingo/images/nataliagl131/astarion5.gif",
       "/static/bingo/images/nataliagl131/astarion6.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.gif",
-      "/static/bingo/images/nataliagl131/piesek.jpg",
+      "/static/bingo/images/nataliagl131/happy_puppy2.jpg",
+      "/static/bingo/images/nataliagl131/puppy2.jpg",
+      "/static/bingo/images/nataliagl131/puppy3.jpg",
     ],
   };
 
