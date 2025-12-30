@@ -944,3 +944,34 @@ body::after{
   font-weight: 900;
   cursor: pointer;
 }
+
+/* kontener tekstu w kafelku: kolumna, treść u góry, stopka na dole */
+.raffle-text{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* wypycha stopkę na dół */
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+/* treść główna (zmniejszona) */
+.cell-text{
+  font-size: 0.85rem;
+  line-height: 1.1;
+  font-weight: 600;
+  padding: 8px 10px 0;
+  word-break: break-word;
+}
+
+/* user jako dolna belka */
+.cell-user{
+  width: 100%;
+  border-top: 1px solid rgba(255,255,255,0.18);
+  padding: 6px 8px 8px;
+  font-size: 0.72rem;
+  line-height: 1;
+  opacity: 0.85;
+  font-weight: 600;
+}
