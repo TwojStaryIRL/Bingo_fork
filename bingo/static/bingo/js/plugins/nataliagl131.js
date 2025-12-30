@@ -19,17 +19,27 @@
     // audio
     DEFAULT_VOLUME: 0.18,
 
-    // puppies (static, bottom half)
-    PUPPY_COUNT: 10,
-    PUPPY_SCALE_MIN: 0.22,
-    PUPPY_SCALE_MAX: 0.48,
-    PUPPY_OPACITY: 0.18,
-    PUPPY_ROT_MIN: -10,
-    PUPPY_ROT_MAX: 10,
-    PUPPY_PAD: 18,
+    // ===== BACKGROUND MODE TOGGLE =====
+    // "PUPPIES" => góra Astarion + dół kafelki piesków
+    // "BASIC"  => tylko góra Astarion (dół bez piesków)
+    BG_MODE: "PUPPIES",
 
-    // “Pesos vibe” — delikatne przyciemnienie, ale bez rozwalania layoutu
-    DIM_UI: true,
+    // reset 2sigmy body::before/after jak u Pesosa
+    RESET_2SIGMY: true,
+
+    // Astarion top styling
+    TOP_OPACITY: 0.22,
+
+    // puppies grid (bottom half)
+    PUPPY_TILE_H: 120,       // wysokość kafla
+    PUPPY_TILE_W: 210,       // docelowa szerokość kafla (grid min)
+    PUPPY_GAP: 10,
+    PUPPY_PAD: 14,
+    PUPPY_OPACITY: 0.22,
+    PUPPY_RADIUS: 14,
+
+    // “Pesos vibe” — delikatne przyciemnienie, bez rozwalania layoutu
+    DIM_UI: false, // jak chcesz, ustaw true
     DIM_PANEL_BG: "rgba(0,0,0,.55)",
     DIM_TILE_BG: "rgba(0,0,0,.22)",
   };
@@ -39,7 +49,7 @@
       "/static/bingo/images/nataliagl131/astarion1.gif",
       "/static/bingo/images/nataliagl131/astarion2.gif",
       "/static/bingo/images/nataliagl131/astarion3.gif",
-      "/static/bingo/images/nataliagl131/astarion5.gif", // <-- FIX: literówka
+      "/static/bingo/images/nataliagl131/astarion5.gif",
       "/static/bingo/images/nataliagl131/astarion6.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.jpg",
@@ -103,21 +113,17 @@
 
         const style = document.createElement("style");
         style.textContent = `
-/* klucz: background ma być POD UI, a tylko "typing gify" NAD UI */
-#plugin-root{
-  position: fixed !important;
-  inset: 0 !important;
-  pointer-events: none !important;
-  z-index: 1 !important; /* tło nisko */
+${CFG.RESET_2SIGMY ? `
+/* reset "2sigmy" jak u Pesosa */
+body::before,
+body::after{
+  background-image: none !important;
+  opacity: 0 !important;
+  content: "" !important;
 }
+` : ""}
 
-/* podbij UI nad tłem (bez ingerencji w layout) */
-.page, .hero, .panel, .plugin-toggle, .plugin-floating{
-  position: relative;
-  z-index: 10;
-}
-
-/* delikatne przyciemnienie (bez agresywnego nadpisywania wszystkiego) */
+/* (opcjonalnie) delikatne przyciemnienie UI */
 ${CFG.DIM_UI ? `
 .panel{
   background: ${CFG.DIM_PANEL_BG} !important;
@@ -129,61 +135,80 @@ ${CFG.DIM_UI ? `
 }
 ` : ""}
 
-/* ===== background split ===== */
+/* === tło pluginu: pod UI, nad body === */
 .ast-bg{
   position: fixed;
   inset: 0;
-  z-index: 1;              /* POD UI */
+  z-index: 0;            /* NISKO: pod UI */
   pointer-events: none;
 }
-.ast-bg::before{
-  content: "";
+
+/* góra: Astarion, bez rozciągania na siłę */
+.ast-top{
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 50vh;
 
-  background-image: var(--top-bg);
+  background-image: url("${BG.TOP}");
   background-repeat: no-repeat;
   background-position: center top;
-  background-size: 100% 100%;
-  opacity: 0.28;
+  background-size: cover;          /* KLUCZ: nie rozkurwia proporcji */
+  opacity: ${CFG.TOP_OPACITY};
+
+  /* miękkie zejście w dół, żeby nie waliło po panelu */
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.92) 55%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.92) 55%, rgba(0,0,0,0) 100%);
 }
 
-/* dolna połówka – pasek/paski piesków (stoją obok siebie) */
-.ast-puppyfield{
+/* dół: grid piesków */
+.ast-bottom{
   position: absolute;
   left: 0; right: 0; bottom: 0;
   height: 50vh;
-  overflow: hidden;
   pointer-events: none;
+  overflow: hidden;
 
-  display: flex;
-  flex-wrap: wrap;           /* zawijaj w "rzędy" */
-  align-content: flex-start; /* rzędy od góry tej połówki */
-  gap: 10px;
-  padding: 14px 14px;
+  padding: ${CFG.PUPPY_PAD}px;
   box-sizing: border-box;
 
   opacity: ${CFG.PUPPY_OPACITY};
 }
 
-/* pojedynczy piesek jako kafelek */
-.ast-puppy{
-  height: 110px;            /* stała wysokość paska */
-  width: auto;
-  border-radius: 14px;
-  object-fit: cover;
-  user-select: none;
-  filter: drop-shadow(0 12px 26px rgba(0,0,0,.35));
-  transform: rotate(var(--pr)) scale(var(--ps));
-  transform-origin: center;
+/* grid layout */
+.ast-puppygrid{
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: ${CFG.PUPPY_GAP}px;
+
+  grid-template-columns: repeat(auto-fill, minmax(${CFG.PUPPY_TILE_W}px, 1fr));
+  grid-auto-rows: ${CFG.PUPPY_TILE_H}px;
+
+  align-content: start;
 }
 
-/* ===== typing wave (NAD UI) ===== */
+.ast-puppytile{
+  width: 100%;
+  height: 100%;
+  border-radius: ${CFG.PUPPY_RADIUS}px;
+  overflow: hidden;
+  background: rgba(255,255,255,.04);
+  outline: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 10px 28px rgba(0,0,0,.35);
+}
+
+.ast-puppytile img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ===== typing wave (NAD WSZYSTKIM) ===== */
 .ast-layer{
   position: fixed; inset: 0;
   pointer-events: none;
-  z-index: 2147483646;    /* NAJWYŻEJ */
+  z-index: 2147483646;
   overflow: hidden;
 }
 .ast-img{
@@ -201,57 +226,97 @@ ${CFG.DIM_UI ? `
         `;
         document.head.appendChild(style);
 
-        // ===== background layer (POD UI) =====
-        const bg = document.createElement("div");
-        bg.className = "ast-bg";
-        root.appendChild(bg);
+        // ===== BG wrapper (pod UI) =====
+        const bgWrap = document.createElement("div");
+        bgWrap.className = "ast-bg";
+        root.appendChild(bgWrap);
 
-        bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
+        const top = document.createElement("div");
+        top.className = "ast-top";
+        bgWrap.appendChild(top);
 
-        const puppyField = document.createElement("div");
-        puppyField.className = "ast-puppyfield";
-        bg.appendChild(puppyField);
+        const bottom = document.createElement("div");
+        bottom.className = "ast-bottom";
+        bgWrap.appendChild(bottom);
+
+        // toggle: basic bg => usuń dół
+        if (CFG.BG_MODE !== "PUPPIES") {
+          bottom.style.display = "none";
+        }
+
+        // puppies grid (tylko jeśli włączone)
+        const puppyGrid = document.createElement("div");
+        puppyGrid.className = "ast-puppygrid";
+        bottom.appendChild(puppyGrid);
+
+        function computePuppyTileCount() {
+          const w = Math.max(320, window.innerWidth || 1200);
+          const h = Math.max(240, Math.floor((window.innerHeight || 800) * 0.5));
+
+          const pad2 = CFG.PUPPY_PAD * 2;
+          const usableW = Math.max(1, w - pad2);
+          const usableH = Math.max(1, h - pad2);
+
+          // kolumny wynikają z min szerokości tile, ale tu liczymy “ile sensownie wypełnić”
+          const colGuess = Math.max(1, Math.floor((usableW + CFG.PUPPY_GAP) / (CFG.PUPPY_TILE_W + CFG.PUPPY_GAP)));
+          const rowGuess = Math.max(1, Math.floor((usableH + CFG.PUPPY_GAP) / (CFG.PUPPY_TILE_H + CFG.PUPPY_GAP)));
+
+          // wypełnij 100% siatki
+          return colGuess * rowGuess;
+        }
+
+        function buildPuppyStripsOnce() {
+          if (CFG.BG_MODE !== "PUPPIES") return;
+          puppyGrid.textContent = "";
+
+          if (!BG.BOTTOM_POOL.length) return;
+
+          const n = computePuppyTileCount();
+
+          // “worek” wymieszany — powtórki dozwolone, ale nie “ten sam obok siebie non stop”
+          let bag = [];
+          while (bag.length < n) bag = bag.concat(shuffle(BG.BOTTOM_POOL));
+
+          // proste zabezpieczenie: unikaj identycznych sąsiadów w kolejności
+          for (let i = 1; i < bag.length; i++) {
+            if (bag[i] === bag[i - 1] && BG.BOTTOM_POOL.length > 1) {
+              // swap z kimś dalej
+              for (let j = i + 1; j < bag.length; j++) {
+                if (bag[j] !== bag[i - 1]) {
+                  const tmp = bag[i];
+                  bag[i] = bag[j];
+                  bag[j] = tmp;
+                  break;
+                }
+              }
+            }
+          }
+
+          for (let i = 0; i < n; i++) {
+            const tile = document.createElement("div");
+            tile.className = "ast-puppytile";
+
+            const img = document.createElement("img");
+            img.alt = "";
+            img.draggable = false;
+            img.loading = "lazy";
+            img.src = bag[i];
+
+            tile.appendChild(img);
+            puppyGrid.appendChild(tile);
+          }
+        }
+
+        buildPuppyStripsOnce();
+        ctx.on(window, "resize", () => {
+          // przebuduj siatkę, bo zmienia się liczba tile w widoku (bez migania w trakcie pisania)
+          buildPuppyStripsOnce();
+        });
 
         // ===== overlay layer (NAD UI) =====
         const layer = document.createElement("div");
         layer.className = "ast-layer";
         root.appendChild(layer);
-
-        // ===== pieski: stoją obok siebie, źródła wymieszane, bez migania =====
-        // (zmienione TYLKO to)
-        const puppyEls = [];
-
-        function buildStaticPuppies() {
-          puppyField.textContent = "";
-          puppyEls.length = 0;
-          if (!BG.BOTTOM_POOL.length) return;
-
-          const n = Math.max(1, CFG.PUPPY_COUNT);
-
-          // worki wymieszane, z powtórkami jeśli trzeba
-          const bag = [];
-          while (bag.length < n) bag.push(...shuffle(BG.BOTTOM_POOL));
-
-          for (let i = 0; i < n; i++) {
-            const img = document.createElement("img");
-            img.className = "ast-puppy";
-            img.alt = "";
-            img.draggable = false;
-            img.loading = "lazy";
-
-            img.src = bag[i];
-            // drobna losowość, ale bez rozrzutu po XY (stoi w pasku)
-            img.style.setProperty("--ps", `${rand(CFG.PUPPY_SCALE_MIN, CFG.PUPPY_SCALE_MAX)}`);
-            img.style.setProperty("--pr", `${Math.floor(rand(CFG.PUPPY_ROT_MIN, CFG.PUPPY_ROT_MAX))}deg`);
-
-            puppyEls.push(img);
-            puppyField.appendChild(img);
-          }
-        }
-
-        buildStaticPuppies();
-        // resize nie musi nic robić — flex sam układa. Zostawiamy handler, ale pusty, żeby nie zmieniać zachowania innych rzeczy
-        ctx.on(window, "resize", () => {});
 
         // ===== AUDIO: start po pierwszym klik/klawisz/input, NIE pauzujemy na focus/visibility =====
         let playlist = shuffle(ambientList);
@@ -335,8 +400,12 @@ ${CFG.DIM_UI ? `
 
         function placeRandomly(el) {
           const pad = 18;
-          const x = Math.floor(rand(pad, Math.max(pad + 1, window.innerWidth - pad)));
-          const y = Math.floor(rand(pad, Math.max(pad + 1, window.innerHeight - pad)));
+          const x = Math.floor(
+            rand(pad, Math.max(pad + 1, window.innerWidth - pad))
+          );
+          const y = Math.floor(
+            rand(pad, Math.max(pad + 1, window.innerHeight - pad))
+          );
           const s = rand(CFG.SCALE_MIN, CFG.SCALE_MAX);
           const r = Math.floor(rand(-18, 18)) + "deg";
 
@@ -375,7 +444,8 @@ ${CFG.DIM_UI ? `
           }
 
           for (let i = 0; i < count; i++) imgs[i].classList.add("is-on");
-          for (let i = count; i < imgs.length; i++) imgs[i].classList.remove("is-on");
+          for (let i = count; i < imgs.length; i++)
+            imgs[i].classList.remove("is-on");
 
           isOn = true;
         }
@@ -430,7 +500,7 @@ ${CFG.DIM_UI ? `
           }
         });
 
-        // visibilitychange: nie dotykamy audio (żadnych jumpscare / pauz)
+        // visibilitychange: nie dotykamy audio
         ctx.on(document, "visibilitychange", () => {
           if (document.hidden) {
             for (const img of imgs) img.classList.remove("is-on");
@@ -449,7 +519,7 @@ ${CFG.DIM_UI ? `
           try { audio.pause(); } catch {}
 
           try { layer.remove(); } catch {}
-          try { bg.remove(); } catch {}
+          try { bgWrap.remove(); } catch {}
           try { style.remove(); } catch {}
         };
       },

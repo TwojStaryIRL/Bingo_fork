@@ -156,7 +156,7 @@
     optDiv.setAttribute("aria-disabled", disabled ? "true" : "false");
   }
 
-  const UNLIMITED_USERS = new Set(["Ktoś", "Event"]);
+  const UNLIMITED_USERS = new Set(["Ktoś", "Event", "Ktokolwiek"]);
 
   function applyUserPickRules({ toastOnViolation = false, changedSelect = null, prevValue = "" } = {}) {
     const counts = countPicks();
