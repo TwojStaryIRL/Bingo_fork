@@ -123,7 +123,12 @@ def stugsiana_func() -> UserPluginConfig:
 def nataliagl131_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/nataliagl131.js",
-        sfx={}
+        sfx={
+            "ambient": [
+                static("bingo/sfx/nataliagl131/bg1.mp3"),
+            ],
+
+        }
     )
 
 def Pesos_func() -> UserPluginConfig:

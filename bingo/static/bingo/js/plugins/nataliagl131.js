@@ -15,6 +15,9 @@
     SCALE_MIN: 0.42,
     SCALE_MAX: 0.77,
     OPACITY: 0.6,
+
+    // === audio (jak u Pesosa) ===
+    DEFAULT_VOLUME: 0.18,
   };
 
   const ASSETS = {
@@ -35,14 +38,27 @@
   const BG = {
     TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
     BOTTOM_POOL: ASSETS.images.filter(x => /puppy/i.test(x)),
-    // co ile ms ma się zmieniać losowy piesek w tle (dół)
     PUPPY_ROTATE_MS: 900,
-    // rozmiar "kafelków" w tle (dół)
     PUPPY_TILE: 240,
   };
 
+  function getJSONScript(id, fallback = null) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    try { return JSON.parse(el.textContent || "null"); } catch { return fallback; }
+  }
+
   function rand(min, max) { return min + Math.random() * (max - min); }
   function pickOne(arr) { return arr[(Math.random() * arr.length) | 0]; }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
   function isTypingTarget(el) {
     if (!el) return false;
@@ -58,6 +74,12 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
+        // === ambient playlist z <script id="plugin-sfx"> jak u Pesosa ===
+        const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
+        const ambientList = Array.isArray(pluginSfx?.ambient)
+          ? pluginSfx.ambient.filter(Boolean)
+          : [];
+
         const style = document.createElement("style");
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
@@ -70,7 +92,7 @@
   pointer-events: none;
 }
 
-/* górna połowa: NIE przycinamy - rozciągamy na 50vh */
+/* góra: NIE ucinamy – rozciągamy na 50vh */
 .ast-bg::before{
   content: "";
   position: absolute;
@@ -81,13 +103,13 @@
   background-repeat: no-repeat;
   background-position: center top;
 
-  /* klucz: rozciągnij na całą górną połowę (może zniekształcać, ale nie ucina) */
+  /* rozciąga w pion/poziom, nie ucina */
   background-size: 100% 100%;
 
   opacity: 0.35;
 }
 
-/* dolna połowa – puppy pattern (losowo zmieniany) */
+/* dół: puppy pattern (rotowany losowo) */
 .ast-bg::after{
   content: "";
   position: absolute;
@@ -133,7 +155,7 @@
         layer.className = "ast-layer";
         root.appendChild(layer);
 
-        // ustaw TOP bg z configu
+        // ustaw TOP bg + tile size
         bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
         bg.style.setProperty("--puppy-tile", `${BG.PUPPY_TILE}px`);
 
@@ -143,12 +165,13 @@
 
         function setRandomPuppyBG() {
           if (!BG.BOTTOM_POOL.length) return;
+
           if (BG.BOTTOM_POOL.length === 1) {
-            bg.style.setProperty("--puppy-bg", `url("${BG.BOTTOM_POOL[0]}")`);
+            lastPuppy = BG.BOTTOM_POOL[0];
+            bg.style.setProperty("--puppy-bg", `url("${lastPuppy}")`);
             return;
           }
 
-          // unikaj wylosowania tego samego 2x z rzędu
           let img = pickOne(BG.BOTTOM_POOL);
           let guard = 0;
           while (img === lastPuppy && guard++ < 12) img = pickOne(BG.BOTTOM_POOL);
@@ -159,8 +182,10 @@
 
         function startPuppyRotation() {
           setRandomPuppyBG();
-          if (puppyTimer) ctx.clearIntervalSafe?.(puppyTimer);
-          // Bingo ctx może nie mieć clearIntervalSafe; fallback do clearInterval
+          if (puppyTimer) {
+            if (ctx.clearIntervalSafe) ctx.clearIntervalSafe(puppyTimer);
+            else clearInterval(puppyTimer);
+          }
           puppyTimer = ctx.setIntervalSafe
             ? ctx.setIntervalSafe(setRandomPuppyBG, BG.PUPPY_ROTATE_MS)
             : setInterval(setRandomPuppyBG, BG.PUPPY_ROTATE_MS);
@@ -173,8 +198,56 @@
           puppyTimer = null;
         }
 
-        // start rotacji piesków od razu
         startPuppyRotation();
+
+        // ===== AUDIO: identyczna mechanika jak u Pesosa (start po pierwszym klik/klawisz/input) =====
+        let playlist = shuffle(ambientList);
+        let idx = 0;
+
+        const audio = document.createElement("audio");
+        audio.preload = "auto";
+        audio.loop = false;
+        audio.volume = CFG.DEFAULT_VOLUME;
+
+        function setTrack(i) {
+          if (!playlist.length) return;
+          idx = (i + playlist.length) % playlist.length;
+          audio.src = playlist[idx];
+        }
+
+        function playStart() {
+          if (!playlist.length) return;
+          if (!audio.src) setTrack(0);
+          audio.play().catch(() => {});
+        }
+
+        function playNext() {
+          if (!playlist.length) return;
+          setTrack(idx + 1);
+          audio.play().catch(() => {});
+        }
+
+        audio.addEventListener("ended", () => {
+          if (!playlist.length) return;
+          playNext();
+        });
+
+        let started = false;
+        const startOnFirstUserInput = () => {
+          if (started) return;
+          started = true;
+
+          document.removeEventListener("pointerdown", startOnFirstUserInput, true);
+          document.removeEventListener("keydown", startOnFirstUserInput, true);
+          document.removeEventListener("input", startOnFirstUserInput, true);
+
+          playStart();
+        };
+
+        // start po interakcji usera (autoplay policy)
+        document.addEventListener("pointerdown", startOnFirstUserInput, true);
+        document.addEventListener("keydown", startOnFirstUserInput, true);
+        document.addEventListener("input", startOnFirstUserInput, true);
 
         // ===== state dla gifów latających =====
         let idleTimer = null;
@@ -276,6 +349,7 @@
           }, CFG.IDLE_MS);
         }
 
+        // start: iter=0 → dobierz 1
         growChosenPoolTo(countForIter(iter));
 
         ctx.on(document, "keydown", (e) => {
@@ -308,16 +382,34 @@
           if (document.hidden) {
             for (const img of imgs) img.classList.remove("is-on");
             isOn = false;
-            // jak karta ukryta, wstrzymaj rotację (mniej mieli CPU)
+
+            // mniej mieli CPU jak karta ukryta
             stopPuppyRotation();
+
+            // audio pauza jak karta w tle
+            try { audio.pause(); } catch {}
           } else {
             startPuppyRotation();
+
+            // jeśli user już zainicjował audio wcześniej, to wróć do grania
+            if (started && playlist.length) {
+              audio.play().catch(() => {});
+            }
           }
         });
 
         return () => {
           try { if (idleTimer) clearTimeout(idleTimer); } catch {}
           try { stopPuppyRotation(); } catch {}
+
+          // audio cleanup
+          try {
+            document.removeEventListener("pointerdown", startOnFirstUserInput, true);
+            document.removeEventListener("keydown", startOnFirstUserInput, true);
+            document.removeEventListener("input", startOnFirstUserInput, true);
+          } catch {}
+          try { audio.pause(); } catch {}
+
           try { layer.remove(); } catch {}
           try { bg.remove(); } catch {}
           try { style.remove(); } catch {}
