@@ -495,7 +495,7 @@ body::after{
           playNext();
         });
 
-        // ===== AUDIO (meows – osobny tor, sync z dymkami) =====
+        // ===== AUDIO (meows) =====
         const meow = document.createElement("audio");
         meow.preload = "auto";
         meow.loop = false;
@@ -554,7 +554,7 @@ body::after{
           "Błagam…",
         ];
 
-        // anty-spam meowów: tylko gdy tekst realnie się zmieni + cooldown
+        // anty-spam meowów: tylko gdy tekst się zmieni + cooldown
         let lastBubbleText = "";
         let lastMeowAt = 0;
 

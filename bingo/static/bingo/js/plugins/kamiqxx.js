@@ -156,16 +156,16 @@
 
 
   function permuteSudoku4(solution) {
-    // prosta permutacja cyfr 1..4 + swap wierszy w obrębie bandów + swap kolumn w obrębie stacków
+    // 
     const map = shuffle([1,2,3,4]);
     const digitMap = (v) => map[v - 1];
 
-    // permutacja wierszy: (0,1) w bandzie 0 i (2,3) w bandzie 1
+    // permutacja wierszy
     const rBand0 = shuffle([0,1]);
     const rBand1 = shuffle([2,3]);
     const rowOrder = rBand0.concat(rBand1);
 
-    // permutacja kolumn: (0,1) w stacku 0 i (2,3) w stacku 1
+    // permutacja kolumn
     const cStack0 = shuffle([0,1]);
     const cStack1 = shuffle([2,3]);
     const colOrder = cStack0.concat(cStack1);
@@ -198,12 +198,12 @@
     }
 
     img.addEventListener("error", () => {
-      // 1) jak primary padł, próbuj fallbacki
+      // fallback
       if (!triedPrimary) {
         triedPrimary = true;
       }
 
-      // zdejmij bieżący src z puli żeby nie mielić w kółko
+      // zdejmij bieżący src
       const cur = img.currentSrc || img.src;
       const idx = fallbacks.indexOf(cur);
       if (idx >= 0) fallbacks.splice(idx, 1);
@@ -226,7 +226,6 @@
     const fine = document.createElement("div");
     fine.className = "kys-fine";
     fine.textContent = "(jest tylko jeden grzeczny chłopiec)";
-    // fine.style.fontSize = "11px";  
     modal.appendChild(fine);
 
 
@@ -268,10 +267,10 @@
       const img = document.createElement("img");
 
       if (i === goodIndex) {
-        // GOOD: jak padnie – próbuj inne GOODy
+        // GOOD
         setImgWithFallback(img, tile, goodImg, CFG.GOOD_IMGS);
       } else {
-        // BAD: jak padnie – próbuj inne BADy
+        // BAD
         const badSrc = badImgsForTiles.pop();
         setImgWithFallback(img, tile, badSrc, CFG.BAD_IMGS);
       }
@@ -333,13 +332,13 @@
         } else {
           inputs.push({ cell, x, y });
           cell.addEventListener("input", () => {
-            // zostaw tylko 1-4
+            
             const m = (cell.value || "").replace(/[^1-4]/g, "");
             cell.value = m.slice(0, 1);
           });
         }
 
-        // wizualne subgrid 2x2
+        // 
         const rightBorder = (x === 1) ? "2px solid rgba(255,255,255,.18)" : "1px solid rgba(255,255,255,.12)";
         const bottomBorder = (y === 1) ? "2px solid rgba(255,255,255,.18)" : "1px solid rgba(255,255,255,.12)";
         cell.style.borderRight = rightBorder;
@@ -374,7 +373,6 @@
     modal.appendChild(grid);
     modal.appendChild(row);
 
-    // fokus na pierwsze puste
     const first = inputs[0]?.cell;
     if (first) setTimeout(() => { try { first.focus(); } catch {} }, 60);
   }
@@ -391,7 +389,7 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-    // ===== AUDIO (ambient playlist) =====
+    // ===== AUDIO =====
     let bg = null;
     let audioUnlocked = false;
 
@@ -406,9 +404,9 @@
       saveTimer = setInterval(() => {
         if (!bg || bg.paused || !playlist.length) return;
         saveMusicState({
-          idx: Math.max(0, playlistIdx - 1),         // aktualnie grający indeks 
+          idx: Math.max(0, playlistIdx - 1),         
           t: Number(bg.currentTime || 0),
-          order: playlist.slice(),                   // aktualna kolejność playlisty
+          order: playlist.slice(),                   
           at: Date.now()
         });
       }, CFG.MUSIC_SAVE_EVERY_MS || 3000);
@@ -442,19 +440,18 @@
       if (!playlist.length) {
         // jeżeli mamy zapisany stan z poprzedniej sesji i pasuje do listy plików
         if (resume && Array.isArray(resume.order) && resume.order.length) {
-          // walidacja: czy zapisany order to te same utwory (bezpiecznik)
+          // walidacja
           const a = resume.order.slice().sort().join("||");
           const b = list.slice().map(String).sort().join("||");
           if (a === b) {
             playlist = resume.order.slice();
             playlistIdx = Number.isFinite(+resume.idx) ? (+resume.idx) : 0;
-            // UWAGA: playlistIdx wskazuje "aktualny", a playNextTrack zaraz wybierze playlist[playlistIdx % n]
-            // więc nie +1 tutaj
+
             return true;
           }
         }
 
-        // fallback: normalnie
+        // fallback
         playlist = list.slice();
         if (CFG.BG_SHUFFLE) shuffleInPlace(playlist);
         playlistIdx = 0;
@@ -484,8 +481,7 @@
       const isResume = !!resume;
 
 
-      // tasuj tylko na granicy 
-      // tasuj kolejność, ale tylko jeśli nie wznawiamy po F5
+      // roll tylko na granicy 
       if (!isResume && CFG.BG_SHUFFLE && n > 1 && pos === 0) {
         shuffleInPlace(playlist);
       }
@@ -536,7 +532,7 @@
 
 
     function startAmbientAudio() {
-      // jeżeli już gra – nic nie rób
+      // jeżeli już gra – stop
       if (bg && !bg.paused) return true;
       return playNextTrack();
     }
@@ -559,7 +555,6 @@
       startAmbientAudio();
     }
 
-    // łap interakcję wcześnie (capture), żeby audio działało nawet gdy overlay blokuje klik
     ctx.on(document, "pointerdown", unlockAudioOnce, { once: true, capture: true });
     ctx.on(document, "keydown", unlockAudioOnce, { once: true, capture: true });
 
@@ -752,7 +747,7 @@
         }
 
         function openGate() {
-          // spróbuj odpalić audio (jak już odblokowane interakcją – zadziała)
+          // spróbuj odpalić audio 
           startAmbientAudio();
 
           // guard: nie duplikuj
@@ -767,19 +762,9 @@
           const modal = document.createElement("div");
           modal.className = "kys-modal";
 
-          // const h = document.createElement("h2");
-          // h.className = "kys-title";
-          // h.textContent = CFG.TITLE;
-
-          // const s = document.createElement("p");
-          // s.className = "kys-sub";
-          // s.textContent = CFG.SUBTITLE;
-
           msg = document.createElement("div");
           msg.className = "kys-msg";
 
-          // modal.appendChild(h);
-          // modal.appendChild(s);
 
           // PASS handler
           function passGate() {
@@ -790,11 +775,11 @@
           }
 
           
-          // kontener na treść trybu (żeby przełączać bez zamykania modala)
+          // kontener na treść trybu
       const body = document.createElement("div");
       modal.appendChild(body);
 
-      // pasek wyboru trybu: ← / → + wskaźnik
+      // pasek wyboru trybu
       let mode = loadMode(); // "findBoy" albo "sudoku4"
 
       const picker = document.createElement("div");
@@ -901,7 +886,6 @@
       }
     };
 
-    // UWAGA: init wywołuje runtime (tak jak w innych pluginach)
     window.BingoPluginRuntime?.initUserPlugin?.();
   });
 })();

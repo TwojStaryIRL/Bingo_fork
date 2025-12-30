@@ -157,7 +157,7 @@
         badgeShuffle.classList.toggle("btn-badge--disabled", shufflesLeft <= 0);
       }
 
-      // ✅ reroll przy 0 ma być zablokowany
+      // reroll przy 0 ma być zablokowany
       if (btnReroll) btnReroll.disabled = (rerollsLeft <= 0);
 
       // shuffle/pick bez planszy = off
@@ -251,7 +251,7 @@
       });
     }
 
-    // ========= UNLOCK FLOW pod btnReroll (iluzja wyboru; odejmowanie licznika z DB) =========
+    // ========= UNLOCK FLOW pod btnReroll =========
     async function initThenUnlockOnce() {
       // 1) init
       const initRes = await fetchJsonSafe(endpoints.init, {
@@ -325,13 +325,9 @@
             return;
           }
 
-          // ✅ sukces: aktualizuj licznik z DB
+          // sukces: aktualizuj licznik z DB
           if (typeof data?.rerolls_left === "number") rerollsLeft = data.rerolls_left;
           paintBadges();
-
-          // etykieta: jeśli licznik spadł do 0, nie cofamy na ROLL (template i tak ustawi po reload)
-          // jeśli chcesz 100% pewności, odkomentuj:
-          // btnReroll.textContent = "REROLL";
 
           await waitForAudioEnd(audioRerollId, 3200);
           location.reload();

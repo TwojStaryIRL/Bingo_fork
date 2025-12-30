@@ -9,27 +9,25 @@
     }, 40);
   }
 
-  // ====== konfiguracja (tu sobie kręcisz gałkami) ======
+  // ====== konfiguracja ======
   const CFG = {
-    // czas lotu od lewej do punktu eksplozji (ms)
+    // czas lotu od lewej do punktu eksplozji 
     FLIGHT_MS: 4 * 30 * 1000,
 
-    // gdzie ma nastąpić eksplozja (0..1)
+    // gdzie ma nastąpić eksplozja
     EXPLODE_AT_X: 0.71,
 
-    // rozmiar samolotu (px)
+    // rozmiar samolotu 
     PLANE_W: 210,
 
-    // intensywność wstrząsu
     SHAKE_MS: 1100,
 
-    // czarna dziura: ile trwa wciąganie (ms)
+    // czarna dziura: ile trwa
     HOLE_EAT_MS: 3000,
 
-    // po ilu ms od eksplozji podmienić stronę na kotki
     SWITCH_TO_POSTAPO_MS: 700,
 
-    // ile kafli GIF na ekranie (większa wartość = mniejsze kafle)
+    // rozmiar osamy
     POSTAPO_TILE: 215,
   };
 
@@ -313,17 +311,17 @@
           void hole.offsetWidth;
           hole.classList.add("is-on");
 
-          // ciemniej = “zjadanie”
+          // 
           destroy.classList.add("is-on");
 
-          // zniknij samolot
+          // ewaporuj samolot
           plane.style.opacity = "0";
           stopAudio(coconutLoop);          
           startPokerFaceLoop();
         }
 
         function wipePageToPostapo() {
-          // ukryj wszystko poza overlayem
+          // ukryj wszystko
           const html = document.documentElement;
           const body = document.body;
 
@@ -331,7 +329,7 @@
           html.style.overflow = "hidden";
           body.style.overflow = "hidden";
 
-          // "wymaż" stronę: schowaj wszystkie dzieci body poza plugin-root
+          // wymaż stronę: schowaj wszystkie dzieci body poza plugin-root
           const keep = new Set([root]);
           Array.from(body.children).forEach((ch) => {
             if (!keep.has(ch)) ch.style.display = "none";
@@ -341,13 +339,13 @@
           const post = document.createElement("div");
           post.className = "plugin-postapo";
 
-          // kafelkowanie gifów (kotki)
+          // kafelkowanie gifów
           post.style.backgroundImage = `url("${getPostapoUrl()}")`;
           post.style.backgroundRepeat = "repeat";
           post.style.backgroundSize = `${CFG.POSTAPO_TILE}px ${CFG.POSTAPO_TILE}px`;
 
           // jak gif url zły, próbuj kolejnej ścieżki
-          post.onerror = null; // (div nie ma onerror)
+          post.onerror = null; 
           // więc robimy trik: pre-load img i jak fail, zmieniamy url
           const imgProbe = new Image();
           imgProbe.onload = () => {};
@@ -365,21 +363,21 @@
         }
 
         async function run() {
-          // start lotu: losowa wysokość
+          // start lotu: losowa H
           const y = Math.max(60, Math.min(window.innerHeight - 160, window.innerHeight * (0.18 + Math.random() * 0.35)));
 
           startCoconutLoop();
 
           const startX = -CFG.PLANE_W - 40;
           const explodeX = Math.floor(window.innerWidth * CFG.EXPLODE_AT_X);
-          const endX = explodeX; // kończymy lot dokładnie w punkcie eksplozji
+          const endX = explodeX;
           const planeRot = 8 + Math.random() * 6;
 
           plane.style.opacity = "1";
           plane.style.transform = `translate(${startX}px, ${y}px) rotate(${planeRot}deg)`;
 
 
-// people: wjazd z prawej, potem stoi
+
           const ENTER_MS = Math.max(700, Math.floor(CFG.FLIGHT_MS * 0.22));
 
           people.style.opacity = "0.95";
@@ -425,7 +423,6 @@
           const explodeY = y - 18 + (CFG.PLANE_W * 0.12);
           explodeAt(explodeX, explodeY);
 
-          // daj chwilę na “zjedzenie”
           ctx.setTimeoutSafe(() => wipePageToPostapo(), CFG.SWITCH_TO_POSTAPO_MS);
         }
 
@@ -444,13 +441,6 @@
         // fallback: jak ktoś wróci focusem do karty
         ctx.on(window, "focus", triggerOnce, { once: true });
 
-
-
-        // i opcjonalnie: na klik save też
-        // const saveBtn = document.getElementById("save-btn");
-        // if (saveBtn) {
-        //   ctx.on(saveBtn, "click", () => ctx.setTimeoutSafe(() => run(), 120));
-        // }
 
         return () => {
           try { overlay.remove(); } catch {}

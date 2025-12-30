@@ -74,10 +74,10 @@
 
   const hooks = createHooks();
 
-  // overlay root (masz już <div id="plugin-root">)
+  // overlay root 
   function root() { return document.getElementById("plugin-root"); }
 
-  // tiles API (przenosi node, nie kopiuje)
+  // tiles API 
   function tilesAll() {
     return Array.from(document.querySelectorAll(".cell-wrapper"));
   }

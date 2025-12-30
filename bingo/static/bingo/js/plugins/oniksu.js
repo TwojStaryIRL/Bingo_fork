@@ -7,7 +7,7 @@ window.BingoUserPlugin.init = function (api) {
     maxFloating: 6,
     vanishAnimMs: 1000,      // 1s fade→gray w tabeli / na stronie
     cloakMs: 7000,           // ile ma być "na niewidce" po zniknięciu
-    minGapMs: 45000,         // >= 45s miedzy tilesami znikającymi
+    minGapMs: 45000,         // 45s miedzy tilesami znikającymi
     sfxHideVol: 0.35,
     sfxRevealVol: 0.35,
 
@@ -18,7 +18,7 @@ window.BingoUserPlugin.init = function (api) {
     bottomPad: 10,
   };
 
-   // ===== SPACEGLIDING TOGGLE (self-contained, bez ruszania style.css) =====
+   // ===== SPACEGLIDING TOGGLE =====
   const SPACE = {
     GIF_URL: "/static/bingo/images/spacegliding.gif",
     GIF_OPACITY: 0.25,
@@ -87,13 +87,13 @@ window.BingoUserPlugin.init = function (api) {
 
   
 
-  // ---- MARQUEE + GIF overlay (tylko Spaceglide) ----
+  // ---- MARQUEE + GIF overlay ----
   let sgStyle = null;
   let sgWrap = null;
   let sgBgGif = null;
   let rowEls = null;
 
-  // losowanie stripów bez dupli w “paczce”
+  // losowanie stripów bez duplikatów 
   let stripBag = [];
   let stripK = 0;
   function nextStripSrc() {
@@ -121,7 +121,6 @@ window.BingoUserPlugin.init = function (api) {
     if (sgWrap) return;
 
     // 1) runtime “reset” tła z CSS (bez edycji style.css)
-    //    -> żeby nie mieć GIF-na-GIF, robimy inline override
     document.body.style.backgroundImage = "none";
     document.body.style.backgroundColor = "#000";
     // 2) GIF overlay
@@ -315,7 +314,7 @@ window.BingoUserPlugin.init = function (api) {
     }
   }
 
-  // UI - przycisk
+  // przycisk
   const root = document.getElementById("plugin-root") || document.body;
 
   const wrap = document.createElement("div");
@@ -494,7 +493,7 @@ function randomSidePos() {
     VanishOnce();
   }, 1000);
 
-  // Debug hotkey: Ctrl+Alt+P wymusza (ignoruje gap? NIE — respektuje gap)
+  // Debug hotkey
   api.ctx.on(document, "keydown", (e) => {
     if (e.ctrlKey && e.altKey && (e.key === "p" || e.key === "P")) {
       VanishOnce();
