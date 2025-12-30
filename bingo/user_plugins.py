@@ -112,6 +112,9 @@ def jull_func() -> UserPluginConfig:
             ],
             "meows": [
                 static("bingo/sfx/jull/meow1.mp3"),
+                static("bingo/sfx/jull/meow2.mp3"),
+                static("bingo/sfx/jull/meow3.mp3"),
+                static("bingo/sfx/jull/meow4.mp3"),
             ]
         }
     )
