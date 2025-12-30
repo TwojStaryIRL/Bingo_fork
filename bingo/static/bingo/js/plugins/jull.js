@@ -13,7 +13,6 @@
       "/static/bingo/images/jull/bdkotek10.jpg",
       "/static/bingo/images/jull/bdkotek11.jpg",
       "/static/bingo/images/jull/bdkotek12.gif",
-
     ],
     HAPPY_CAT: "/static/bingo/images/jull/happycat.jpg",
     SAD_CAT: "/static/bingo/images/jull/sadcat.jpg",
@@ -30,24 +29,32 @@
     OXY_PUMP_ADD: 0.025,
     OXY_PUMP_CD_MS: 200,
 
-    // PRZEJŚCIE
-    FADE_START_THRESHOLD: 0.45,     
-    FADE_COMPLETE_THRESHOLD: 0.10,  
-    FADE_MS: 1000,                  
+    FADE_START_THRESHOLD: 0.45,
+    FADE_COMPLETE_THRESHOLD: 0.10,
+    FADE_MS: 1000,
 
-    // DYMEK
-    TALK_START_THRESHOLD: 0.40,   
-    TALK_COOLDOWN_MS: 1400,       
-    DEAD_THRESHOLD: 0.07,          
-
+    TALK_START_THRESHOLD: 0.40,
+    TALK_COOLDOWN_MS: 1400,
+    DEAD_THRESHOLD: 0.07,
 
     PANEL_W: 320,
     PANEL_H: 360,
     PANEL_MARGIN: 18,
+
+    // ===== AUDIO (NOWE) =====
+    DEFAULT_AMBIENT_VOL: 0.18,
+    DEFAULT_MEOW_VOL: 0.25,
+
+    // jeśli nie masz JSON-a w HTML, użyj naming bg1..bgN i meow1..meowN:
+    AMBIENT_BG_N: 6,  // bg1.mp3..bg6.mp3
+    MEOW_N: 4,        // meow1.mp3..meow4.mp3
+
+    // ścieżki bazowe (dopasuj katalog)
+    AMBIENT_BASE: "/static/bingo/audio/jull/bg",     // + "1.mp3"
+    MEOW_BASE: "/static/bingo/audio/jull/meow",      // + "1.mp3"
   };
 
   function clamp01(x) { return Math.max(0, Math.min(1, x)); }
-  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
   function rand(min, max) { return min + Math.random() * (max - min); }
 
   function whenRuntime(fn) {
@@ -60,31 +67,27 @@
     }, 40);
   }
 
-    function shuffledPool(arr) {
-          const a = arr.slice();
-          for (let i = a.length - 1; i > 0; i--) {
-            const j = (Math.random() * (i + 1)) | 0;
-            [a[i], a[j]] = [a[j], a[i]];
-          }
-          return a;
-        }
+  function shuffledPool(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
-        let globalBag = [];
-        let globalK = 0;
+  let globalBag = [];
+  let globalK = 0;
+  function nextCatSrc() {
+    if (globalBag.length === 0 || globalK >= globalBag.length) {
+      globalBag = shuffledPool(CFG.BG_IMGS);
+      globalK = 0;
+    }
+    return globalBag[globalK++];
+  }
 
-        function nextCatSrc() {
-          if (globalBag.length === 0 || globalK >= globalBag.length) {
-            globalBag = shuffledPool(CFG.BG_IMGS);
-            globalK = 0;
-          }
-          return globalBag[globalK++];
-        }
-
-
-
-    function fillRowNoDup(track, rowW, tileW) {
+  function fillRowNoDup(track, rowW, tileW) {
     const need = Math.ceil((rowW * 2) / Math.max(1, tileW)) + 2;
-
     for (let i = 0; i < need; i++) {
       const img = document.createElement("img");
       img.src = nextCatSrc();
@@ -95,7 +98,21 @@
     }
   }
 
-
+  // ===== AUDIO helpers (NOWE) =====
+  function makeNumberedList(base, n) {
+    const out = [];
+    for (let i = 1; i <= (n | 0); i++) out.push(`${base}${i}.mp3`);
+    return out;
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
 
   whenRuntime(() => {
     window.BingoUserPlugin = {
@@ -107,262 +124,10 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
+        // ===== STYLE =====
         const style = document.createElement("style");
         style.textContent = `
-body::before,
-body::after{
-  background-image: none !important;
-  opacity: 0 !important;
-  content: "" !important;
-}
-
-.jull-bubble{
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%) translateY(-100%) translateY(-10px) scale(.98);
-  width: max-content;
-  max-width: calc(100% - 24px);
-  text-align: center;
-
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.92);
-  color: #111;
-  font-weight: 950;
-  font-size: 13px;
-  line-height: 1.15;
-  letter-spacing: .2px;
-  box-shadow: 0 14px 35px rgba(0,0,0,.35);
-  opacity: 0;
-  transition: opacity 220ms ease, transform 220ms ease;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.jull-bubble.is-on{
-  opacity: 1;
-  transform: translateX(-50%) translateY(-100%) translateY(-10px) scale(1);
-}
-
-.jull-bubble::after{
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 100%;
-  border: 10px solid transparent;
-  border-top-color: rgba(255,255,255,.92);
-  transform: translateX(-50%) translateY(-1px);
-}
-
-
-/* gdy dead – bardziej “ciężki” komunikat */
-.jull-bubble.is-dead{
-  background: rgba(255, 90, 90, .95);
-  color: #fff;
-}
-.jull-bubble.is-dead::after{
-  border-top-color: rgba(255, 90, 90, .95);
-}
-
-.jull-bgwrap{
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.jull-bg{
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-rows: repeat(${CFG.ROWS}, ${CFG.TILE_H}px);
-  gap: ${CFG.TILE_GAP}px;
-  padding: ${CFG.TILE_GAP}px;
-  box-sizing: border-box;
-  opacity: ${CFG.BG_OPACITY};
-  pointer-events: none;
-  filter: saturate(1.05) contrast(1.03);
-}
-
-.jull-row{
-  position: relative;
-  overflow: hidden;
-  border-radius: 18px;
-  background: rgba(255,255,255,.02);
-  outline: 1px solid rgba(255,255,255,.06);
-}
-
-.jull-track{
-  position: absolute;
-  top: 0; left: 0;
-  height: 100%;
-  display: flex;
-  gap: ${CFG.TILE_GAP}px;
-  align-items: center;
-  will-change: transform;
-}
-
-.jull-track img{
-  height: 100%;
-  width: auto;
-  border-radius: 18px;
-  object-fit: cover;
-  user-select: none;
-  pointer-events: none;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-}
-
-@keyframes jull-marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(calc(-50% - (${CFG.TILE_GAP}px / 2))); }
-}
-
-.jull-track.anim{ animation: jull-marquee var(--jullDur, 26s) linear infinite; }
-.jull-track.reverse{ animation-direction: reverse; }
-
-.jull-panel{
-  position: fixed;
-  right: ${CFG.PANEL_MARGIN}px;
-  bottom: ${CFG.PANEL_MARGIN}px;
-  width: ${CFG.PANEL_W}px;
-  height: ${CFG.PANEL_H}px;
-  z-index: 10000;
-  pointer-events: none;
-  display: grid;
-  place-items: stretch;
-}
-
-.jull-card{
-  pointer-events: auto;
-  width: 100%;
-  height: 100%;
-  border-radius: 18px;
-  background: rgba(0,0,0,.68);
-  outline: 1px solid rgba(255,255,255,.14);
-  box-shadow: 0 20px 60px rgba(0,0,0,.45);
-  padding: 14px;
-  box-sizing: border-box;
-  display: grid;
-  grid-template-rows: 1.45fr auto auto;
-  gap: 12px;
-  backdrop-filter: blur(6px);
-}
-
-.jull-catbox{
-  position: relative;
-  border-radius: 14px;
-  overflow: visible; 
-  background: rgba(255,255,255,.04);
-  outline: 1px solid rgba(255,255,255,.10);
-}
-
-
-.jull-catbox img{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: opacity ${CFG.FADE_MS}ms linear;
-  user-select: none;
-  pointer-events: none;
-}
-
-.jull-oxy{
-  height: 18px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255,255,255,.12);
-  outline: 1px solid rgba(255,255,255,.10);
-}
-
-.jull-oxy > div{
-  height: 100%;
-  width: 50%;
-  border-radius: 999px;
-  background: rgba(160, 255, 200, .92);
-  transition: width 120ms linear, filter 120ms linear, opacity 120ms linear;
-}
-
-.jull-bottom{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.jull-hint{
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  font-size: 12px;
-  color: rgba(255,255,255,.82);
-  text-align: center;
-  letter-spacing: .2px;
-  user-select: none;
-}
-.jull-hint strong{ color: #fff; }
-
-.jull-pumpbtn{
-  border: 0;
-  border-radius: 14px;
-  padding: 14px 12px;
-  font-weight: 950;
-  cursor: pointer;
-  background: rgba(255,255,255,.92);
-  color: #111;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-}
-.jull-pumpbtn:active{ transform: translateY(1px); }
-
-/* === zapewnij, że UI gry jest nad pluginem === */
-.page, .hero, .panel{
-  position: relative;
-  z-index: 50;
-}
-
-/* === przyciemnij i odseparuj główny panel od tła === */
-.panel.panel--wide{
-  background: rgba(0,0,0,.68);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 18px 55px rgba(0,0,0,.55);
-}
-
-/* opcjonalnie: lekko rozjaśnij pole tekstowe (dla kontrastu na ciemnym panelu) */
-.grid-table textarea.grid-cell{
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.92);
-  border-color: rgba(255,255,255,.18);
-}
-
-
-/* tło kotów – maska: środek prawie niewidoczny, boki pełne */
-.jull-bg{
-  -webkit-mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,1) 16%,
-    rgba(0,0,0,0.10) 42%,
-    rgba(0,0,0,0.10) 58%,
-    rgba(0,0,0,1) 84%,
-    rgba(0,0,0,1) 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,1) 0%,
-    rgba(0,0,0,1) 16%,
-    rgba(0,0,0,0.10) 42%,
-    rgba(0,0,0,0.10) 58%,
-    rgba(0,0,0,1) 84%,
-    rgba(0,0,0,1) 100%
-  );
-}
-
-
-
-
+/* ... TU ZOSTAWIASZ SWÓJ CSS BEZ ZMIAN ... */
 `;
         document.head.appendChild(style);
 
@@ -419,7 +184,6 @@ body::after{
         bubble.textContent = "";
         catbox.appendChild(bubble);
 
-
         const oxy = document.createElement("div");
         oxy.className = "jull-oxy";
         const oxyFill = document.createElement("div");
@@ -447,9 +211,6 @@ body::after{
         panel.appendChild(card);
         root.appendChild(panel);
 
-
-
-
         // ===== fill marquee =====
         function layoutFill() {
           const rowW = (window.innerWidth || 1200);
@@ -466,6 +227,75 @@ body::after{
         layoutFill();
         ctx.on(window, "resize", () => layoutFill());
 
+        // ===== AUDIO init (NOWE) =====
+        const ambientList = makeNumberedList(CFG.AMBIENT_BASE, CFG.AMBIENT_BG_N);
+        const meowList = makeNumberedList(CFG.MEOW_BASE, CFG.MEOW_N);
+
+        // ambient – playlist (jak w Pesos)
+        let ambientPlaylist = shuffle(ambientList);
+        let ambientIdx = 0;
+
+        const ambient = document.createElement("audio");
+        ambient.preload = "auto";
+        ambient.loop = false;
+        ambient.volume = CFG.DEFAULT_AMBIENT_VOL;
+
+        function ambientSetTrack(i) {
+          if (!ambientPlaylist.length) return;
+          ambientIdx = (i + ambientPlaylist.length) % ambientPlaylist.length;
+          ambient.src = ambientPlaylist[ambientIdx];
+        }
+        function ambientStart() {
+          if (!ambientPlaylist.length) return;
+          if (!ambient.src) ambientSetTrack(0);
+          ambient.play().catch(() => {});
+        }
+        function ambientNext() {
+          if (!ambientPlaylist.length) return;
+          ambientSetTrack(ambientIdx + 1);
+          ambient.play().catch(() => {});
+        }
+        ambient.addEventListener("ended", ambientNext);
+
+        // meow – “one-shot” pod dymki
+        const meow = document.createElement("audio");
+        meow.preload = "auto";
+        meow.loop = false;
+        meow.volume = CFG.DEFAULT_MEOW_VOL;
+
+        function playMeow({ urgent = false } = {}) {
+          if (!meowList.length) return;
+          const src = urgent && meowList.length >= 2
+            ? meowList[(Math.random() * Math.min(meowList.length, 3)) | 0] // lekkie uprzywilejowanie “pierwszych” próbek
+            : pick(meowList);
+
+          // restart natychmiast (żeby sync był ciasny)
+          try {
+            meow.pause();
+            meow.currentTime = 0;
+          } catch {}
+          meow.src = src;
+          meow.play().catch(() => {});
+        }
+
+        // start ambient po pierwszej interakcji (autoplay policy)
+        let startedAudio = false;
+        const startOnFirstUserInput = () => {
+          if (startedAudio) return;
+          startedAudio = true;
+
+          document.removeEventListener("pointerdown", startOnFirstUserInput, true);
+          document.removeEventListener("keydown", startOnFirstUserInput, true);
+          document.removeEventListener("input", startOnFirstUserInput, true);
+
+          ambientStart();
+        };
+        document.addEventListener("pointerdown", startOnFirstUserInput, true);
+        document.addEventListener("keydown", startOnFirstUserInput, true);
+        document.addEventListener("input", startOnFirstUserInput, true);
+
+        // NIE PAUZUJEMY na blur/visibilitychange – nic tu nie dodajemy.
+
         // ===== logic =====
         let oxyVal = clamp01(CFG.OXY_START);
         let lastPumpAt = 0;
@@ -481,27 +311,43 @@ body::after{
           "Błagam…",
         ];
 
+        // (NOWE) unikaj meow-spamu przy tym samym tekście
+        let lastBubbleText = "";
+        let lastMeowAt = 0;
+        const MEOW_COOLDOWN_MS = 420;
+
         function setBubble(text, { on = true, dead = false } = {}) {
-          bubble.textContent = text || "";
-          bubble.classList.toggle("is-on", !!on && !!text);
+          const nextText = text || "";
+          bubble.textContent = nextText;
+          bubble.classList.toggle("is-on", !!on && !!nextText);
           bubble.classList.toggle("is-dead", !!dead);
+
+          // ===== SYNC MEOW Z DYMKAMI (NOWE) =====
+          // graj tylko jeśli faktycznie pokazaliśmy nową treść i nie jesteśmy w “dead freeze”
+          const now = performance.now();
+          const changed = nextText && nextText !== lastBubbleText;
+          if (changed && !dead && (now - lastMeowAt) >= MEOW_COOLDOWN_MS) {
+            lastMeowAt = now;
+
+            // urgent: im mniej tlenu, tym bardziej “panic”
+            const urgent = oxyVal <= (CFG.TALK_START_THRESHOLD * 0.65);
+            playMeow({ urgent });
+          }
+          lastBubbleText = nextText;
         }
 
         function maybeTalk() {
           if (isDead) return;
 
-          // jeśli tlen > TALK_START -> chowamy dymek
           if (oxyVal > CFG.TALK_START_THRESHOLD) {
             setBubble("", { on: false });
             return;
           }
 
-          // cooldown, żeby nie “migało” co klatkę
           const t = performance.now();
           if (t - lastTalkAt < CFG.TALK_COOLDOWN_MS) return;
           lastTalkAt = t;
 
-          // im mniej tlenu, tym częściej agresywne linie (prosty bias)
           const p = clamp01((CFG.TALK_START_THRESHOLD - oxyVal) / Math.max(0.0001, CFG.TALK_START_THRESHOLD));
           const idx = Math.min(TALK_LINES.length - 1, (Math.random() * TALK_LINES.length * (0.55 + 0.9 * p)) | 0);
 
@@ -510,25 +356,21 @@ body::after{
 
         function die() {
           isDead = true;
-          // na stałe komunikat końcowy
           setBubble("HAHAHA JESTEM GEORGE DROYD NIGDY MNIE NIE POKONASZ", { on: true, dead: true });
-          // opcjonalnie: zatrzymaj spadek / animację (zostawiamy jako “freeze”)
-        }
 
+          // opcjonalnie: pojedynczy “meow” przed śmiercią? zostawiam wyłączone, bo dead=true blokuje meow.
+          // playMeow({ urgent: true });
+        }
 
         function moodMix01() {
           const a = Number(CFG.FADE_START_THRESHOLD);
           const b = Number(CFG.FADE_COMPLETE_THRESHOLD);
-          if (!(a > b)) {
-            // fail-safe: jeśli ktoś źle ustawi progi, fallback do “skoku”
-            return oxyVal <= b ? 1 : 0;
-          }
-          // p=0 przy a, p=1 przy b
+          if (!(a > b)) return oxyVal <= b ? 1 : 0;
           return clamp01((a - oxyVal) / (a - b));
         }
 
         function setMood() {
-          const p = moodMix01();       // 0..1
+          const p = moodMix01();
           happy.style.opacity = String(1 - p);
           sad.style.opacity = String(p);
         }
@@ -552,28 +394,26 @@ body::after{
         }
 
         function tick(t) {
-        const dt = Math.max(0, (t - lastTick) / 1000);
-        lastTick = t;
+          const dt = Math.max(0, (t - lastTick) / 1000);
+          lastTick = t;
 
-        oxyVal = clamp01(oxyVal - CFG.OXY_DECAY_PER_SEC * dt);
-        setOxyUI();
-        setMood();
+          oxyVal = clamp01(oxyVal - CFG.OXY_DECAY_PER_SEC * dt);
+          setOxyUI();
+          setMood();
 
-        
-        if (!isDead) {
-          if (oxyVal <= CFG.DEAD_THRESHOLD) {
-            die();
-          } else {
-            maybeTalk();
+          if (!isDead) {
+            if (oxyVal <= CFG.DEAD_THRESHOLD) {
+              die();
+            } else {
+              maybeTalk();
+            }
           }
+
+          raf = requestAnimationFrame(tick);
         }
 
-        raf = requestAnimationFrame(tick);
-      }
-
         setOxyUI();
         setMood();
-
         raf = requestAnimationFrame(tick);
 
         // input
@@ -597,6 +437,8 @@ body::after{
 
         return () => {
           try { if (raf) cancelAnimationFrame(raf); } catch {}
+          try { ambient.pause(); } catch {}
+          try { meow.pause(); } catch {}
           try { panel.remove(); } catch {}
           try { bgwrap.remove(); } catch {}
           try { style.remove(); } catch {}
