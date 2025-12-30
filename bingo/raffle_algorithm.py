@@ -46,8 +46,9 @@ def extract_pool_for_user(current_user) -> List[PoolItem]:
             assigned_user = (c.get("assigned_user") or "").strip()
             cell_id = c.get("cell")
 
-            if not text:
+            if not text or not assigned_user:
                 continue
+            
             if assigned_user and assigned_user == current_user.username:
                 continue
 
