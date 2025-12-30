@@ -45,8 +45,8 @@
 
     // AUDIO (jak Pesos)
     DEFAULT_AMBIENT_VOLUME: 0.18,
-    DEFAULT_MEOW_VOLUME: 0.55,
-    MEOW_COOLDOWN_MS: 420, // żeby nie spamować próbki co klatkę
+    DEFAULT_MEOW_VOLUME: 0.25,
+    MEOW_COOLDOWN_MS: 700, // żeby nie spamować próbki co klatkę
   };
 
   function clamp01(x) { return Math.max(0, Math.min(1, x)); }
