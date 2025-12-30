@@ -40,6 +40,9 @@
                     <div class="raffle-tile">
                       <div class="raffle-text">
                         {% if cell %}{{ cell.text }}{% else %}—{% endif %}
+                          {% if cell.assigned_user %}
+                              <div class="cell-user">
+                          {{ cell.assigned_user }}
                       </div>
                     </div>
                   {% endfor %}
