@@ -2,6 +2,9 @@
 
 import json
 import re
+import io
+import zipfile
+import random
 
 from django.contrib.staticfiles import finders
 from django.http import JsonResponse, HttpResponseBadRequest
@@ -12,7 +15,13 @@ from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.db import transaction
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
+from django.http import HttpResponse
 
+
+from .pdf import render_bingo_pdf
+from django.core.files.base import ContentFile 
 from .user_plugins import get_user_plugin
 from .models import BingoBoard,RaffleState
 from .raffle_algorithm import generate_initial_state,reroll_one_grid,consume_shuffle,to_grids_2d
@@ -452,3 +461,66 @@ def raffle_pick_save(request):
         # )
 
         return JsonResponse({"ok": True, "saved": True, "picked_grid_index": grid_idx}, status=200)
+ 
+ 
+User = get_user_model()
+
+@staff_member_required
+def export_all_bingo_pdfs(request):
+    buffer = io.BytesIO()
+    zip_file = zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED)
+
+    users = User.objects.filter(
+        is_active=True,
+        is_staff=False,
+        is_superuser=False
+    )
+
+    for user in users:
+        try:
+            state = user.raffle_state
+        except RaffleState.DoesNotExist:
+            continue
+
+        # 🔹 jeśli PDF już istnieje → użyj
+        if state.generated_board_pdf:
+            with state.generated_board_pdf.open("rb") as f:
+                zip_file.writestr(
+                    f"{user.username}-bingo.pdf",
+                    f.read()
+                )
+            continue
+
+        # 🔹 bierzemy TYLKO wybrany grid
+        payload = state.saved_board_payload
+        if not payload or not payload.get("grid"):
+            continue
+
+        # 🔹 generuj PDF
+        pdf_buffer = render_bingo_pdf(
+            payload=payload,
+            username=user.username
+        )
+
+        # 🔹 zapisz do DB
+        state.generated_board_pdf.save(
+            f"{user.username}-bingo.pdf",
+            ContentFile(pdf_buffer.getvalue()),
+            save=True
+        )
+
+        # 🔹 dorzuć do ZIP
+        zip_file.writestr(
+            f"{user.username}-bingo.pdf",
+            pdf_buffer.getvalue()
+        )
+
+    zip_file.close()
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/zip"
+    )
+    response["Content-Disposition"] = 'attachment; filename="bingo_all.zip"'
+    return response

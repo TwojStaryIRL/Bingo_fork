@@ -25,6 +25,7 @@ from bingo.views import raffle_shuffle_use
 from bingo.views import raffle_unlock_next
 from bingo.views import raffle_init
 from bingo.views import raffle_pick_save
+from bingo.views import export_all_bingo_pdfs
 
 
 
@@ -42,5 +43,6 @@ urlpatterns = [
     path("raffle/unlock/", raffle_unlock_next, name="raffle_unlock_next"),
     path("raffle/init/", raffle_init, name="raffle_init"),
     path("raffle/pick/", raffle_pick_save, name="raffle_pick_save"),
+    path("admin/export-bingo/", export_all_bingo_pdfs, name="export_all_bingo_pdfs"),
 ]
 

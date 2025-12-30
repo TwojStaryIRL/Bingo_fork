@@ -102,6 +102,12 @@
   }
 </script>
 
+{% if request.user.is_staff %}
+  <a href="{% url 'export_all_bingo_pdfs' %}" class="btn btn--danger">
+    POBIERZ WSZYSTKIE BINGO
+  </a>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
