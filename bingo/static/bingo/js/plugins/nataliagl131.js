@@ -260,6 +260,9 @@ ${CFG.DIM_UI ? `
   transition: opacity 140ms ease;
 }
 .ast-img.is-on { opacity: var(--o); }
+
+.ast-bottom{ height: 62vh; }
+
 `;
 
         document.head.appendChild(style);
