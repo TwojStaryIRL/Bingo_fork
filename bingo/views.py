@@ -440,7 +440,7 @@ def raffle_pick_save(request):
             for c, cell in enumerate(row):
                 if isinstance(cell, dict):
                     text = (cell.get("text") or "—").strip() or "—"
-                    au = (cell.get("assigned_user") or "").strip()  # <- właściwy autor pola
+                    au = (cell.get("assigned_user") or "").strip()
                 else:
                     text = "—"
                     au = ""
@@ -448,8 +448,9 @@ def raffle_pick_save(request):
                 picked_cells.append({
                     "cell": r * size + c,
                     "text": text,
-                    "assigned_user": au,
+                    "assigned_user": au,   # prawdziwy owner pola 
                 })
+
 
 
         picked_payload = {
