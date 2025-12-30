@@ -267,6 +267,41 @@ ${CFG.DIM_UI ? `
   height: auto;  /* wysokość wynika z top->bottom */
 }
 
+.ast-bottom{
+  top: 56vh;           /* jak masz */
+  transform: translateY(-40px);  /* overlap 40px usuwa czarny pasek */
+}
+
+.ast-top{
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 82%,
+    rgba(0,0,0,0.35) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 82%,
+    rgba(0,0,0,0.35) 100%
+  );
+}
+
+.ast-bg::after{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  top: 54vh;
+  height: 120px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,0.25) 50%,
+    rgba(0,0,0,0) 100%
+  );
+  pointer-events:none;
+}
+
 `;
 
         document.head.appendChild(style);
