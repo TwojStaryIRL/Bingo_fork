@@ -59,7 +59,7 @@
   };
 
   const BG = {
-    TOP: "/static/bingo/images/nataliagl131/bgtop.jpg",
+    TOP: "/static/bingo/images/nataliagl131/bg_top.jpg",
     BOTTOM_POOL: ASSETS.images.filter((x) => /puppy/i.test(x)),
   };
 
