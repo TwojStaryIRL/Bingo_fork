@@ -16,16 +16,10 @@
     SCALE_MAX: 0.77,
     OPACITY: 0.6,
 
-    // === audio (jak u Pesosa) ===
+    // audio
     DEFAULT_VOLUME: 0.18,
 
-    // === "Pesos vibe" – przyciemnij UI ===
-    DIM_BODY_SIGMAS: true,
-    PANEL_BG: "rgba(0,0,0,.68)",
-    PANEL_BORDER: "rgba(255,255,255,.10)",
-    PANEL_SHADOW: "0 18px 55px rgba(0,0,0,.55)",
-
-    // === puppies in bottom half (STATIC per page load) ===
+    // puppies (static, bottom half)
     PUPPY_COUNT: 10,
     PUPPY_SCALE_MIN: 0.22,
     PUPPY_SCALE_MAX: 0.48,
@@ -33,6 +27,11 @@
     PUPPY_ROT_MIN: -10,
     PUPPY_ROT_MAX: 10,
     PUPPY_PAD: 18,
+
+    // “Pesos vibe” — delikatne przyciemnienie, ale bez rozwalania layoutu
+    DIM_UI: true,
+    DIM_PANEL_BG: "rgba(0,0,0,.55)",
+    DIM_TILE_BG: "rgba(0,0,0,.22)",
   };
 
   const ASSETS = {
@@ -40,7 +39,7 @@
       "/static/bingo/images/nataliagl131/astarion1.gif",
       "/static/bingo/images/nataliagl131/astarion2.gif",
       "/static/bingo/images/nataliagl131/astarion3.gif",
-      "/static/bingo/images/nataliagl131/astarion5.gif",
+      "/static/bingo/images/nataliagl131/astarion5.gif", // <-- FIX: literówka
       "/static/bingo/images/nataliagl131/astarion6.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.jpg",
@@ -51,18 +50,25 @@
 
   const BG = {
     TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
-    BOTTOM_POOL: ASSETS.images.filter(x => /puppy/i.test(x)),
+    BOTTOM_POOL: ASSETS.images.filter((x) => /puppy/i.test(x)),
   };
 
   function getJSONScript(id, fallback = null) {
     const el = document.getElementById(id);
     if (!el) return fallback;
-    try { return JSON.parse(el.textContent || "null"); } catch { return fallback; }
+    try {
+      return JSON.parse(el.textContent || "null");
+    } catch {
+      return fallback;
+    }
   }
 
-  function rand(min, max) { return min + Math.random() * (max - min); }
-  function pickOne(arr) { return arr[(Math.random() * arr.length) | 0]; }
-
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
+  }
+  function pickOne(arr) {
+    return arr[(Math.random() * arr.length) | 0];
+  }
   function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -75,8 +81,11 @@
   function isTypingTarget(el) {
     if (!el) return false;
     const tag = el.tagName;
-    return tag === "TEXTAREA" ||
-      (tag === "INPUT" && ["text", "search", "email", "password"].includes(el.type));
+    return (
+      tag === "TEXTAREA" ||
+      (tag === "INPUT" &&
+        ["text", "search", "email", "password"].includes(el.type))
+    );
   }
 
   whenRuntime(() => {
@@ -86,6 +95,7 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
+        // ambient playlist (jak u Pesosa)
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient)
           ? pluginSfx.ambient.filter(Boolean)
@@ -93,40 +103,37 @@
 
         const style = document.createElement("style");
         style.textContent = `
-#plugin-root { position: relative; z-index: 2147483000; }
-
-/* (opcjonalnie) wyłącz "2 sigmy" z body */
-${CFG.DIM_BODY_SIGMAS ? `
-body::before,
-body::after{
-  background-image: none !important;
-  opacity: 0 !important;
-  content: "" !important;
+/* klucz: background ma być POD UI, a tylko "typing gify" NAD UI */
+#plugin-root{
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 1 !important; /* tło nisko */
 }
-` : ""}
 
-/* przyciemnij UI jak u Pesosa */
-.page, .hero, .panel{
+/* podbij UI nad tłem (bez ingerencji w layout) */
+.page, .hero, .panel, .plugin-toggle, .plugin-floating{
   position: relative;
-  z-index: 50;
+  z-index: 10;
 }
+
+/* delikatne przyciemnienie (bez agresywnego nadpisywania wszystkiego) */
+${CFG.DIM_UI ? `
 .panel{
-  background: ${CFG.PANEL_BG} !important;
-  border: 1px solid ${CFG.PANEL_BORDER} !important;
-  box-shadow: ${CFG.PANEL_SHADOW} !important;
+  background: ${CFG.DIM_PANEL_BG} !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 .grid-cell, .cell-wrapper, .raffle-tile{
-  background: rgba(0,0,0,.28) !important;
-  border-color: rgba(255,255,255,.10) !important;
+  background: ${CFG.DIM_TILE_BG} !important;
 }
+` : ""}
 
 /* ===== background split ===== */
 .ast-bg{
   position: fixed;
   inset: 0;
-  z-index: 2147483644;
+  z-index: 1;              /* POD UI */
   pointer-events: none;
 }
 .ast-bg::before{
@@ -139,10 +146,10 @@ body::after{
   background-repeat: no-repeat;
   background-position: center top;
   background-size: 100% 100%;
-  opacity: 0.35;
+  opacity: 0.28;
 }
 
-/* dolna połówka – kontener na "statyczne pieski" */
+/* dolna połówka – kontener na statyczne pieski */
 .ast-puppyfield{
   position: absolute;
   left: 0; right: 0; bottom: 0;
@@ -162,11 +169,11 @@ body::after{
   user-select: none;
 }
 
-/* ===== floating images (typing wave) ===== */
+/* ===== typing wave (NAD UI) ===== */
 .ast-layer{
   position: fixed; inset: 0;
   pointer-events: none;
-  z-index: 2147483646;
+  z-index: 2147483646;    /* NAJWYŻEJ */
   overflow: hidden;
 }
 .ast-img{
@@ -184,7 +191,7 @@ body::after{
         `;
         document.head.appendChild(style);
 
-        // background layer
+        // ===== background layer (POD UI) =====
         const bg = document.createElement("div");
         bg.className = "ast-bg";
         root.appendChild(bg);
@@ -195,12 +202,12 @@ body::after{
         puppyField.className = "ast-puppyfield";
         bg.appendChild(puppyField);
 
-        // floating layer
+        // ===== overlay layer (NAD UI) =====
         const layer = document.createElement("div");
         layer.className = "ast-layer";
         root.appendChild(layer);
 
-        // === statyczne losowanie piesków (RAZ na load) ===
+        // ===== statyczne pieski (raz na load, zero migania) =====
         const puppyEls = [];
 
         function placePuppy(el) {
@@ -242,12 +249,11 @@ body::after{
         }
 
         buildStaticPuppies();
-
         ctx.on(window, "resize", () => {
           for (const el of puppyEls) placePuppy(el);
         });
 
-        // ===== AUDIO: start po pierwszym klik/klawisz/input, NIE pauzujemy na visibilitychange =====
+        // ===== AUDIO: start po pierwszym klik/klawisz/input, NIE pauzujemy na focus/visibility =====
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -261,19 +267,16 @@ body::after{
           idx = (i + playlist.length) % playlist.length;
           audio.src = playlist[idx];
         }
-
         function playStart() {
           if (!playlist.length) return;
           if (!audio.src) setTrack(0);
           audio.play().catch(() => {});
         }
-
         function playNext() {
           if (!playlist.length) return;
           setTrack(idx + 1);
           audio.play().catch(() => {});
         }
-
         audio.addEventListener("ended", () => {
           if (!playlist.length) return;
           playNext();
@@ -309,7 +312,7 @@ body::after{
 
         function rebuildIfAssetsChanged() {
           const set = new Set(ASSETS.images);
-          chosenPool = chosenPool.filter(x => set.has(x));
+          chosenPool = chosenPool.filter((x) => set.has(x));
         }
 
         function growChosenPoolTo(count) {
@@ -322,7 +325,7 @@ body::after{
 
           while (chosenPool.length < count) {
             const chosenSet = new Set(chosenPool);
-            const remaining = ASSETS.images.filter(x => !chosenSet.has(x));
+            const remaining = ASSETS.images.filter((x) => !chosenSet.has(x));
             if (!remaining.length) break;
             chosenPool.push(pickOne(remaining));
           }
@@ -395,6 +398,7 @@ body::after{
           }, CFG.IDLE_MS);
         }
 
+        // init pool
         growChosenPoolTo(countForIter(iter));
 
         ctx.on(document, "keydown", (e) => {
@@ -420,10 +424,13 @@ body::after{
             for (const img of imgs) img.classList.remove("is-on");
             isOn = false;
           }
-          if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+          if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+          }
         });
 
-        // visibilitychange: NIE ruszamy audio, żeby nie było pauzy/jumpscare po powrocie
+        // visibilitychange: nie dotykamy audio (żadnych jumpscare / pauz)
         ctx.on(document, "visibilitychange", () => {
           if (document.hidden) {
             for (const img of imgs) img.classList.remove("is-on");
@@ -434,7 +441,6 @@ body::after{
         return () => {
           try { if (idleTimer) clearTimeout(idleTimer); } catch {}
 
-          // audio cleanup
           try {
             document.removeEventListener("pointerdown", startOnFirstUserInput, true);
             document.removeEventListener("keydown", startOnFirstUserInput, true);
@@ -446,7 +452,7 @@ body::after{
           try { bg.remove(); } catch {}
           try { style.remove(); } catch {}
         };
-      }
+      },
     };
   });
 })();
