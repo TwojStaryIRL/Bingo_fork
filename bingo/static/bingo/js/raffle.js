@@ -310,7 +310,7 @@
             if (typeof result.data?.rerolls_left === "number") rerollsLeft = result.data.rerolls_left;
             paintBadges();
 
-            await waitForAudioEnd(audioRerollId, 3000);
+            await waitForAudioEnd(audioRerollId, 3200);
             location.reload();
             return;
 
@@ -332,7 +332,7 @@
           // jeśli chcesz 100% pewności, odkomentuj:
           // btnReroll.textContent = "REROLL";
 
-          await waitForAudioEnd(audioRerollId, 3000);
+          await waitForAudioEnd(audioRerollId, 3200);
           location.reload();
           return;
 
