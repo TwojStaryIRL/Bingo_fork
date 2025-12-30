@@ -477,10 +477,10 @@ def export_all_bingo_pdfs(request):
     )
 
     for user in users:
-        try:
-            state = user.raffle_state
-        except RaffleState.DoesNotExist:
+        state = getattr(user, "raffle_state", None)
+        if not state:
             continue
+
 
         # ===== 1 SPRÓBUJ ISTNIEJĄCY PDF =====
         if state.generated_board_pdf:
@@ -502,12 +502,17 @@ def export_all_bingo_pdfs(request):
         if not payload or not payload.get("grid"):
             gen = state.generated_board_payload or {}
             grids = gen.get("grids_2d")
+            unlocked = int(gen.get("unlocked_grids") or 0)
             size = int(gen.get("size") or 5)
 
-            if not isinstance(grids, list) or not grids:
+            if (
+                not isinstance(grids, list)
+                or unlocked <= 0
+                or len(grids) < unlocked
+            ):
                 continue
 
-            grid = random.choice(grids)
+            grid = random.choice(grids[:unlocked])
 
             picked_cells = []
             for r, row in enumerate(grid):
