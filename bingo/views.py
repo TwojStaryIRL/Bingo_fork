@@ -548,11 +548,7 @@ def export_all_bingo_pdfs(request):
         )
 
         # ===== ZAPISZ DO MODELU =====
-        state.generated_board_pdf.save(
-            f"{user.username}-bingo.pdf",
-            ContentFile(pdf_buffer.getvalue()),
-            save=True
-        )
+        zip_file.writestr(f"{user.username}-bingo.pdf", pdf_buffer.getvalue())
 
         # =====  DORZUĆ DO ZIP =====
         zip_file.writestr(
