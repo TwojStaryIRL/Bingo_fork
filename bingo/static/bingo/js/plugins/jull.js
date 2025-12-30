@@ -20,8 +20,8 @@
     ROWS: 6,
     TILE_H: 160,
     TILE_GAP: 14,
-    SPEED_MIN: 18,
-    SPEED_MAX: 36,
+    SPEED_MIN: 36,
+    SPEED_MAX: 72,
     BG_OPACITY: 0.22,
 
     OXY_START: 0.75,
@@ -45,8 +45,8 @@
 
     // AUDIO (jak Pesos)
     DEFAULT_AMBIENT_VOLUME: 0.18,
-    DEFAULT_MEOW_VOLUME: 0.25,
-    MEOW_COOLDOWN_MS: 700, // żeby nie spamować próbki co klatkę
+    DEFAULT_MEOW_VOLUME: 0.10,
+    MEOW_COOLDOWN_MS: 2000, // żeby nie spamować próbki co klatkę
   };
 
   function clamp01(x) { return Math.max(0, Math.min(1, x)); }
