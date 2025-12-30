@@ -975,3 +975,95 @@ body::after{
   opacity: 0.85;
   font-weight: 600;
 }
+
+/* ================================
+   RAFFLE 5x5 – UX / READABILITY FIX
+   ================================ */
+
+/* większy kontener – grid MUSI mieć miejsce */
+.panel--wide.panel--inner {
+  max-width: 1500px;
+}
+
+/* grid: większe kafelki + odstępy */
+.raffle-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-size), minmax(170px, 1fr));
+  gap: 18px;
+}
+
+/* pojedynczy kafelek */
+.raffle-tile {
+  min-height: 150px;
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+}
+
+/* wrapper tekstu */
+.raffle-text {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* =================
+   TREŚĆ POLA (TEXT)
+   ================= */
+.cell-text {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 4;          /* MAX 4 linie */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  margin-bottom: auto;
+}
+
+/* =================
+   NICK (DOŁ)
+   ================= */
+.cell-user {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  opacity: 0.75;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =================
+   PLACEHOLDER —
+   ================= */
+.raffle-tile .cell-text:only-child {
+  opacity: 0.45;
+}
+
+/* =================
+   RESPONSIVE (małe ekrany)
+   ================= */
+@media (max-width: 1200px) {
+  .raffle-grid {
+    grid-template-columns: repeat(var(--grid-size), minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .raffle-grid {
+    grid-template-columns: repeat(var(--grid-size), minmax(130px, 1fr));
+  }
+
+  .raffle-tile {
+    min-height: 130px;
+  }
+
+  .cell-text {
+    font-size: 0.9rem;
+    -webkit-line-clamp: 3;
+  }
+}
