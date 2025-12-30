@@ -35,21 +35,22 @@
   }
 
   function playRerollSoundAndBindOverlay(audioId, overlay) {
-    const audio = document.getElementById(audioId);
-    if (!audio) {
-      hideRerollOverlay(overlay);
-      return;
-    }
-
-    try { audio.currentTime = 0; } catch {}
-    const cleanup = () => hideRerollOverlay(overlay);
-
-    audio.addEventListener("ended", cleanup, { once: true });
-    audio.addEventListener("error", cleanup, { once: true });
-
-    const p = audio.play();
-    if (p && typeof p.catch === "function") p.catch(() => cleanup());
+  const audio = document.getElementById(audioId);
+  if (!audio) {
+    hideRerollOverlay(overlay);
+    return;
   }
+  audio.volume = 0.25;
+
+  try { audio.currentTime = 0; } catch {}
+  const cleanup = () => hideRerollOverlay(overlay);
+
+  audio.addEventListener("ended", cleanup, { once: true });
+  audio.addEventListener("error", cleanup, { once: true });
+
+  const p = audio.play();
+  if (p && typeof p.catch === "function") p.catch(() => cleanup());
+}
 
   async function fetchJsonSafe(url, opts) {
     const res = await fetch(url, opts);

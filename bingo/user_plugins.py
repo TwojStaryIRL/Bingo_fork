@@ -85,6 +85,9 @@ def Drymastero103_func() -> UserPluginConfig:
             "bonk": [
                 static("bingo/sfx/Drymastero103/bonk.mp3")
             ],
+            "owoc": [
+                static("bingo/sfx/stugsiana/owoc.mp3")
+            ],
         }
     )
 
