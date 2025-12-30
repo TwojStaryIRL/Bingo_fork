@@ -64,7 +64,7 @@
       <div class="raffle-actions">
         <div class="btn-wrap">
           <button class="btn btn--primary" type="button" id="btnReroll">
-            {% if unlock_left %}ROLL{% else %}REROLL{% endif %}
+            {% if rerolls_left|default_if_none:3 == 3 %}ROLL{% else %}REROLL{% endif %}
           </button>
           <div class="btn-badge" id="badgeReroll">{{ rerolls_left }}</div>
         </div>
