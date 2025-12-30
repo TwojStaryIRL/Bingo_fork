@@ -207,50 +207,85 @@ ${CFG.DIM_UI ? `
         layer.className = "ast-layer";
         root.appendChild(layer);
 
-        // ===== statyczne pieski (raz na load, zero migania) =====
+        // ===== statyczne pieski (szeregi, wymieszane) =====
         const puppyEls = [];
 
-        function placePuppy(el) {
+        // NEW: pozycjonowanie w siatce (rząd/kolumna), z losowym jitterem
+        function layoutPuppiesInRows() {
           const pad = CFG.PUPPY_PAD;
           const w = Math.max(1, window.innerWidth);
           const h = Math.max(1, Math.floor(window.innerHeight * 0.5));
 
-          const x = Math.floor(rand(pad, Math.max(pad + 1, w - pad)));
-          const y = Math.floor(rand(pad, Math.max(pad + 1, h - pad)));
+          // dobierz liczbę kolumn z grubsza pod szerokość
+          // (większa skala -> mniej kolumn, ale tu trzymamy to prosto)
+          const cols = Math.max(3, Math.min(8, Math.floor(w / 220)));
+          const rows = Math.max(1, Math.ceil(puppyEls.length / cols));
 
-          const s = rand(CFG.PUPPY_SCALE_MIN, CFG.PUPPY_SCALE_MAX);
-          const r = Math.floor(rand(CFG.PUPPY_ROT_MIN, CFG.PUPPY_ROT_MAX)) + "deg";
+          const cellW = (w - pad * 2) / cols;
+          const cellH = (h - pad * 2) / rows;
 
-          el.style.setProperty("--px", `${x}px`);
-          el.style.setProperty("--py", `${y}px`);
-          el.style.setProperty("--ps", `${s}`);
-          el.style.setProperty("--pr", r);
-          el.style.setProperty("--po", `${CFG.PUPPY_OPACITY}`);
+          for (let i = 0; i < puppyEls.length; i++) {
+            const el = puppyEls[i];
+
+            const c = i % cols;
+            const r = (i / cols) | 0;
+
+            // środek komórki + jitter
+            const baseX = pad + c * cellW + cellW * 0.5;
+            const baseY = pad + r * cellH + cellH * 0.5;
+
+            const jitterX = rand(-cellW * 0.28, cellW * 0.28);
+            const jitterY = rand(-cellH * 0.28, cellH * 0.28);
+
+            const s = rand(CFG.PUPPY_SCALE_MIN, CFG.PUPPY_SCALE_MAX);
+            const rot = Math.floor(rand(CFG.PUPPY_ROT_MIN, CFG.PUPPY_ROT_MAX)) + "deg";
+
+            // translate używa lewego-górnego rogu obrazka, więc przesuwamy na "środek"
+            const x = Math.floor(baseX + jitterX);
+            const y = Math.floor(baseY + jitterY);
+
+            el.style.setProperty("--px", `${x}px`);
+            el.style.setProperty("--py", `${y}px`);
+            el.style.setProperty("--ps", `${s}`);
+            el.style.setProperty("--pr", rot);
+            el.style.setProperty("--po", `${CFG.PUPPY_OPACITY}`);
+          }
         }
 
+        // NEW: mieszanie źródeł, żeby w każdym "rzędzie" było wymieszane
         function buildStaticPuppies() {
           puppyField.textContent = "";
           puppyEls.length = 0;
           if (!BG.BOTTOM_POOL.length) return;
 
           const n = Math.max(1, CFG.PUPPY_COUNT);
+
+          // bag z powtórzeniami, ale wymieszany
+          // (jeśli masz 3 pieski, a chcesz 10, to i tak się powtórzą, ale losowo)
+          const bag = [];
+          while (bag.length < n) {
+            bag.push(...shuffle(BG.BOTTOM_POOL));
+          }
+
           for (let i = 0; i < n; i++) {
             const img = document.createElement("img");
             img.className = "ast-puppy";
             img.alt = "";
             img.draggable = false;
             img.loading = "lazy";
-            img.src = pickOne(BG.BOTTOM_POOL);
-            placePuppy(img);
-
+            img.src = bag[i]; // <- wymieszane źródła
             puppyEls.push(img);
             puppyField.appendChild(img);
           }
+
+          // ułóż w rzędy (z jitterem), bez migania
+          layoutPuppiesInRows();
         }
 
         buildStaticPuppies();
         ctx.on(window, "resize", () => {
-          for (const el of puppyEls) placePuppy(el);
+          // przy resize NIE zmieniamy src, tylko przeliczamy ułożenie
+          layoutPuppiesInRows();
         });
 
         // ===== AUDIO: start po pierwszym klik/klawisz/input, NIE pauzujemy na focus/visibility =====
@@ -335,8 +370,12 @@ ${CFG.DIM_UI ? `
 
         function placeRandomly(el) {
           const pad = 18;
-          const x = Math.floor(rand(pad, Math.max(pad + 1, window.innerWidth - pad)));
-          const y = Math.floor(rand(pad, Math.max(pad + 1, window.innerHeight - pad)));
+          const x = Math.floor(
+            rand(pad, Math.max(pad + 1, window.innerWidth - pad))
+          );
+          const y = Math.floor(
+            rand(pad, Math.max(pad + 1, window.innerHeight - pad))
+          );
           const s = rand(CFG.SCALE_MIN, CFG.SCALE_MAX);
           const r = Math.floor(rand(-18, 18)) + "deg";
 
@@ -375,7 +414,8 @@ ${CFG.DIM_UI ? `
           }
 
           for (let i = 0; i < count; i++) imgs[i].classList.add("is-on");
-          for (let i = count; i < imgs.length; i++) imgs[i].classList.remove("is-on");
+          for (let i = count; i < imgs.length; i++)
+            imgs[i].classList.remove("is-on");
 
           isOn = true;
         }
@@ -439,18 +479,32 @@ ${CFG.DIM_UI ? `
         });
 
         return () => {
-          try { if (idleTimer) clearTimeout(idleTimer); } catch {}
+          try {
+            if (idleTimer) clearTimeout(idleTimer);
+          } catch {}
 
           try {
-            document.removeEventListener("pointerdown", startOnFirstUserInput, true);
+            document.removeEventListener(
+              "pointerdown",
+              startOnFirstUserInput,
+              true
+            );
             document.removeEventListener("keydown", startOnFirstUserInput, true);
             document.removeEventListener("input", startOnFirstUserInput, true);
           } catch {}
-          try { audio.pause(); } catch {}
+          try {
+            audio.pause();
+          } catch {}
 
-          try { layer.remove(); } catch {}
-          try { bg.remove(); } catch {}
-          try { style.remove(); } catch {}
+          try {
+            layer.remove();
+          } catch {}
+          try {
+            bg.remove();
+          } catch {}
+          try {
+            style.remove();
+          } catch {}
         };
       },
     };
