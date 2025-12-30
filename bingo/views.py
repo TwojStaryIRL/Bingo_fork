@@ -438,12 +438,19 @@ def raffle_pick_save(request):
                 return JsonResponse({"ok": False, "error": "Bad grid shape"}, status=409)
 
             for c, cell in enumerate(row):
-                text = (cell.get("text") or "—").strip() if isinstance(cell, dict) else "—"
+                if isinstance(cell, dict):
+                    text = (cell.get("text") or "—").strip() or "—"
+                    au = (cell.get("assigned_user") or "").strip()  # <- właściwy autor pola
+                else:
+                    text = "—"
+                    au = ""
+
                 picked_cells.append({
                     "cell": r * size + c,
                     "text": text,
-                    "assigned_user": request.user.username,  # albo "" jeśli wolisz
+                    "assigned_user": au,
                 })
+
 
         picked_payload = {
             "source": "raffle_pick",
