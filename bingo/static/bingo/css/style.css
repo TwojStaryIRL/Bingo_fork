@@ -1211,3 +1211,44 @@ body::after{
     --raffle-gap: 10px;
   }
 }
+/* ===========================
+   RAFFLE FIX: nie wyjeżdżaj w dół
+   (paste AFTER previous override)
+   =========================== */
+
+/* stage ma się mieścić w viewport razem z guzikami */
+.raffle-stage{
+  min-height: 0 !important;
+  height: auto !important;
+  padding-bottom: 0 !important;
+}
+
+/* daj realny limit wysokości na samą planszę */
+.raffle-shell{
+  /* miejsce na top + przyciski, więc nie 100vh */
+  max-height: calc(100vh - 230px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* grid niech się skaluje w dół, zamiast wypychać stronę */
+:root{
+  /* kafel dostosowany do wysokości: max 140px, ale spadnie jak trzeba */
+  --raffle-tile: clamp(72px, 8.6vh, 140px);
+  --raffle-gap: clamp(8px, 1.2vh, 14px);
+}
+
+/* jeśli dalej przycina — zmniejsz odstęp pod gridem */
+.raffle-actions{
+  margin-top: 10px !important;
+  padding-bottom: 6px !important;
+}
+
+/* awaryjnie: na niskich ekranach jeszcze mocniej w dół */
+@media (max-height: 760px){
+  :root{
+    --raffle-tile: clamp(64px, 7.8vh, 120px);
+    --raffle-gap: clamp(6px, 1vh, 10px);
+  }
+}
