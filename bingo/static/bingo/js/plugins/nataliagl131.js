@@ -26,13 +26,13 @@
     PANEL_SHADOW: "0 18px 55px rgba(0,0,0,.55)",
 
     // === puppies in bottom half (STATIC per page load) ===
-    PUPPY_COUNT: 10,            // ile piesków renderować na dole
-    PUPPY_SCALE_MIN: 0.22,      // skala pojedynczego pieska
+    PUPPY_COUNT: 10,
+    PUPPY_SCALE_MIN: 0.22,
     PUPPY_SCALE_MAX: 0.48,
     PUPPY_OPACITY: 0.18,
     PUPPY_ROT_MIN: -10,
     PUPPY_ROT_MAX: 10,
-    PUPPY_PAD: 18,              // margines od krawędzi
+    PUPPY_PAD: 18,
   };
 
   const ASSETS = {
@@ -40,7 +40,7 @@
       "/static/bingo/images/nataliagl131/astarion1.gif",
       "/static/bingo/images/nataliagl131/astarion2.gif",
       "/static/bingo/images/nataliagl131/astarion3.gif",
-      "/static/bingo/images/nataliogl131/astarion5.gif",
+      "/static/bingo/images/nataliagl131/astarion5.gif",
       "/static/bingo/images/nataliagl131/astarion6.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.gif",
       "/static/bingo/images/nataliagl131/happy_puppy2.jpg",
@@ -49,7 +49,6 @@
     ],
   };
 
-  // tło: góra = Astarion, dół = losowo poustawiane pieski (raz na load)
   const BG = {
     TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
     BOTTOM_POOL: ASSETS.images.filter(x => /puppy/i.test(x)),
@@ -87,7 +86,6 @@
         const root = document.getElementById("plugin-root");
         if (!root) return;
 
-        // === ambient playlist z <script id="plugin-sfx"> ===
         const pluginSfx = getJSONScript("plugin-sfx", {}) || {};
         const ambientList = Array.isArray(pluginSfx?.ambient)
           ? pluginSfx.ambient.filter(Boolean)
@@ -140,8 +138,6 @@ body::after{
   background-image: var(--top-bg);
   background-repeat: no-repeat;
   background-position: center top;
-
-  /* rozciąga na całą górną połówkę, nie ucina */
   background-size: 100% 100%;
   opacity: 0.35;
 }
@@ -193,15 +189,13 @@ body::after{
         bg.className = "ast-bg";
         root.appendChild(bg);
 
-        // górny gif
         bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
 
-        // dolny "field" na pieski
         const puppyField = document.createElement("div");
         puppyField.className = "ast-puppyfield";
         bg.appendChild(puppyField);
 
-        // floating layer (gify podczas typing)
+        // floating layer
         const layer = document.createElement("div");
         layer.className = "ast-layer";
         root.appendChild(layer);
@@ -212,9 +206,8 @@ body::after{
         function placePuppy(el) {
           const pad = CFG.PUPPY_PAD;
           const w = Math.max(1, window.innerWidth);
-          const h = Math.max(1, Math.floor(window.innerHeight * 0.5)); // dolna połówka
+          const h = Math.max(1, Math.floor(window.innerHeight * 0.5));
 
-          // rozkład: x pełna szerokość, y tylko w dolnej połówce (field ma własne 0..50vh)
           const x = Math.floor(rand(pad, Math.max(pad + 1, w - pad)));
           const y = Math.floor(rand(pad, Math.max(pad + 1, h - pad)));
 
@@ -229,10 +222,8 @@ body::after{
         }
 
         function buildStaticPuppies() {
-          // wyczyść stare
           puppyField.textContent = "";
           puppyEls.length = 0;
-
           if (!BG.BOTTOM_POOL.length) return;
 
           const n = Math.max(1, CFG.PUPPY_COUNT);
@@ -252,12 +243,11 @@ body::after{
 
         buildStaticPuppies();
 
-        // na resize tylko PRZEUSTAW — bez zmiany src (zero migania)
         ctx.on(window, "resize", () => {
           for (const el of puppyEls) placePuppy(el);
         });
 
-        // ===== AUDIO: mechanika jak u Pesosa (start po pierwszym klik/klawisz/input) =====
+        // ===== AUDIO: start po pierwszym klik/klawisz/input, NIE pauzujemy na visibilitychange =====
         let playlist = shuffle(ambientList);
         let idx = 0;
 
@@ -305,7 +295,7 @@ body::after{
         document.addEventListener("keydown", startOnFirstUserInput, true);
         document.addEventListener("input", startOnFirstUserInput, true);
 
-        // ===== state dla gifów latających =====
+        // ===== typing wave =====
         let idleTimer = null;
         let iter = 0;
         let isOn = false;
@@ -405,7 +395,6 @@ body::after{
           }, CFG.IDLE_MS);
         }
 
-        // start: iter=0 → dobierz 1
         growChosenPoolTo(countForIter(iter));
 
         ctx.on(document, "keydown", (e) => {
@@ -434,13 +423,11 @@ body::after{
           if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
         });
 
+        // visibilitychange: NIE ruszamy audio, żeby nie było pauzy/jumpscare po powrocie
         ctx.on(document, "visibilitychange", () => {
           if (document.hidden) {
             for (const img of imgs) img.classList.remove("is-on");
             isOn = false;
-            try { audio.pause(); } catch {}
-          } else {
-            if (started && playlist.length) audio.play().catch(() => {});
           }
         });
 
