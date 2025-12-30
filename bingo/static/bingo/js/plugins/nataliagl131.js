@@ -149,24 +149,34 @@ ${CFG.DIM_UI ? `
   opacity: 0.28;
 }
 
-/* dolna połówka – kontener na statyczne pieski */
+/* dolna połówka – pasek/paski piesków (stoją obok siebie) */
 .ast-puppyfield{
   position: absolute;
   left: 0; right: 0; bottom: 0;
   height: 50vh;
   overflow: hidden;
   pointer-events: none;
+
+  display: flex;
+  flex-wrap: wrap;           /* zawijaj w "rzędy" */
+  align-content: flex-start; /* rzędy od góry tej połówki */
+  gap: 10px;
+  padding: 14px 14px;
+  box-sizing: border-box;
+
+  opacity: ${CFG.PUPPY_OPACITY};
 }
 
-/* pojedynczy piesek */
+/* pojedynczy piesek jako kafelek */
 .ast-puppy{
-  position: absolute;
-  left: 0; top: 0;
-  opacity: var(--po);
-  transform: translate(var(--px), var(--py)) scale(var(--ps)) rotate(var(--pr));
-  will-change: transform;
-  filter: drop-shadow(0 12px 26px rgba(0,0,0,.35));
+  height: 110px;            /* stała wysokość paska */
+  width: auto;
+  border-radius: 14px;
+  object-fit: cover;
   user-select: none;
+  filter: drop-shadow(0 12px 26px rgba(0,0,0,.35));
+  transform: rotate(var(--pr)) scale(var(--ps));
+  transform-origin: center;
 }
 
 /* ===== typing wave (NAD UI) ===== */
@@ -207,52 +217,10 @@ ${CFG.DIM_UI ? `
         layer.className = "ast-layer";
         root.appendChild(layer);
 
-        // ===== statyczne pieski (szeregi, wymieszane) =====
+        // ===== pieski: stoją obok siebie, źródła wymieszane, bez migania =====
+        // (zmienione TYLKO to)
         const puppyEls = [];
 
-        // NEW: pozycjonowanie w siatce (rząd/kolumna), z losowym jitterem
-        function layoutPuppiesInRows() {
-          const pad = CFG.PUPPY_PAD;
-          const w = Math.max(1, window.innerWidth);
-          const h = Math.max(1, Math.floor(window.innerHeight * 0.5));
-
-          // dobierz liczbę kolumn z grubsza pod szerokość
-          // (większa skala -> mniej kolumn, ale tu trzymamy to prosto)
-          const cols = Math.max(3, Math.min(8, Math.floor(w / 220)));
-          const rows = Math.max(1, Math.ceil(puppyEls.length / cols));
-
-          const cellW = (w - pad * 2) / cols;
-          const cellH = (h - pad * 2) / rows;
-
-          for (let i = 0; i < puppyEls.length; i++) {
-            const el = puppyEls[i];
-
-            const c = i % cols;
-            const r = (i / cols) | 0;
-
-            // środek komórki + jitter
-            const baseX = pad + c * cellW + cellW * 0.5;
-            const baseY = pad + r * cellH + cellH * 0.5;
-
-            const jitterX = rand(-cellW * 0.28, cellW * 0.28);
-            const jitterY = rand(-cellH * 0.28, cellH * 0.28);
-
-            const s = rand(CFG.PUPPY_SCALE_MIN, CFG.PUPPY_SCALE_MAX);
-            const rot = Math.floor(rand(CFG.PUPPY_ROT_MIN, CFG.PUPPY_ROT_MAX)) + "deg";
-
-            // translate używa lewego-górnego rogu obrazka, więc przesuwamy na "środek"
-            const x = Math.floor(baseX + jitterX);
-            const y = Math.floor(baseY + jitterY);
-
-            el.style.setProperty("--px", `${x}px`);
-            el.style.setProperty("--py", `${y}px`);
-            el.style.setProperty("--ps", `${s}`);
-            el.style.setProperty("--pr", rot);
-            el.style.setProperty("--po", `${CFG.PUPPY_OPACITY}`);
-          }
-        }
-
-        // NEW: mieszanie źródeł, żeby w każdym "rzędzie" było wymieszane
         function buildStaticPuppies() {
           puppyField.textContent = "";
           puppyEls.length = 0;
@@ -260,12 +228,9 @@ ${CFG.DIM_UI ? `
 
           const n = Math.max(1, CFG.PUPPY_COUNT);
 
-          // bag z powtórzeniami, ale wymieszany
-          // (jeśli masz 3 pieski, a chcesz 10, to i tak się powtórzą, ale losowo)
+          // worki wymieszane, z powtórkami jeśli trzeba
           const bag = [];
-          while (bag.length < n) {
-            bag.push(...shuffle(BG.BOTTOM_POOL));
-          }
+          while (bag.length < n) bag.push(...shuffle(BG.BOTTOM_POOL));
 
           for (let i = 0; i < n; i++) {
             const img = document.createElement("img");
@@ -273,20 +238,20 @@ ${CFG.DIM_UI ? `
             img.alt = "";
             img.draggable = false;
             img.loading = "lazy";
-            img.src = bag[i]; // <- wymieszane źródła
+
+            img.src = bag[i];
+            // drobna losowość, ale bez rozrzutu po XY (stoi w pasku)
+            img.style.setProperty("--ps", `${rand(CFG.PUPPY_SCALE_MIN, CFG.PUPPY_SCALE_MAX)}`);
+            img.style.setProperty("--pr", `${Math.floor(rand(CFG.PUPPY_ROT_MIN, CFG.PUPPY_ROT_MAX))}deg`);
+
             puppyEls.push(img);
             puppyField.appendChild(img);
           }
-
-          // ułóż w rzędy (z jitterem), bez migania
-          layoutPuppiesInRows();
         }
 
         buildStaticPuppies();
-        ctx.on(window, "resize", () => {
-          // przy resize NIE zmieniamy src, tylko przeliczamy ułożenie
-          layoutPuppiesInRows();
-        });
+        // resize nie musi nic robić — flex sam układa. Zostawiamy handler, ale pusty, żeby nie zmieniać zachowania innych rzeczy
+        ctx.on(window, "resize", () => {});
 
         // ===== AUDIO: start po pierwszym klik/klawisz/input, NIE pauzujemy na focus/visibility =====
         let playlist = shuffle(ambientList);
@@ -370,12 +335,8 @@ ${CFG.DIM_UI ? `
 
         function placeRandomly(el) {
           const pad = 18;
-          const x = Math.floor(
-            rand(pad, Math.max(pad + 1, window.innerWidth - pad))
-          );
-          const y = Math.floor(
-            rand(pad, Math.max(pad + 1, window.innerHeight - pad))
-          );
+          const x = Math.floor(rand(pad, Math.max(pad + 1, window.innerWidth - pad)));
+          const y = Math.floor(rand(pad, Math.max(pad + 1, window.innerHeight - pad)));
           const s = rand(CFG.SCALE_MIN, CFG.SCALE_MAX);
           const r = Math.floor(rand(-18, 18)) + "deg";
 
@@ -414,8 +375,7 @@ ${CFG.DIM_UI ? `
           }
 
           for (let i = 0; i < count; i++) imgs[i].classList.add("is-on");
-          for (let i = count; i < imgs.length; i++)
-            imgs[i].classList.remove("is-on");
+          for (let i = count; i < imgs.length; i++) imgs[i].classList.remove("is-on");
 
           isOn = true;
         }
@@ -479,32 +439,18 @@ ${CFG.DIM_UI ? `
         });
 
         return () => {
-          try {
-            if (idleTimer) clearTimeout(idleTimer);
-          } catch {}
+          try { if (idleTimer) clearTimeout(idleTimer); } catch {}
 
           try {
-            document.removeEventListener(
-              "pointerdown",
-              startOnFirstUserInput,
-              true
-            );
+            document.removeEventListener("pointerdown", startOnFirstUserInput, true);
             document.removeEventListener("keydown", startOnFirstUserInput, true);
             document.removeEventListener("input", startOnFirstUserInput, true);
           } catch {}
-          try {
-            audio.pause();
-          } catch {}
+          try { audio.pause(); } catch {}
 
-          try {
-            layer.remove();
-          } catch {}
-          try {
-            bg.remove();
-          } catch {}
-          try {
-            style.remove();
-          } catch {}
+          try { layer.remove(); } catch {}
+          try { bg.remove(); } catch {}
+          try { style.remove(); } catch {}
         };
       },
     };
