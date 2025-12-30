@@ -45,7 +45,7 @@
 
     // AUDIO (jak Pesos)
     DEFAULT_AMBIENT_VOLUME: 0.18,
-    DEFAULT_MEOW_VOLUME: 0.10,
+    DEFAULT_MEOW_VOLUME: 0.14,
     MEOW_COOLDOWN_MS: 2500, // żeby nie spamować próbki co klatkę
   };
 
