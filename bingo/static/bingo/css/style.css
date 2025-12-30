@@ -1174,11 +1174,11 @@ body::after{
    ========================= */
 
 .raffle-nav--left{
-  left: 58px !important;   /* było -58 */
+  left: 78px !important;   /* było -58 */
 }
 
 .raffle-nav--right{
-  right: 58px !important;  /* było -58 */
+  right: 78px !important;  /* było -58 */
 }
 
 /* === REROLL OVERLAY FIX (przycinanie + brak wyjazdów poza planszę) === */
