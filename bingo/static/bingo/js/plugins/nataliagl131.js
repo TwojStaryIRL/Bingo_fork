@@ -31,9 +31,14 @@
     ],
   };
 
+  // tło: góra = Astarion, dół = losowy "puppy" z ASSETS.images
+  const BG = {
+    TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
+    BOTTOM_POOL: ASSETS.images.filter(x => /puppy/i.test(x)),
+  };
+
   function rand(min, max) { return min + Math.random() * (max - min); }
 
-  // losuj 1 element z tablicy (zakładamy, że tablica niepusta)
   function pickOne(arr) {
     return arr[(Math.random() * arr.length) | 0];
   }
@@ -55,6 +60,41 @@
         const style = document.createElement("style");
         style.textContent = `
 #plugin-root { position: relative; z-index: 2147483000; }
+
+/* ===== background split (TOP/BOTTOM) ===== */
+.ast-bg{
+  position: fixed;
+  inset: 0;
+  z-index: 2147483644;
+  pointer-events: none;
+}
+
+/* górna połowa */
+.ast-bg::before{
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50vh;
+  background-image: var(--top-bg);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  opacity: 0.35;
+}
+
+/* dolna połowa – puppy pattern */
+.ast-bg::after{
+  content: "";
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 50vh;
+  background-image: var(--puppy-bg);
+  background-repeat: repeat;
+  background-size: 240px 240px;
+  opacity: 0.30;
+}
+
+/* ===== floating images ===== */
 .ast-layer{
   position: fixed; inset: 0;
   pointer-events: none;
@@ -76,9 +116,27 @@
         `;
         document.head.appendChild(style);
 
+        // background layer (pod gifami)
+        const bg = document.createElement("div");
+        bg.className = "ast-bg";
+        root.appendChild(bg);
+
+        // floating layer (gify)
         const layer = document.createElement("div");
         layer.className = "ast-layer";
         root.appendChild(layer);
+
+        // ustaw TOP bg z configu
+        bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
+
+        function setRandomPuppyBG() {
+          if (!BG.BOTTOM_POOL.length) return;
+          const img = pickOne(BG.BOTTOM_POOL);
+          bg.style.setProperty("--puppy-bg", `url("${img}")`);
+        }
+
+        // ustaw dolne tło od razu po starcie
+        setRandomPuppyBG();
 
         // ===== state =====
         let idleTimer = null;
@@ -86,8 +144,6 @@
         let isOn = false;
 
         const imgs = [];
-
-        // >>> TO JEST KLUCZ: rosnąca pula bez powtórek
         let chosenPool = [];
 
         function countForIter(it) {
@@ -95,7 +151,6 @@
         }
 
         function rebuildIfAssetsChanged() {
-          // jeśli kiedyś zmienisz ASSETS.images w locie, to to zabezpiecza przed dziwnymi stanami
           const set = new Set(ASSETS.images);
           chosenPool = chosenPool.filter(x => set.has(x));
         }
@@ -103,23 +158,18 @@
         function growChosenPoolTo(count) {
           rebuildIfAssetsChanged();
 
-          // jeśli count >= liczby assetów → bierzemy WSZYSTKIE (zero losowania z 8)
           if (count >= ASSETS.images.length) {
             chosenPool = ASSETS.images.slice();
             return;
           }
 
-          // inaczej: dobieramy z "remaining" aż osiągniemy count
           while (chosenPool.length < count) {
             const chosenSet = new Set(chosenPool);
             const remaining = ASSETS.images.filter(x => !chosenSet.has(x));
-
-            if (!remaining.length) break; // safety
-
+            if (!remaining.length) break;
             chosenPool.push(pickOne(remaining));
           }
 
-          // (gdyby kiedykolwiek count spadł — nie powinno, ale tnijmy)
           if (chosenPool.length > count) chosenPool = chosenPool.slice(0, count);
         }
 
@@ -154,15 +204,12 @@
           const count = countForIter(iter);
           ensurePoolSize(count);
 
-          // upewnij się, że pula ma dokładnie `count` unikalnych
           growChosenPoolTo(count);
 
-          // tylko przy "pierwszym show po przerwie" ustawiamy src/pozycje,
-          // żeby nie migało przy każdym keydown
           if (!isOn) {
             for (let i = 0; i < count; i++) {
               const img = imgs[i];
-              img.src = chosenPool[i];   // <- zero powtórek w trakcie eskalacji
+              img.src = chosenPool[i];
               placeRandomly(img);
             }
           }
@@ -179,12 +226,11 @@
           for (const img of imgs) img.classList.remove("is-on");
           isOn = false;
 
-          // "oderwanie" → iter++
           iter = Math.min(CFG.MAX_ON_SCREEN - 1, iter + 1);
 
-          // WAŻNE: teraz nie losujemy całej puli od zera,
-          // tylko na następną falę "dorośnie" o 1 brakujący element.
-          // (czyli powtórki znikają)
+          // opcjonalnie: zmieniaj puppy dół przy każdym "oderwaniu"
+          setRandomPuppyBG();
+
           growChosenPoolTo(countForIter(iter));
         }
 
@@ -235,6 +281,7 @@
         return () => {
           try { if (idleTimer) clearTimeout(idleTimer); } catch {}
           try { layer.remove(); } catch {}
+          try { bg.remove(); } catch {}
           try { style.remove(); } catch {}
         };
       }
