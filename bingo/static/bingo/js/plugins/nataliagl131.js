@@ -261,7 +261,11 @@ ${CFG.DIM_UI ? `
 }
 .ast-img.is-on { opacity: var(--o); }
 
-.ast-bottom{ height: 62vh; }
+.ast-bottom{
+  left: 0; right: 0; bottom: 0;
+  top: 56vh;     /* start piesków niżej */
+  height: auto;  /* wysokość wynika z top->bottom */
+}
 
 `;
 
