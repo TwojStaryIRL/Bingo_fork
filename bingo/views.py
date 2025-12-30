@@ -482,34 +482,62 @@ def export_all_bingo_pdfs(request):
         except RaffleState.DoesNotExist:
             continue
 
-        # 🔹 jeśli PDF już istnieje → użyj
+        # ===== 1 SPRÓBUJ ISTNIEJĄCY PDF =====
         if state.generated_board_pdf:
-            with state.generated_board_pdf.open("rb") as f:
-                zip_file.writestr(
-                    f"{user.username}-bingo.pdf",
-                    f.read()
-                )
-            continue
+            try:
+                with state.generated_board_pdf.open("rb") as f:
+                    zip_file.writestr(
+                        f"{user.username}-bingo.pdf",
+                        f.read()
+                    )
+                continue
+            except Exception:
+                # plik nie istnieje fizycznie
+                state.generated_board_pdf.delete(save=False)
 
-        # 🔹 bierzemy TYLKO wybrany grid
+        # ===== 2 WYBRANY GRID =====
         payload = state.saved_board_payload
-        if not payload or not payload.get("grid"):
-            continue
 
-        # 🔹 generuj PDF
+        # ===== 3 FALLBACK: LOSUJEMY Z GENERATED =====
+        if not payload or not payload.get("grid"):
+            gen = state.generated_board_payload or {}
+            grids = gen.get("grids_2d")
+            size = int(gen.get("size") or 5)
+
+            if not isinstance(grids, list) or not grids:
+                continue
+
+            grid = random.choice(grids)
+
+            picked_cells = []
+            for r, row in enumerate(grid):
+                for c, cell in enumerate(row):
+                    picked_cells.append({
+                        "cell": r * size + c,
+                        "text": (cell.get("text") or "—").strip(),
+                        "assigned_user": user.username,
+                    })
+
+            payload = {
+                "size": size,
+                "grid": picked_cells,
+                "source": "auto_fallback",
+            }
+
+        # =====  GENERUJ PDF =====
         pdf_buffer = render_bingo_pdf(
             payload=payload,
             username=user.username
         )
 
-        # 🔹 zapisz do DB
+        # ===== ZAPISZ DO MODELU =====
         state.generated_board_pdf.save(
             f"{user.username}-bingo.pdf",
             ContentFile(pdf_buffer.getvalue()),
             save=True
         )
 
-        # 🔹 dorzuć do ZIP
+        # =====  DORZUĆ DO ZIP =====
         zip_file.writestr(
             f"{user.username}-bingo.pdf",
             pdf_buffer.getvalue()
