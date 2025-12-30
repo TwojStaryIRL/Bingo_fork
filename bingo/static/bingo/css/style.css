@@ -1103,3 +1103,59 @@ body::after{
     height: calc(var(--rf-tile) * 5 + var(--rf-gap) * 4 + 24px) !important;
   }
 }
+
+/* ===========================
+   RAFFLE – NAV FIX (PASTE AT END)
+   =========================== */
+
+/* shell jako punkt odniesienia */
+.raffle-shell{
+  position: relative !important;
+}
+
+/* strzałki mają być przy krawędzi planszy, a nie poza nią */
+.raffle-nav--left{
+  left: 12px !important;
+}
+
+.raffle-nav--right{
+  right: 12px !important;
+}
+
+/* żeby były “nad” kafelkami i klikalne */
+.raffle-nav{
+  z-index: 20 !important;
+  opacity: .95 !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* na małych ekranach przyklej jeszcze bliżej */
+@media (max-width: 900px){
+  .raffle-nav--left{ left: 6px !important; }
+  .raffle-nav--right{ right: 6px !important; }
+}
+
+/* ===========================
+   FIX: ellipsis ucina ZA WCZEŚNIE
+   =========================== */
+
+/* KLUCZ: pozwól flex-itemowi się skurczyć poprawnie */
+.raffle-board.raffle-board--set .raffle-tile{
+  min-width: 0 !important;
+}
+
+/* user badge musi mieć pełną szerokość */
+.raffle-board.raffle-board--set .raffle-tile .cell-user{
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* dodatkowe zabezpieczenie na wrapper */
+.raffle-board.raffle-board--set .raffle-tile .raffle-text{
+  min-width: 0 !important;
+}
