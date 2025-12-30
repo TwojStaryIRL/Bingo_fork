@@ -31,17 +31,18 @@
     ],
   };
 
-  // tło: góra = Astarion, dół = losowy "puppy" z ASSETS.images
+  // tło: góra = Astarion, dół = losowe "puppy" z ASSETS.images
   const BG = {
     TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
     BOTTOM_POOL: ASSETS.images.filter(x => /puppy/i.test(x)),
+    // co ile ms ma się zmieniać losowy piesek w tle (dół)
+    PUPPY_ROTATE_MS: 900,
+    // rozmiar "kafelków" w tle (dół)
+    PUPPY_TILE: 240,
   };
 
   function rand(min, max) { return min + Math.random() * (max - min); }
-
-  function pickOne(arr) {
-    return arr[(Math.random() * arr.length) | 0];
-  }
+  function pickOne(arr) { return arr[(Math.random() * arr.length) | 0]; }
 
   function isTypingTarget(el) {
     if (!el) return false;
@@ -69,28 +70,34 @@
   pointer-events: none;
 }
 
-/* górna połowa */
+/* górna połowa: NIE przycinamy - rozciągamy na 50vh */
 .ast-bg::before{
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 50vh;
+
   background-image: var(--top-bg);
-  background-size: cover;
-  background-position: center top;
   background-repeat: no-repeat;
+  background-position: center top;
+
+  /* klucz: rozciągnij na całą górną połowę (może zniekształcać, ale nie ucina) */
+  background-size: 100% 100%;
+
   opacity: 0.35;
 }
 
-/* dolna połowa – puppy pattern */
+/* dolna połowa – puppy pattern (losowo zmieniany) */
 .ast-bg::after{
   content: "";
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 50vh;
+
   background-image: var(--puppy-bg);
   background-repeat: repeat;
-  background-size: 240px 240px;
+  background-size: var(--puppy-tile) var(--puppy-tile);
+
   opacity: 0.30;
 }
 
@@ -128,17 +135,48 @@
 
         // ustaw TOP bg z configu
         bg.style.setProperty("--top-bg", `url("${BG.TOP}")`);
+        bg.style.setProperty("--puppy-tile", `${BG.PUPPY_TILE}px`);
+
+        // ===== losowe pieski na dole (rotacja co N ms) =====
+        let puppyTimer = null;
+        let lastPuppy = null;
 
         function setRandomPuppyBG() {
           if (!BG.BOTTOM_POOL.length) return;
-          const img = pickOne(BG.BOTTOM_POOL);
+          if (BG.BOTTOM_POOL.length === 1) {
+            bg.style.setProperty("--puppy-bg", `url("${BG.BOTTOM_POOL[0]}")`);
+            return;
+          }
+
+          // unikaj wylosowania tego samego 2x z rzędu
+          let img = pickOne(BG.BOTTOM_POOL);
+          let guard = 0;
+          while (img === lastPuppy && guard++ < 12) img = pickOne(BG.BOTTOM_POOL);
+
+          lastPuppy = img;
           bg.style.setProperty("--puppy-bg", `url("${img}")`);
         }
 
-        // ustaw dolne tło od razu po starcie
-        setRandomPuppyBG();
+        function startPuppyRotation() {
+          setRandomPuppyBG();
+          if (puppyTimer) ctx.clearIntervalSafe?.(puppyTimer);
+          // Bingo ctx może nie mieć clearIntervalSafe; fallback do clearInterval
+          puppyTimer = ctx.setIntervalSafe
+            ? ctx.setIntervalSafe(setRandomPuppyBG, BG.PUPPY_ROTATE_MS)
+            : setInterval(setRandomPuppyBG, BG.PUPPY_ROTATE_MS);
+        }
 
-        // ===== state =====
+        function stopPuppyRotation() {
+          if (!puppyTimer) return;
+          if (ctx.clearIntervalSafe) ctx.clearIntervalSafe(puppyTimer);
+          else clearInterval(puppyTimer);
+          puppyTimer = null;
+        }
+
+        // start rotacji piesków od razu
+        startPuppyRotation();
+
+        // ===== state dla gifów latających =====
         let idleTimer = null;
         let iter = 0;
         let isOn = false;
@@ -227,10 +265,6 @@
           isOn = false;
 
           iter = Math.min(CFG.MAX_ON_SCREEN - 1, iter + 1);
-
-          // opcjonalnie: zmieniaj puppy dół przy każdym "oderwaniu"
-          setRandomPuppyBG();
-
           growChosenPoolTo(countForIter(iter));
         }
 
@@ -242,7 +276,6 @@
           }, CFG.IDLE_MS);
         }
 
-        // start: iter=0 → dobierz 1
         growChosenPoolTo(countForIter(iter));
 
         ctx.on(document, "keydown", (e) => {
@@ -275,11 +308,16 @@
           if (document.hidden) {
             for (const img of imgs) img.classList.remove("is-on");
             isOn = false;
+            // jak karta ukryta, wstrzymaj rotację (mniej mieli CPU)
+            stopPuppyRotation();
+          } else {
+            startPuppyRotation();
           }
         });
 
         return () => {
           try { if (idleTimer) clearTimeout(idleTimer); } catch {}
+          try { stopPuppyRotation(); } catch {}
           try { layer.remove(); } catch {}
           try { bg.remove(); } catch {}
           try { style.remove(); } catch {}
