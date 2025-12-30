@@ -975,3 +975,131 @@ body::after{
   opacity: 0.85;
   font-weight: 600;
 }
+
+/* ===========================
+   RAFFLE – STABILNY LAYOUT 5x5 (PASTE AT END)
+   =========================== */
+
+:root{
+  /* sterujesz jedną gałką */
+  --rf-tile: clamp(92px, 8.6vw, 132px);
+  --rf-gap: 14px;
+}
+
+/* zwiększ “obszar roboczy” dla raffle */
+.hero--wide{ width: min(1400px, 98vw) !important; }
+.panel--wide{ max-width: 1350px !important; }
+
+/* shell ma trzymać rozmiar planszy, nie 560px */
+.raffle-shell{
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+/* WYŁĄCZ kwadratowanie – aspect-ratio psuje 5x5 */
+.raffle-stage{
+  aspect-ratio: auto !important;
+  overflow: visible !important;
+
+  /* stała wysokość/wysokość rodzica dla elementów absolute */
+  width: 100% !important;
+  height: calc(var(--rf-tile) * 5 + var(--rf-gap) * 4 + 32px) !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* board absolutny zostaje, ale ma sensowną “ramę” */
+.raffle-board--set{
+  position: absolute !important;
+  inset: 0 !important;
+  padding: 16px !important;
+}
+
+/* GRID: 5 kolumn po tile-size, wycentrowany */
+.raffle-board--set .raffle-grid{
+  width: auto !important;
+  height: auto !important;
+
+  grid-template-columns: repeat(5, var(--rf-tile)) !important;
+  grid-template-rows: repeat(5, var(--rf-tile)) !important;
+  gap: var(--rf-gap) !important;
+
+  justify-content: center !important;
+  align-content: center !important;
+}
+
+/* kafel: prawdziwy kwadrat, nie “piguła” */
+.raffle-tile{
+  width: var(--rf-tile) !important;
+  height: var(--rf-tile) !important;
+  padding: 10px !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+}
+
+/* tekst: góra treść, dół user, bez jakichś dziwnych clampów na całości */
+.raffle-text{
+  height: 100% !important;
+  width: 100% !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+
+  /* usuń to co robiło “piguły” */
+  -webkit-line-clamp: unset !important;
+  display: flex !important;
+}
+
+/* główny tekst – max 4 linie */
+.raffle-tile .cell-text{
+  font-size: 14px !important;
+  line-height: 1.15 !important;
+  font-weight: 750 !important;
+
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 4 !important;
+  overflow: hidden !important;
+  word-break: break-word !important;
+}
+
+/* user jako mały badge */
+.raffle-tile .cell-user{
+  margin-top: auto !important;
+  padding: 6px 10px !important;
+  border-radius: 999px !important;
+
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+
+  font-size: 12px !important;
+  font-weight: 650 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* przyciski zawsze POD planszą, bez nachodzenia */
+.raffle-actions{
+  margin-top: 14px !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* na małych wysokościach: zjedź rozmiarem */
+@media (max-height: 760px){
+  :root{
+    --rf-tile: clamp(76px, 7.4vw, 112px);
+    --rf-gap: 10px;
+  }
+  .raffle-stage{
+    height: calc(var(--rf-tile) * 5 + var(--rf-gap) * 4 + 24px) !important;
+  }
+}
