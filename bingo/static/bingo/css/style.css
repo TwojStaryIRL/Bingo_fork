@@ -1159,3 +1159,23 @@ body::after{
 .raffle-board.raffle-board--set .raffle-tile .raffle-text{
   min-width: 0 !important;
 }
+
+.raffle-board .cell-user:hover{
+  overflow: visible;
+  white-space: normal;
+  background: rgba(0,0,0,.85);
+  position: relative;
+  z-index: 10;
+}
+
+/* =========================
+   RAFFLE NAV – PRZY BOARDZIE
+   ========================= */
+
+.raffle-nav--left{
+  left: -28px !important;   /* było -58 */
+}
+
+.raffle-nav--right{
+  right: -28px !important;  /* było -58 */
+}
