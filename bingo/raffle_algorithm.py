@@ -12,6 +12,10 @@ from .models import BingoBoard
 PoolItem = Dict[str, Any]
 UniqKey = Tuple[int, Any, str]  # (source_board_id, cell, text)
 
+PLACEHOLDERS = {"Event", "Ktoś", "Ktokolwiek"}  
+PLACEHOLDER_LIMIT = 99            
+
+
 
 # =========================
 #  POOL (źródło elementów)
@@ -95,9 +99,11 @@ def build_grid_two_phase(
             if u in used_local:
                 return False
             assigned = (item.get("assigned_user") or "").strip()
-            if assigned and counts[assigned] >= limit:
-                return False
-            return True
+            if assigned:
+                user_limit = PLACEHOLDER_LIMIT if assigned in PLACEHOLDERS else limit
+                if counts[assigned] >= user_limit:
+                    return False
+
 
         def take(item: PoolItem):
             u = uniq_key(item)

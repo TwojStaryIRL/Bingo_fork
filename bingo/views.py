@@ -448,7 +448,7 @@ def raffle_pick_save(request):
                 picked_cells.append({
                     "cell": r * size + c,
                     "text": text,
-                    "assigned_user": au,   # prawdziwy owner pola 
+                    "assigned_user": au,   # prawdziwy owner pola
                 })
 
 
