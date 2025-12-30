@@ -39,10 +39,14 @@
                   {% for cell in row %}
                     <div class="raffle-tile">
                       <div class="raffle-text">
-                        {% if cell %}{{ cell.text }}{% else %}—{% endif %}
-                          {% if cell.assigned_user %}
-                              <div class="cell-user">
-                          {{ cell.assigned_user }}
+                        {% if cell %}
+                          <div class="cell-text">{{ cell.text }}</div>
+                            {% if cell.assigned_user %}
+                              <div class="cell-user">{{ cell.assigned_user }}</div>
+                            {% endif %}
+                            {% else %}
+                              —
+                            {% endif %}
                       </div>
                     </div>
                   {% endfor %}
