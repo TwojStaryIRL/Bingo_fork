@@ -200,26 +200,34 @@
   }
 
   function ensureDropImg() {
-    let img = document.getElementById("transition-drop-img");
-    if (img) return img;
+  let img = document.getElementById("transition-drop-img");
+  if (img) return img;
 
-    img = document.createElement("img");
-    img.id = "transition-drop-img";
-    img.src = CFG.DROP_IMG_SRC;
-    img.alt = "drop";
-    img.style.position = "fixed";
-    img.style.inset = "0";
-    img.style.margin = "auto";
-    img.style.maxWidth = "72vw";
-    img.style.maxHeight = "72vh";
-    img.style.opacity = "0";
-    img.style.transform = "scale(0.98)";
-    img.style.transition = "opacity 140ms ease, transform 140ms ease";
-    img.style.pointerEvents = "none";
-    img.style.zIndex = "2147483645";
-    document.body.appendChild(img);
-    return img;
-  }
+  img = document.createElement("img");
+  img.id = "transition-drop-img";
+  img.src = CFG.DROP_IMG_SRC;
+  img.alt = "drop";
+
+  img.style.position = "fixed";
+  img.style.top = "0";
+  img.style.left = "0";
+
+  img.style.width = "100vw";
+  img.style.height = "100vh";
+
+  img.style.objectFit = "cover"; // ⬅️ CAŁY EKRAN, ZAWSZE
+  img.style.objectPosition = "center";
+
+  img.style.opacity = "0";
+  img.style.transition = "opacity 140ms ease";
+  img.style.pointerEvents = "none";
+  img.style.zIndex = "2147483645";
+
+  document.body.appendChild(img);
+  return img;
+}
+
+
 
   function fadeOutEverything() {
     const ov = ensureOverlay();
