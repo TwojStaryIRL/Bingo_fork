@@ -129,6 +129,11 @@ def nataliagl131_func() -> UserPluginConfig:
                 static("bingo/sfx/nataliagl131/bg2.mp3"),
                 static("bingo/sfx/nataliagl131/bg3.mp3"),
                 static("bingo/sfx/nataliagl131/bg4.mp3"),
+                static("bingo/sfx/nataliagl131/bg5.mp3"),
+                static("bingo/sfx/nataliagl131/bg6.mp3"),
+                static("bingo/sfx/nataliagl131/bg7.mp3"),
+                static("bingo/sfx/nataliagl131/bg8.mp3"),
+                static("bingo/sfx/nataliagl131/bg9.mp3"),
             ],
 
         }
