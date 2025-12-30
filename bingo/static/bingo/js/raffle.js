@@ -65,6 +65,29 @@
     return { res, data };
   }
 
+  function waitForAudioEnd(audioId, fallbackMs = 900) {
+  return new Promise((resolve) => {
+    const audio = document.getElementById(audioId);
+    if (!audio) return resolve();
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      audio.removeEventListener("ended", finish);
+      audio.removeEventListener("error", finish);
+      resolve();
+    };
+
+    audio.addEventListener("ended", finish, { once: true });
+    audio.addEventListener("error", finish, { once: true });
+
+    // fail-safe gdyby ended nie przyszedł
+    setTimeout(finish, fallbackMs);
+  });
+}
+
+
   function readInt(el, fallback = 0) {
     const n = Number((el?.textContent || "").trim());
     return Number.isFinite(n) ? n : fallback;
@@ -287,8 +310,10 @@
             if (typeof result.data?.rerolls_left === "number") rerollsLeft = result.data.rerolls_left;
             paintBadges();
 
+            await waitForAudioEnd(audioRerollId, 1200);
             location.reload();
             return;
+
           }
 
           // normalny unlock
@@ -307,8 +332,10 @@
           // jeśli chcesz 100% pewności, odkomentuj:
           // btnReroll.textContent = "REROLL";
 
+          await waitForAudioEnd(audioRerollId, 1200);
           location.reload();
           return;
+
 
         } catch (e) {
           console.error("[unlock-flow] error:", e);

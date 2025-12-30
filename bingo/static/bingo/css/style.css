@@ -1174,9 +1174,9 @@ body::after{
    ========================= */
 
 .raffle-nav--left{
-  left: 38px !important;   /* było -58 */
+  left: 58px !important;   /* było -58 */
 }
 
 .raffle-nav--right{
-  right: 38px !important;  /* było -58 */
+  right: 58px !important;  /* było -58 */
 }
