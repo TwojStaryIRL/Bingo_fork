@@ -10,35 +10,23 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 
-# ===== Font registration (Unicode/PL) =====
+# ===== Unicode fonts (PL chars) =====
 BASE_DIR = Path(__file__).resolve().parent
 FONTS_DIR = BASE_DIR / "fonts"
 
 FONT_REGULAR = FONTS_DIR / "DejaVuSans.ttf"
 FONT_BOLD = FONTS_DIR / "DejaVuSans-Bold.ttf"
 
-# Rejestruj tylko jeśli plik istnieje (na deployu ma być w repo!)
-if FONT_REGULAR.exists():
-    pdfmetrics.registerFont(TTFont("DejaVuSans", str(FONT_REGULAR)))
-else:
-    # awaryjnie — bez tego będą kwadraty dla PL znaków
-    # (zostawiamy fallback do Helvetica)
-    pass
+if not FONT_REGULAR.exists():
+    raise RuntimeError(f"Missing font file: {FONT_REGULAR} (put it in bingo/fonts/)")
+
+pdfmetrics.registerFont(TTFont("DejaVuSans", str(FONT_REGULAR)))
 
 if FONT_BOLD.exists():
     pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", str(FONT_BOLD)))
-
-# Helper: wybór fontów z fallbackiem
-def _font(name: str) -> str:
-    # jeśli zarejestrowany, używaj; inaczej fallback na Helvetica
-    try:
-        pdfmetrics.getFont(name)
-        return name
-    except Exception:
-        return {
-            "DejaVuSans": "Helvetica",
-            "DejaVuSans-Bold": "Helvetica-Bold",
-        }.get(name, "Helvetica")
+else:
+    # jeśli nie masz bolda, jedź regularnym
+    pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", str(FONT_REGULAR)))
 
 
 def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
@@ -50,7 +38,7 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
     grid = payload.get("grid", [])
 
     # ===== HEADER =====
-    c.setFont(_font("DejaVuSans-Bold"), 20)
+    c.setFont("DejaVuSans-Bold", 20)
     c.drawCentredString(width / 2, height - 2 * cm, f"BINGO – {username}")
 
     # ===== GRID SETUP =====
@@ -77,12 +65,9 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
         assigned_user = (item.get("assigned_user") or "").strip()
 
         # ===== TEXT =====
-        c.setFont(_font("DejaVuSans"), 9)
+        c.setFont("DejaVuSans", 9)
         max_width = cell_cm * cm - 8
-
-        # simpleSplit MUSI dostać nazwę fonta, którego używasz
-        font_name = _font("DejaVuSans")
-        lines = simpleSplit(text, font_name, 9, max_width)
+        lines = simpleSplit(text, "DejaVuSans", 9, max_width)
 
         text_y = y - 14
         for line in lines[:5]:
@@ -91,7 +76,7 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
 
         # ===== USER FOOTER =====
         if assigned_user:
-            c.setFont(_font("DejaVuSans"), 7)
+            c.setFont("DejaVuSans", 7)
             c.drawRightString(
                 x + cell_cm * cm - 4,
                 y - cell_cm * cm + 6,
