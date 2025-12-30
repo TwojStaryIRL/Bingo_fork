@@ -101,7 +101,19 @@ def kyspro_func() -> UserPluginConfig:
 def jull_func() -> UserPluginConfig:
     return UserPluginConfig(
         js_plugin="bingo/js/plugins/jull.js",
-        sfx={}
+        sfx={
+            "ambient": [
+                static("bingo/sfx/jull/bg1.mp3"),
+                static("bingo/sfx/jull/bg2.mp3"),
+                static("bingo/sfx/jull/bg3.mp3"),
+                static("bingo/sfx/jull/bg4.mp3"),
+                static("bingo/sfx/jull/bg5.mp3"),
+                static("bingo/sfx/jull/bg6.mp3"),
+            ],
+            "meows": [
+                static("bingo/sfx/jull/meow1.mp3"),
+            ]
+        }
     )
 
 def stugsiana_func() -> UserPluginConfig:
