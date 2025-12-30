@@ -530,17 +530,22 @@ def export_all_bingo_pdfs(request):
                 if not isinstance(row, list):
                     continue
                 for c, cell in enumerate(row):
-                    text = "—"
                     if isinstance(cell, dict):
                         text = (cell.get("text") or "—").strip() or "—"
+                        au = (cell.get("assigned_user") or "").strip()
                     elif isinstance(cell, str):
                         text = cell.strip() or "—"
+                        au = ""
+                    else:
+                        text = "—"
+                        au = ""
 
                     picked_cells.append({
                         "cell": r * size + c,
                         "text": text,
-                        "assigned_user": user.username,
+                        "assigned_user": au,   # prawdziwy owner pola przy fallbacku
                     })
+
 
 
             payload = {
