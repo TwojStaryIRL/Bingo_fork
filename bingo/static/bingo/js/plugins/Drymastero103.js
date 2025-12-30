@@ -335,39 +335,138 @@ body.dry-hammer-active * {
         }
 
         function showRandomPopup() {
-          const imgs = CFG.RANDOM_POPUP_IMAGES;
-          if (!Array.isArray(imgs) || imgs.length === 0) return;
+  const imgs = CFG.RANDOM_POPUP_IMAGES;
+  if (!Array.isArray(imgs) || imgs.length === 0) return;
 
-          // wyczyść poprzednie timery
-          if (randomPopupHideTimer) clearTimeout(randomPopupHideTimer);
-          if (randomPopupFadeTimer) clearTimeout(randomPopupFadeTimer);
+  // wyczyść poprzednie timery
+  if (randomPopupHideTimer) clearTimeout(randomPopupHideTimer);
+  if (randomPopupFadeTimer) clearTimeout(randomPopupFadeTimer);
 
-          const src = imgs[(Math.random() * imgs.length) | 0];
-          if (!src) return;
+  const src = imgs[(Math.random() * imgs.length) | 0];
+  if (!src) return;
 
-          // restart (cache-bust)
-          const base = src.split("?")[0];
-          randomPopupImg.src = `${base}?t=${Date.now()}`;
+  // 1) NAJPIERW schowaj poprzedni obrazek, zanim zmienisz src
+  randomPopupImg.classList.remove("is-on", "is-fading");
 
-          positionRandomPopup();
+  // wymuś reflow, żeby przeglądarka "złapała" stan ukryty
+  void randomPopupImg.offsetWidth;
 
-          // reset klas
-          randomPopupImg.classList.remove("is-fading");
-          randomPopupImg.classList.add("is-on");
+  // 2) ustaw nowe src (cache-bust)
+  const base = src.split("?")[0];
+  const nextUrl = `${base}?t=${Date.now()}`;
 
-          playRandomPopupSfx();
+  // 3) pokaż dopiero po załadowaniu nowego obrazka
+  const reveal = () => {
+    positionRandomPopup();
 
-          // po ~1s zaczyna fadeować
-          randomPopupFadeTimer = setTimeout(() => {
-            randomPopupImg.classList.add("is-fading");
-          }, CFG.RANDOM_POPUP_FADE_AFTER_MS);
+    randomPopupImg.classList.remove("is-fading");
+    randomPopupImg.classList.add("is-on");
 
-          // po SHOW_MS schowaj całkiem i wyczyść klasy
-          randomPopupHideTimer = setTimeout(() => {
-            randomPopupImg.classList.remove("is-on");
-            randomPopupImg.classList.remove("is-fading");
-          }, CFG.RANDOM_POPUP_SHOW_MS);
-        }
+    playRandomPopupSfx();
+
+    // po ~1s zaczyna fadeować
+    randomPopupFadeTimer = setTimeout(() => {
+      randomPopupImg.classList.add("is-fading");
+    }, CFG.RANDOM_POPUP_FADE_AFTER_MS);
+
+    // po SHOW_MS schowaj całkiem i wyczyść klasy
+    randomPopupHideTimer = setTimeout(() => {
+      randomPopupImg.classList.remove("is-on");
+      randomPopupImg.classList.remove("is-fading");
+    }, CFG.RANDOM_POPUP_SHOW_MS);
+  };
+
+  // jeśli obrazek już w cache, decode może być natychmiast
+  randomPopupImg.onload = () => {
+    randomPopupImg.onload = null;
+    reveal();
+  };
+
+  randomPopupImg.onerror = () => {
+    randomPopupImg.onerror = null;
+    // jakby fail - nie pokazuj starego, po prostu nic
+  };
+
+  // ważne: ustaw src NA KOŃCU
+  randomPopupImg.src = nextUrl;
+
+  // dodatkowy boost: jeśli decode() dostępne, to pokazuj po decode
+  if (typeof randomPopupImg.decode === "function") {
+    randomPopupImg.decode().then(() => {
+      // jeśli onload nie zdążył, reveal i tak może się wykonać bezpiecznie
+      if (!randomPopupImg.onload) return;
+      randomPopupImg.onload = null;
+      reveal();
+    }).catch(() => {});
+  }
+}
+function showRandomPopup() {
+  const imgs = CFG.RANDOM_POPUP_IMAGES;
+  if (!Array.isArray(imgs) || imgs.length === 0) return;
+
+  // wyczyść poprzednie timery
+  if (randomPopupHideTimer) clearTimeout(randomPopupHideTimer);
+  if (randomPopupFadeTimer) clearTimeout(randomPopupFadeTimer);
+
+  const src = imgs[(Math.random() * imgs.length) | 0];
+  if (!src) return;
+
+  // 1) NAJPIERW schowaj poprzedni obrazek, zanim zmienisz src
+  randomPopupImg.classList.remove("is-on", "is-fading");
+
+  // wymuś reflow, żeby przeglądarka "złapała" stan ukryty
+  void randomPopupImg.offsetWidth;
+
+  // 2) ustaw nowe src (cache-bust)
+  const base = src.split("?")[0];
+  const nextUrl = `${base}?t=${Date.now()}`;
+
+  // 3) pokaż dopiero po załadowaniu nowego obrazka
+  const reveal = () => {
+    positionRandomPopup();
+
+    randomPopupImg.classList.remove("is-fading");
+    randomPopupImg.classList.add("is-on");
+
+    playRandomPopupSfx();
+
+    // po ~1s zaczyna fadeować
+    randomPopupFadeTimer = setTimeout(() => {
+      randomPopupImg.classList.add("is-fading");
+    }, CFG.RANDOM_POPUP_FADE_AFTER_MS);
+
+    // po SHOW_MS schowaj całkiem i wyczyść klasy
+    randomPopupHideTimer = setTimeout(() => {
+      randomPopupImg.classList.remove("is-on");
+      randomPopupImg.classList.remove("is-fading");
+    }, CFG.RANDOM_POPUP_SHOW_MS);
+  };
+
+  // jeśli obrazek już w cache, decode może być natychmiast
+  randomPopupImg.onload = () => {
+    randomPopupImg.onload = null;
+    reveal();
+  };
+
+  randomPopupImg.onerror = () => {
+    randomPopupImg.onerror = null;
+    // jakby fail - nie pokazuj starego, po prostu nic
+  };
+
+  // ważne: ustaw src NA KOŃCU
+  randomPopupImg.src = nextUrl;
+
+  // dodatkowy boost: jeśli decode() dostępne, to pokazuj po decode
+  if (typeof randomPopupImg.decode === "function") {
+    randomPopupImg.decode().then(() => {
+      // jeśli onload nie zdążył, reveal i tak może się wykonać bezpiecznie
+      if (!randomPopupImg.onload) return;
+      randomPopupImg.onload = null;
+      reveal();
+    }).catch(() => {});
+  }
+}
+
 
         // start cyklu co 30s
         randomPopupInterval = setInterval(showRandomPopup, CFG.RANDOM_POPUP_EVERY_MS);
