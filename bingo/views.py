@@ -196,21 +196,48 @@ def raffle_unlock_next(request):
     with transaction.atomic():
         state, _ = RaffleState.objects.select_for_update().get_or_create(user=request.user)
         payload = dict(state.generated_board_payload or {})
+
         if not isinstance(payload.get("grids_2d"), list) or not payload.get("grids_count"):
-            return JsonResponse({"ok": False, "error": "Not initialized. Use init first."}, status=409)
+            return JsonResponse({
+                "ok": False,
+                "error": "Not initialized. Use init first.",
+                "rerolls_left": state.rerolls_left,
+                "shuffles_left": state.shuffles_left,
+            }, status=409)
+
+        if state.rerolls_left <= 0:
+            return JsonResponse({
+                "ok": False,
+                "error": "Out of rolls!",
+                "rerolls_left": 0,
+                "shuffles_left": state.shuffles_left,
+            }, status=429)
 
         max_grids = int(payload.get("grids_count") or 3)
         unlocked = int(payload.get("unlocked_grids") or 0)
 
-        # nic do zrobienia
         if unlocked >= max_grids:
-            return JsonResponse({"ok": False, "error": "All grids already unlocked", "unlocked_grids": unlocked}, status=409)
+            return JsonResponse({
+                "ok": False,
+                "error": "All grids already unlocked",
+                "unlocked_grids": unlocked,
+                "rerolls_left": state.rerolls_left,
+                "shuffles_left": state.shuffles_left,
+            }, status=409)
 
         payload["unlocked_grids"] = unlocked + 1
-        state.generated_board_payload = payload
-        state.save(update_fields=["generated_board_payload", "updated_at"])
 
-        return JsonResponse({"ok": True, "unlocked_grids": payload["unlocked_grids"]}, status=200)
+        state.rerolls_left = max(0, state.rerolls_left - 1)
+
+        state.generated_board_payload = payload
+        state.save(update_fields=["rerolls_left", "generated_board_payload", "updated_at"])
+
+        return JsonResponse({
+            "ok": True,
+            "unlocked_grids": payload["unlocked_grids"],
+            "rerolls_left": state.rerolls_left,
+            "shuffles_left": state.shuffles_left,
+        }, status=200)
 
 
 

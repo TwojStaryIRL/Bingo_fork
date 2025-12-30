@@ -132,6 +132,8 @@
         badgeShuffle.textContent = String(Math.max(0, shufflesLeft));
         badgeShuffle.classList.toggle("btn-badge--disabled", shufflesLeft <= 0);
       }
+
+      // ✅ reroll przy 0 ma być zablokowany
       if (btnReroll) btnReroll.disabled = (rerollsLeft <= 0);
 
       // shuffle/pick bez planszy = off
@@ -151,16 +153,16 @@
     applyClasses();
     paintBadges();
 
-    // ========= SHUFFLE (działa tylko gdy jest aktywna plansza) =========
+    // ========= SHUFFLE (nie robi reload, tylko aktualizuje DOM: text + assigned_user) =========
     if (btnShuffle) {
       btnShuffle.addEventListener("click", async () => {
         if (btnShuffle.disabled) return;
+
         const board = boards[active];
         if (!board) return;
 
         const gridEl = board.querySelector(".raffle-grid");
         const tiles = Array.from(board.querySelectorAll(".raffle-tile") || []);
-        const textsEls = Array.from(board.querySelectorAll(".raffle-text") || []);
         if (!gridEl || tiles.length !== targetTiles) return;
 
         btnShuffle.disabled = true;
@@ -176,8 +178,8 @@
             body: form,
           });
 
-          if (!data.ok) {
-            showToast?.(data.error || "Shuffle blocked", "error", 2200);
+          if (!data?.ok) {
+            showToast?.(data?.error || "Shuffle blocked", "error", 2200);
             return;
           }
 
@@ -190,8 +192,29 @@
             return;
           }
 
-          // prosto, bez animacji – bo Ty masz animację, ale nie chcę Ci jej rozwalić
-          textsEls.forEach((t, i) => { t.textContent = data.cells[i] ?? "—"; });
+          // users jest opcjonalne – jeśli backend nie zwróci, to potraktujemy jak puste
+          const users = Array.isArray(data.users) ? data.users : [];
+
+          tiles.forEach((tile, i) => {
+            const wrap = tile.querySelector(".raffle-text") || tile;
+
+            const textEl = tile.querySelector(".cell-text");
+            if (textEl) textEl.textContent = data.cells[i] ?? "—";
+
+            const u = (users[i] ?? "").trim();
+            let userEl = tile.querySelector(".cell-user");
+
+            if (u) {
+              if (!userEl) {
+                userEl = document.createElement("div");
+                userEl.className = "cell-user";
+                wrap.appendChild(userEl);
+              }
+              userEl.textContent = u;
+            } else {
+              if (userEl) userEl.remove();
+            }
+          });
 
         } catch (e) {
           console.error("[shuffle] error:", e);
@@ -204,7 +227,7 @@
       });
     }
 
-    // ========= UNLOCK FLOW pod btnReroll (bez prawdziwego rerolla) =========
+    // ========= UNLOCK FLOW pod btnReroll (iluzja wyboru; odejmowanie licznika z DB) =========
     async function initThenUnlockOnce() {
       // 1) init
       const initRes = await fetchJsonSafe(endpoints.init, {
@@ -259,17 +282,31 @@
               showToast?.(result.data?.error || "Init/Unlock failed", "error", 2200);
               return;
             }
+
+            // ✅ zaktualizuj licznik z DB jeśli backend zwraca rerolls_left
+            if (typeof result.data?.rerolls_left === "number") rerollsLeft = result.data.rerolls_left;
+            paintBadges();
+
             location.reload();
             return;
           }
 
           // normalny unlock
           if (!data?.ok) {
+            if (typeof data?.rerolls_left === "number") rerollsLeft = data.rerolls_left;
+            paintBadges();
             showToast?.(data?.error || "All unlocked", "error", 1800);
             return;
           }
 
-          // stan się zmienił -> render po stronie Django
+          // ✅ sukces: aktualizuj licznik z DB
+          if (typeof data?.rerolls_left === "number") rerollsLeft = data.rerolls_left;
+          paintBadges();
+
+          // etykieta: jeśli licznik spadł do 0, nie cofamy na ROLL (template i tak ustawi po reload)
+          // jeśli chcesz 100% pewności, odkomentuj:
+          // btnReroll.textContent = "REROLL";
+
           location.reload();
           return;
 
@@ -278,7 +315,6 @@
           if (e && e.status) console.error("[unlock-flow] status/body:", e.status, e.body);
           hardError("Unlock: błąd serwera/CSRF — sprawdź konsolę (Network).");
         } finally {
-          // nie zdążysz tego zobaczyć gdy jest reload, ale porządek musi być
           btnReroll.disabled = (rerollsLeft <= 0);
         }
       });
@@ -287,7 +323,6 @@
     // ===== PICK (save active board to DB) =====
     if (btnPick) {
       btnPick.addEventListener("click", async () => {
-        // musimy mieć jakąkolwiek planszę w DOM
         const board = boards[active];
         if (!board) {
           showToast?.("Nie ma aktywnej planszy do zapisu.", "error", 1800);
@@ -298,7 +333,7 @@
 
         try {
           const form = new FormData();
-          form.append("grid", String(active)); // zapisujemy aktualny focus
+          form.append("grid", String(active));
 
           const { data } = await fetchJsonSafe(endpoints.pick, {
             method: "POST",
@@ -313,8 +348,6 @@
           }
 
           showToast?.("Zapisano planszę w bazie ✅", "success", 1800);
-
-          // opcjonalnie: log dla weryfikacji w konsoli
           console.log("[pick] saved:", data);
 
         } catch (e) {
@@ -326,7 +359,6 @@
         }
       });
     }
-
   }
 
   if (document.readyState === "loading") {
