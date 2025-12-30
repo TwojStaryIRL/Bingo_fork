@@ -132,7 +132,7 @@
         badgeShuffle.textContent = String(Math.max(0, shufflesLeft));
         badgeShuffle.classList.toggle("btn-badge--disabled", shufflesLeft <= 0);
       }
-      if (btnReroll) btnReroll.disabled = false; // unlock nie zależy od rerollsLeft
+      if (btnReroll) btnReroll.disabled = (rerollsLeft <= 0);
 
       // shuffle/pick bez planszy = off
       if (btnShuffle) btnShuffle.disabled = (shufflesLeft <= 0) || (boards.length <= 0);
