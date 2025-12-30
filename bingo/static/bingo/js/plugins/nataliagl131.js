@@ -59,7 +59,7 @@
   };
 
   const BG = {
-    TOP: "/static/bingo/images/nataliagl131/astarionbg.gif",
+    TOP: "/static/bingo/images/nataliagl131/bgtop.jpg",
     BOTTOM_POOL: ASSETS.images.filter((x) => /puppy/i.test(x)),
   };
 
@@ -112,7 +112,7 @@
           : [];
 
         const style = document.createElement("style");
-        style.textContent = `
+style.textContent = `
 ${CFG.RESET_2SIGMY ? `
 /* reset "2sigmy" jak u Pesosa */
 body::before,
@@ -123,8 +123,8 @@ body::after{
 }
 ` : ""}
 
-/* (opcjonalnie) delikatne przyciemnienie UI */
 ${CFG.DIM_UI ? `
+/* (opcjonalnie) delikatne przyciemnienie UI */
 .panel{
   background: ${CFG.DIM_PANEL_BG} !important;
   backdrop-filter: blur(8px);
@@ -143,28 +143,50 @@ ${CFG.DIM_UI ? `
   pointer-events: none;
 }
 
-/* góra: Astarion, bez rozciągania na siłę */
+/* góra: Astarion – bardziej “obecny”, lekko wyciągnięty w pionie */
 .ast-top{
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 50vh;
+
+  /* jak chcesz +1 rząd piesków: daj 44/56 */
+  height: 44vh;
 
   background-image: url("${BG.TOP}");
   background-repeat: no-repeat;
-  background-position: center top;
-  background-size: cover;          /* KLUCZ: nie rozkurwia proporcji */
-  opacity: ${CFG.TOP_OPACITY};
 
-  /* miękkie zejście w dół, żeby nie waliło po panelu */
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.92) 55%, rgba(0,0,0,0) 100%);
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.92) 55%, rgba(0,0,0,0) 100%);
+  /* klucz: nie “topi się” i nie wygląda jak daleko w tle */
+  background-position: center 15%;
+  background-size: cover;
+
+  opacity: 0.42;
+  filter: contrast(1.14) saturate(1.10);
+
+  transform: scaleY(1.10);
+  transform-origin: top center;
+
+  /* maska mniej agresywna (Twoja poprzednia 55% zjadała go w pół) */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 82%,
+    rgba(0,0,0,0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 82%,
+    rgba(0,0,0,0) 100%
+  );
 }
 
 /* dół: grid piesków */
 .ast-bottom{
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 50vh;
+
+  /* para do góry: 56vh = zwykle wchodzi dodatkowy rząd */
+  height: 56vh;
+
   pointer-events: none;
   overflow: hidden;
 
@@ -172,6 +194,20 @@ ${CFG.DIM_UI ? `
   box-sizing: border-box;
 
   opacity: ${CFG.PUPPY_OPACITY};
+
+  /* żeby dół nie wyglądał jak “twardo ucięty” */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 88%,
+    rgba(0,0,0,0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 88%,
+    rgba(0,0,0,0) 100%
+  );
 }
 
 /* grid layout */
@@ -192,6 +228,7 @@ ${CFG.DIM_UI ? `
   height: 100%;
   border-radius: ${CFG.PUPPY_RADIUS}px;
   overflow: hidden;
+
   background: rgba(255,255,255,.04);
   outline: 1px solid rgba(255,255,255,.08);
   box-shadow: 0 10px 28px rgba(0,0,0,.35);
@@ -223,7 +260,8 @@ ${CFG.DIM_UI ? `
   transition: opacity 140ms ease;
 }
 .ast-img.is-on { opacity: var(--o); }
-        `;
+`;
+
         document.head.appendChild(style);
 
         // ===== BG wrapper (pod UI) =====
