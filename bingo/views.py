@@ -70,6 +70,8 @@ def game(request):
     saved_grid = board.grid if board else {}
 
     size = int(saved_grid.get("size") or 4)
+    # game board ZAWSZE 4x4 (szablon do puli)
+    size = 4
 
     return render(request, "game.html", {
         "rows": range(size),
@@ -94,6 +96,10 @@ def save_board(request):
     grid = payload.get("grid")
     if not isinstance(grid, list):
         return HttpResponseBadRequest("Missing grid")
+    
+    payload["size"] = 4
+    payload["source"] = "game"
+
 
     # email
     email = (payload.get("email") or request.user.email or "").strip()
@@ -440,9 +446,9 @@ def raffle_pick_save(request):
         state.saved_board_payload = picked_payload
         state.save(update_fields=["saved_board_payload", "updated_at"])
 
-        BingoBoard.objects.update_or_create(
-            user=request.user,
-            defaults={"email": (request.user.email or "").strip(), "grid": picked_payload},
-        )
+        # BingoBoard.objects.update_or_create(
+        #     user=request.user,
+        #     defaults={"email": (request.user.email or "").strip(), "grid": picked_payload},
+        # )
 
         return JsonResponse({"ok": True, "saved": True, "picked_grid_index": grid_idx}, status=200)
