@@ -33,6 +33,7 @@ from bingo.views import export_all_bingo_pdfs
 urlpatterns = [
     path("", LandingLoginView.as_view(), name="landing_login"),
     path("accounts/login/", LandingLoginView.as_view(), name="login"),
+    path("admin/export-bingo/", export_all_bingo_pdfs, name="export_all_bingo_pdfs"),
     path('admin/', admin.site.urls),
     path("game/", game, name="game"), 
     path("accounts/", include("django.contrib.auth.urls")), 
@@ -43,6 +44,5 @@ urlpatterns = [
     path("raffle/unlock/", raffle_unlock_next, name="raffle_unlock_next"),
     path("raffle/init/", raffle_init, name="raffle_init"),
     path("raffle/pick/", raffle_pick_save, name="raffle_pick_save"),
-    path("admin/export-bingo/", export_all_bingo_pdfs, name="export_all_bingo_pdfs"),
 ]
 
