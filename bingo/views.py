@@ -497,6 +497,9 @@ def export_all_bingo_pdfs(request):
 
         # ===== 2 WYBRANY GRID =====
         payload = state.saved_board_payload
+        if not isinstance(payload, dict):
+            payload = {}
+
 
         # ===== 3 FALLBACK: LOSUJEMY Z GENERATED =====
         if not payload or not payload.get("grid"):
@@ -515,13 +518,22 @@ def export_all_bingo_pdfs(request):
             grid = random.choice(grids[:unlocked])
 
             picked_cells = []
-            for r, row in enumerate(grid):
+            for r, row in enumerate(grid or []):
+                if not isinstance(row, list):
+                    continue
                 for c, cell in enumerate(row):
+                    text = "—"
+                    if isinstance(cell, dict):
+                        text = (cell.get("text") or "—").strip() or "—"
+                    elif isinstance(cell, str):
+                        text = cell.strip() or "—"
+
                     picked_cells.append({
                         "cell": r * size + c,
-                        "text": (cell.get("text") or "—").strip(),
+                        "text": text,
                         "assigned_user": user.username,
                     })
+
 
             payload = {
                 "size": size,
