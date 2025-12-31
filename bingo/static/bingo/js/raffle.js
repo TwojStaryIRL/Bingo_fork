@@ -100,6 +100,108 @@
     try { alert(msg); } catch {}
   }
 
+  function attachTileTooltip({
+    tileSelector = ".raffle-tile",
+    textSelector = ".cell-text",
+    userSelector = ".cell-user",
+  } = {}) {
+    const tip = document.createElement("div");
+    tip.className = "raffle-tooltip";
+    tip.style.position = "fixed";
+    tip.style.zIndex = "9999";
+    tip.style.pointerEvents = "none";
+    tip.style.maxWidth = "min(520px, 90vw)";
+    tip.style.padding = "10px 12px";
+    tip.style.borderRadius = "10px";
+    tip.style.background = "rgba(10, 10, 12, 0.95)";
+    tip.style.color = "#fff";
+    tip.style.boxShadow = "0 10px 30px rgba(0,0,0,0.35)";
+    tip.style.lineHeight = "1.2";
+    tip.style.whiteSpace = "pre-wrap";
+    tip.style.opacity = "0";
+    tip.style.transform = "translateY(4px)";
+    tip.style.transition = "opacity 120ms ease, transform 120ms ease";
+    tip.hidden = true;
+    document.body.appendChild(tip);
+
+    let currentTile = null;
+
+    function getTileContent(tile) {
+      const textEl = tile.querySelector(textSelector);
+      if (!textEl) return null;
+
+      const text = (textEl.textContent || "").trim();
+      if (!text || text === "—") return null;
+
+      const userEl = tile.querySelector(userSelector);
+      const user = (userEl?.textContent || "").trim();
+
+      return user ? `${text}\n— ${user}` : text;
+    }
+
+    function show(tile, clientX, clientY) {
+      const content = getTileContent(tile);
+      if (!content) return hide();
+
+      tip.textContent = content;
+      tip.hidden = false;
+
+      tip.style.opacity = "1";
+      tip.style.transform = "translateY(0)";
+
+      const pad = 12;
+      const gap = 14;
+
+      const rect = tip.getBoundingClientRect();
+
+      let x = clientX + gap;
+      let y = clientY - rect.height - gap;
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      if (x + rect.width + pad > vw) x = vw - rect.width - pad;
+      if (x < pad) x = pad;
+
+      if (y < pad) {
+        y = clientY + gap;
+        if (y + rect.height + pad > vh) y = vh - rect.height - pad;
+      }
+
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y}px`;
+    }
+
+    function hide() {
+      tip.style.opacity = "0";
+      tip.style.transform = "translateY(4px)";
+      window.setTimeout(() => { tip.hidden = true; }, 130);
+      currentTile = null;
+    }
+
+    function onMove(e) {
+      const tile = e.target?.closest?.(tileSelector);
+      if (!tile) return;
+      currentTile = tile;
+      show(tile, e.clientX, e.clientY);
+    }
+
+    function onLeave(e) {
+      const leavingTile = e.target?.closest?.(tileSelector);
+      if (leavingTile && leavingTile === currentTile) hide();
+    }
+
+    document.addEventListener("mousemove", onMove, { passive: true });
+    document.addEventListener("mouseout", onLeave, { passive: true });
+
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseout", onLeave);
+      tip.remove();
+    };
+  }
+
+
   function initRafflePlugin() {
     const cfg = getJSONScript("raffle-config", null);
     if (!cfg) {
@@ -176,6 +278,7 @@
 
     applyClasses();
     paintBadges();
+    attachTileTooltip();
 
     // ========= SHUFFLE (nie robi reload, tylko aktualizuje DOM: text + assigned_user) =========
     if (btnShuffle) {
