@@ -9,6 +9,36 @@ from reportlab.lib.utils import simpleSplit
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+from reportlab.pdfbase.pdfmetrics import stringWidth
+
+def split_text_hard(text: str, font_name: str, font_size: int, max_width: float):
+    """
+    Split jak simpleSplit, ale dodatkowo tnie bardzo długie 'słowa' bez spacji,
+    żeby nie wychodziły poza komórkę.
+    """
+    # najpierw normalnie (spacje, myślniki itd.)
+    lines = simpleSplit(text, font_name, font_size, max_width)
+
+    out = []
+    for line in lines:
+        if stringWidth(line, font_name, font_size) <= max_width:
+            out.append(line)
+            continue
+
+        # jeśli linia jest za długa (np. jedno słowo), tnij znak po znaku
+        buf = ""
+        for ch in line:
+            if stringWidth(buf + ch, font_name, font_size) <= max_width:
+                buf += ch
+            else:
+                if buf:
+                    out.append(buf)
+                buf = ch
+        if buf:
+            out.append(buf)
+
+    return out
+
 
 # ===== Unicode fonts (PL chars) =====
 BASE_DIR = Path(__file__).resolve().parent
@@ -67,7 +97,8 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
         # ===== TEXT =====
         c.setFont("DejaVuSans", 9)
         max_width = cell_cm * cm - 8
-        lines = simpleSplit(text, "DejaVuSans", 9, max_width)
+        # lines = simpleSplit(text, "DejaVuSans", 9, max_width)
+        lines = split_text_hard(text, "DejaVuSans", 12, max_width)
 
         text_y = y - 14
         for line in lines[:5]:
