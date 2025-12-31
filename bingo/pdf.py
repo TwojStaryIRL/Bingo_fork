@@ -98,7 +98,7 @@ def render_bingo_pdf(payload: dict, username: str) -> BytesIO:
         c.setFont("DejaVuSans", 9)
         max_width = cell_cm * cm - 8
         # lines = simpleSplit(text, "DejaVuSans", 9, max_width)
-        lines = split_text_hard(text, "DejaVuSans", 12, max_width)
+        lines = split_text_hard(text, "DejaVuSans", 9, max_width)
 
         text_y = y - 14
         for line in lines[:5]:
